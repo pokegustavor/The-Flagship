@@ -40,90 +40,125 @@ namespace The_Flagship
         public override void Execute(string arguments)
         {
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-            PLPilotingSystem currentpisys = ship.PilotingSystem;
-            GameObject currentexterior = ship.Exterior;
-            if (ship != null)
+            if (arguments == "1")
             {
-                GameObject exterior = null;
-                foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
+                //Sector type: 70
+                PLPilotingSystem currentpisys = ship.PilotingSystem;
+                GameObject currentexterior = ship.Exterior;
+                if (ship != null)
                 {
-                    if (gameObject.name == "Test_Exterior")
-                    {
-                        exterior = gameObject;
-                        break;
-                    }
-                }
-                if (exterior != null)
-                {
-                    GameObject newexterior = Object.Instantiate(exterior, exterior.transform.position + new Vector3(0f, 5000f, 0f), exterior.transform.rotation);
-                    newexterior.AddComponent<PLPilotingSystem>();
-                    newexterior.GetComponent<PLPilotingSystem>().MyShipInfo = ship;
-                    newexterior.GetComponent<PLPilotingSystem>().ActivationPoint = currentpisys.ActivationPoint;
-                    currentpisys.ActivationPoint = null;
-                    ship.PilotingSystem = newexterior.GetComponent<PLPilotingSystem>();
-                    newexterior.AddComponent<PLPilotingHUD>();
-                    newexterior.GetComponent<PLPilotingHUD>().MyShipInfo = ship;
-                    ship.PilotingHUD = newexterior.GetComponent<PLPilotingHUD>();
-                    newexterior.AddComponent<PLShipControl>();
-                    newexterior.GetComponent<PLShipControl>().ShipInfo = ship;
-                    newexterior.GetComponent<PLShipControl>().LatestSolution = new List<PathNode>();
-                    ship.MyShipControl = newexterior.GetComponent<PLShipControl>();
-                    newexterior.AddComponent<Rigidbody>();
-                    newexterior.GetComponent<Rigidbody>().useGravity = false;
-                    newexterior.GetComponent<Rigidbody>().angularDrag = 1.1f;
-                    newexterior.GetComponent<Rigidbody>().drag = 0.37f;
-                    newexterior.GetComponent<Rigidbody>().inertiaTensor = new Vector3(14139.08f, 22628.87f, 13388.7f);
-                    newexterior.GetComponent<Rigidbody>().inertiaTensorRotation = new Quaternion(359.9627f, -0.0003f, -0.0001f, 0);
-                    newexterior.GetComponent<Rigidbody>().interpolation = RigidbodyInterpolation.Interpolate;
-                    newexterior.GetComponent<Rigidbody>().mass = 680;
-                    newexterior.GetComponent<PLShipControl>()._rigidbody = newexterior.GetComponent<Rigidbody>();
-                    newexterior.transform.SetParent(ship.ShipRoot.transform);
-                    newexterior.layer = currentexterior.layer;
-                    Object.DontDestroyOnLoad(newexterior);
-                    ship.ExteriorRigidbody = newexterior.GetComponent<Rigidbody>();
-                    ship.ExteriorMeshRenderer = newexterior.GetComponent<MeshRenderer>();
-                    ship.Exterior = newexterior;
-                    ship.OrbitCameraMinDistance = 920f;
-                    ship.OrbitCameraMaxDistance = 1550f;
-                    ship.WarpBlocker.transform.SetParent(newexterior.transform);
-                    ship.WarpObject.transform.SetParent(newexterior.transform);
-                    ship.WarpObject.transform.localPosition = Vector3.zero;
-                    ship.WarpBlocker.transform.localPosition = Vector3.zero;
-                    ship.MainTurretPoint.transform.SetParent(newexterior.transform);
-                    ship.MainTurretPoint.transform.localPosition = new Vector3(0, 171.563f, -478.4174f);
-                    ship.MainTurretPoint.transform.localScale = Vector3.one * 2.5f;
-                    ship.MainTurretPoint.transform.localRotation = new Quaternion(0, 0, 0, 0);
-                    ship.RegularTurretPoints[0].transform.SetParent(newexterior.transform);
-                    ship.RegularTurretPoints[0].transform.localPosition = new Vector3(-75, 40.4253f, 235.0909f);
-                    ship.RegularTurretPoints[0].transform.localScale = Vector3.one * 2.5f;
-                    ship.RegularTurretPoints[0].transform.localRotation = new Quaternion(0, 0, 0, 0);
-                    ship.RegularTurretPoints[1].transform.SetParent(newexterior.transform);
-                    ship.RegularTurretPoints[1].transform.localPosition = new Vector3(75, 40.4253f, 235.0909f);
-                    ship.RegularTurretPoints[1].transform.localScale = Vector3.one * 2.5f;
-                    ship.RegularTurretPoints[1].transform.localRotation = new Quaternion(0, 0, 0, 0);
-                    GameObject clamps = null;
+                    GameObject exterior = null;
                     foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
                     {
-                        if (gameObject.name == "Exterior_FactoryClamps" && gameObject.transform.parent == newexterior.transform)
+                        if (gameObject.name == "Test_Exterior")
                         {
-                            clamps = gameObject;
+                            exterior = gameObject;
                             break;
                         }
                     }
-                    if (clamps != null)
+                    if (exterior != null)
                     {
-                        Object.Destroy(clamps);
+                        GameObject newexterior = Object.Instantiate(exterior, exterior.transform.position + new Vector3(0f, 5000f, 0f), exterior.transform.rotation);
+                        newexterior.AddComponent<PLPilotingSystem>();
+                        newexterior.GetComponent<PLPilotingSystem>().MyShipInfo = ship;
+                        newexterior.GetComponent<PLPilotingSystem>().ActivationPoint = currentpisys.ActivationPoint;
+                        currentpisys.enabled = false;
+                        currentpisys.ActivationPoint = null;
+                        ship.PilotingSystem = newexterior.GetComponent<PLPilotingSystem>();
+                        newexterior.AddComponent<PLPilotingHUD>();
+                        newexterior.GetComponent<PLPilotingHUD>().MyShipInfo = ship;
+                        ship.PilotingHUD = newexterior.GetComponent<PLPilotingHUD>();
+                        newexterior.AddComponent<PLShipControl>();
+                        newexterior.GetComponent<PLShipControl>().ShipInfo = ship;
+                        newexterior.GetComponent<PLShipControl>().LatestSolution = new List<PathNode>();
+                        ship.MyShipControl = newexterior.GetComponent<PLShipControl>();
+                        newexterior.AddComponent<Rigidbody>();
+                        newexterior.GetComponent<Rigidbody>().useGravity = false;
+                        newexterior.GetComponent<Rigidbody>().angularDrag = 1.1f;
+                        newexterior.GetComponent<Rigidbody>().drag = 0.37f;
+                        newexterior.GetComponent<Rigidbody>().inertiaTensor = new Vector3(14139.08f, 22628.87f, 13388.7f);
+                        newexterior.GetComponent<Rigidbody>().inertiaTensorRotation = new Quaternion(359.9627f, -0.0003f, -0.0001f, 0);
+                        newexterior.GetComponent<Rigidbody>().interpolation = RigidbodyInterpolation.Interpolate;
+                        newexterior.GetComponent<Rigidbody>().mass = 680;
+                        newexterior.GetComponent<PLShipControl>()._rigidbody = newexterior.GetComponent<Rigidbody>();
+                        newexterior.transform.SetParent(ship.ShipRoot.transform);
+                        newexterior.layer = currentexterior.layer;
+                        newexterior.AddComponent<PLFlightAI>();
+                        newexterior.GetComponent<PLFlightAI>().MyShipInfo = ship;
+                        newexterior.tag = "Ship";
+                        Object.DontDestroyOnLoad(newexterior);
+                        ship.ExteriorRenderers.Add(newexterior.GetComponent<MeshRenderer>());
+                        ship.ExteriorRigidbody = newexterior.GetComponent<Rigidbody>();
+                        ship.ExteriorMeshRenderer = newexterior.GetComponent<MeshRenderer>();
+                        ship.Exterior = newexterior;
+                        ship.ExteriorCollider = newexterior.GetComponent<MeshCollider>();
+                        ship.ExteriorMeshCollider = newexterior.GetComponent<MeshCollider>();
+                        ship.Hull_Virtual_MeshCollider = newexterior.GetComponent<MeshCollider>();
+                        ship.OrbitCameraMinDistance = 920f;
+                        ship.OrbitCameraMaxDistance = 1550f;
+                        ship.WarpBlocker.transform.SetParent(newexterior.transform);
+                        ship.WarpObject.transform.SetParent(newexterior.transform);
+                        ship.WarpObject.transform.localPosition = Vector3.zero;
+                        ship.WarpBlocker.transform.localPosition = Vector3.zero;
+                        ship.MainTurretPoint.transform.SetParent(newexterior.transform);
+                        ship.MainTurretPoint.transform.localPosition = new Vector3(0, 171.563f, -478.4174f);
+                        ship.MainTurretPoint.transform.localScale = Vector3.one * 10f;
+                        ship.MainTurretPoint.transform.localRotation = new Quaternion(0, 0, 0, 0);
+                        ship.RegularTurretPoints[0].transform.SetParent(newexterior.transform);
+                        ship.RegularTurretPoints[0].transform.localPosition = new Vector3(-75, 40.4253f, 235.0909f);
+                        ship.RegularTurretPoints[0].transform.localScale = Vector3.one * 10f;
+                        ship.RegularTurretPoints[0].transform.localRotation = new Quaternion(0, 0, 0, 0);
+                        ship.RegularTurretPoints[1].transform.SetParent(newexterior.transform);
+                        ship.RegularTurretPoints[1].transform.localPosition = new Vector3(75, 40.4253f, 235.0909f);
+                        ship.RegularTurretPoints[1].transform.localScale = Vector3.one * 10f;
+                        ship.RegularTurretPoints[1].transform.localRotation = new Quaternion(0, 0, 0, 0);
+                        GameObject clamps = null;
+                        foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
+                        {
+                            if (gameObject.name == "Exterior_FactoryClamps" && gameObject.transform.parent == newexterior.transform)
+                            {
+                                clamps = gameObject;
+                                break;
+                            }
+                        }
+                        if (clamps != null)
+                        {
+                            Object.Destroy(clamps);
+                        }
+                        foreach (MeshRenderer renderer in currentexterior.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            renderer.enabled = false;
+                        }
+                        foreach (MeshCollider collider in currentexterior.GetComponentsInChildren<MeshCollider>())
+                        {
+                            collider.enabled = false;
+                        }
+                        currentexterior.transform.position = newexterior.transform.position;
+                        currentexterior.transform.SetParent(newexterior.transform, false);
                     }
-                    foreach (MeshRenderer renderer in currentexterior.GetComponentsInChildren<MeshRenderer>())
+                }
+            }
+            else 
+            {
+                //Sector type: 119
+                //Interior View Location: -4, -265, -305
+                GameObject interior = null;
+                GameObject bridge = null;
+                foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
+                {
+                    if (gameObject.name == "Planet")
                     {
-                        renderer.enabled = false;
+                        interior = gameObject;
                     }
-                    foreach (MeshCollider collider in currentexterior.GetComponentsInChildren<MeshCollider>())
+                    else if(gameObject.name == "BridgeBSO") 
                     {
-                        collider.enabled = false;
+                        bridge = gameObject;
                     }
-                    currentexterior.transform.position = newexterior.transform.position;
-                    currentexterior.transform.SetParent(newexterior.transform,false);
+                    if (interior != null && bridge != null) break;
+                }
+                if(interior != null) 
+                {
+                    
                 }
             }
         }
