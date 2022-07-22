@@ -11,7 +11,9 @@ namespace The_Flagship
 {
     public class Mod : PulsarMod
     {
-        public override string Version => "1.0";
+        public static bool AutoAssemble = false;
+        public static ParticleSystem reactorEffect = null;
+        public override string Version => "Beta 1";
 
         public override string Author => "pokegustavo";
 
@@ -25,27 +27,115 @@ namespace The_Flagship
         }
     }
 
-    public class testCommand : ChatCommand
+    [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
+    class OnJoin
     {
+        static void Prefix()
+        {
+            if (PhotonNetwork.isMasterClient)
+            {
+                Command.shipAssembled = false;
+                string savedoptions = PLXMLOptionsIO.Instance.CurrentOptions.GetStringValue("flagship");
+                if (savedoptions != string.Empty)
+                {
+                    Mod.AutoAssemble = bool.Parse(savedoptions);
+                }
+                if (Mod.AutoAssemble)
+                {
+                    AutoAssemble();
+                }
+            }
+            else
+            {
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
+            }
+        }
+        static async void AutoAssemble()
+        {
+            while (PLEncounterManager.Instance == null || PLEncounterManager.Instance.PlayerShip == null)
+            {
+                await Task.Yield();
+            }
+            if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.OLDWARS_HUMAN && !Command.shipAssembled)
+            {
+                Command.shipAssembled = true;
+                Command.FabricateFlagship();
+            }
+        }
+    }
+    public class sendRPC : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (Command.shipAssembled) SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", sender.sender, new object[0]);
+        }
+    }
+    public class RPCReciever : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (sender.sender == PhotonNetwork.masterClient)
+            {
+                Command.shipAssembled = true;
+                Command.FabricateFlagship();
+            }
+        }
+    }
+    public class Command : ChatCommand
+    {
+        public static bool shipAssembled = false;
         public override string[] CommandAliases()
         {
             return new string[]
             {
-                "test"
+                "flagship"
             };
         }
-
+        public override string[][] Arguments()
+        {
+            return new string[][] { new string[] { "assemble", "autoassemble" } };
+        }
         public override string Description()
         {
-            return "Test command";
+            return "Assembles the flagship";
         }
 
         public override void Execute(string arguments)
         {
-            FabricateFlagship();
+            if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
+            if (PLEncounterManager.Instance.PlayerShip != null)
+            {
+                if (PLEncounterManager.Instance.PlayerShip.ShipTypeID != EShipType.OLDWARS_HUMAN)
+                {
+                    PulsarModLoader.Utilities.Messaging.Notification("You must be playing with an Interceptor to use the flagship!");
+                    return;
+                }
+                if (arguments == Arguments()[0][0])
+                {
+                    if (!shipAssembled)
+                    {
+                        FabricateFlagship();
+                        shipAssembled = true;
+                        PulsarModLoader.ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
+                    }
+                    else
+                    {
+                        PulsarModLoader.Utilities.Messaging.Notification("Ship already assembled!");
+                    }
+                }
+                if (arguments == Arguments()[0][1])
+                {
+                    Mod.AutoAssemble = !Mod.AutoAssemble;
+                    PLXMLOptionsIO.Instance.CurrentOptions.SetStringValue("flagship", string.Format("{0}", new object[]
+                    {
+                        Mod.AutoAssemble
+                    }));
+                    PulsarModLoader.Utilities.Messaging.Notification("Auto assemble " + (Mod.AutoAssemble ? "Enabled" : "Disabled"));
+                }
+            }
         }
 
-        public void MoveObjAndChild(Transform transform, int layer)
+        public static void MoveObjAndChild(Transform transform, int layer)
         {
             foreach (Transform child in transform)
             {
@@ -58,7 +148,8 @@ namespace The_Flagship
                 || transform.gameObject.name.ToLower().Contains("infectedsurface") || transform.gameObject.name.ToLower().Contains("missionvolume") || transform.gameObject.name.ToLower().Contains("if_splatter") || transform.gameObject.name.ToLower().Contains("if_bubble") || transform.gameObject.name.ToLower().Contains("fs_rot")
                 || transform.gameObject.name.ToLower().Contains("spawns") || transform.gameObject.name.ToLower().Contains("snowps") || transform.gameObject.name.ToLower().Contains("particle system") || transform.gameObject.name.Split(' ')[0] == "Plane" || transform.gameObject.name.ToLower().Contains("rot_")
                 || transform.gameObject.name.ToLower().Contains("humanoid_drone") || transform.gameObject.name.ToLower().Contains("generic_civ") || transform.gameObject.name.ToLower().Contains("deadbody") || transform.gameObject.name.ToLower().Contains("veins_") || transform.gameObject.name.ToLower().Contains("estate_4")
-                || transform.gameObject.name.ToLower().Contains("exosuitasset") || transform.gameObject.name.ToLower().Contains("computer_good"))
+                || transform.gameObject.name.ToLower().Contains("exosuitasset") || transform.gameObject.name.ToLower().Contains("computer_good") || transform.gameObject.name.ToLower().Contains("forsakenflagship_shakingvolume") || transform.gameObject.name.ToLower().Contains("market_deco_02") || transform.gameObject.name.ToLower().Contains("aog_crate_01")
+                || transform.gameObject.name.ToLower().Contains("cargocrate_02-2"))
             {
                 transform.gameObject.tag = "Projectile";
             }
@@ -68,19 +159,24 @@ namespace The_Flagship
             }
         }
 
-        async void FabricateFlagship()
+        public static async void FabricateFlagship()
         {
+            PulsarModLoader.Utilities.Messaging.Notification("Assembling the flagship, please stand by...", PLNetworkManager.Instance.LocalPlayer, default, 10000);
+            PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+            ship.IsGodModeActive = true;
             AsyncOperation op = SceneManager.LoadSceneAsync(67, LoadSceneMode.Additive);
-            AsyncOperation op2 = SceneManager.LoadSceneAsync(105, LoadSceneMode.Additive);
-            while (!op.isDone || !op2.isDone)
+            AsyncOperation op2 = SceneManager.LoadSceneAsync(10, LoadSceneMode.Additive);
+            AsyncOperation op3 = SceneManager.LoadSceneAsync(105, LoadSceneMode.Additive);
+            while (!op.isDone || !op2.isDone || !op3.isDone)
             {
                 await Task.Yield();
             }
             Scene Estate = SceneManager.GetSceneByBuildIndex(67);
             Scene Flagship = SceneManager.GetSceneByBuildIndex(105);
-            PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+            Scene WDHub = SceneManager.GetSceneByBuildIndex(10);
             PLPilotingSystem currentpisys = ship.PilotingSystem;
             GameObject currentexterior = ship.Exterior;
+            GameObject hullhealer = null;
             if (ship != null)
             {
                 GameObject exterior = null;
@@ -118,6 +214,8 @@ namespace The_Flagship
                     newexterior.GetComponent<Rigidbody>().interpolation = RigidbodyInterpolation.Interpolate;
                     newexterior.GetComponent<Rigidbody>().mass = 680;
                     newexterior.GetComponent<PLShipControl>()._rigidbody = newexterior.GetComponent<Rigidbody>();
+                    newexterior.GetComponent<Rigidbody>().angularVelocity = currentexterior.GetComponent<Rigidbody>().angularVelocity;
+                    newexterior.GetComponent<Rigidbody>().velocity = currentexterior.GetComponent<Rigidbody>().velocity;
                     newexterior.transform.SetParent(ship.ShipRoot.transform);
                     newexterior.layer = currentexterior.layer;
                     newexterior.AddComponent<PLFlightAI>();
@@ -128,6 +226,7 @@ namespace The_Flagship
                     ship.ExteriorRigidbody = newexterior.GetComponent<Rigidbody>();
                     ship.ExteriorMeshRenderer = newexterior.GetComponent<MeshRenderer>();
                     ship.Exterior = newexterior;
+                    ship.ExteriorTransformCached = newexterior.transform;
                     ship.ExteriorCollider = newexterior.GetComponent<MeshCollider>();
                     ship.ExteriorMeshCollider = newexterior.GetComponent<MeshCollider>();
                     ship.Hull_Virtual_MeshCollider = newexterior.GetComponent<MeshCollider>();
@@ -194,10 +293,21 @@ namespace The_Flagship
                 GameObject sciencesys = null;
                 GameObject fuelboard = null;
                 GameObject fueldecal = null;
-                GameObject metalblock = null;
+                List<Light> allLights = new List<Light>();
+                GameObject enginesys = null;
+                GameObject switchboard = null;
+                GameObject[] powerswitches = new GameObject[3] { null, null, null };
+                GameObject hullheal = null;
+                GameObject chair = null;
+                GameObject ejectswitch = null;
+                GameObject ejectlabel = null;
+                GameObject safetyswitch = null;
+                GameObject safetybox = null;
+                GameObject safetylabel = null;
+                GameObject teldoor = null;
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
                 {
-                    if (gameObject.name == "Planet")
+                    if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 105)
                     {
                         interior = gameObject;
                     }
@@ -233,7 +343,7 @@ namespace The_Flagship
                     {
                         copydoor = gameObject;
                     }
-                    else if(gameObject.name == "Turrett_Control_01" && smallturret1 == null && gameObject != smallturret2) 
+                    else if (gameObject.name == "Turrett_Control_01" && smallturret1 == null && gameObject != smallturret2)
                     {
                         smallturret1 = gameObject;
                     }
@@ -245,11 +355,11 @@ namespace The_Flagship
                     {
                         mainturret = gameObject;
                     }
-                    else if(gameObject.name == "SystemInstance_Weapons") 
+                    else if (gameObject.name == "SystemInstance_Weapons")
                     {
                         weaponssys = gameObject;
                     }
-                    else if(gameObject.name == "Switch_01" && gameObject.transform.childCount > 0 && gameObject.transform.GetChild(0).name == "pCube24" && nukeswitch1 == null && gameObject != nukeswitch2 && gameObject.transform.childCount == 3)
+                    else if (gameObject.name == "Switch_01" && gameObject.transform.childCount > 0 && gameObject.transform.GetChild(0).name == "pCube24" && nukeswitch1 == null && gameObject != nukeswitch2 && gameObject.transform.childCount == 3)
                     {
                         nukeswitch1 = gameObject;
                     }
@@ -257,15 +367,15 @@ namespace The_Flagship
                     {
                         nukeswitch2 = gameObject;
                     }
-                    else if(gameObject.name == "Nuke_Desk_02") 
+                    else if (gameObject.name == "Nuke_Desk_02")
                     {
                         nukecore = gameObject;
                     }
-                    else if(gameObject.name == "LifeSupportSysInstance") 
+                    else if (gameObject.name == "LifeSupportSysInstance")
                     {
                         lifesys = gameObject;
                     }
-                    else if(gameObject.name == "ComputerSysInstance") 
+                    else if (gameObject.name == "ComputerSysInstance")
                     {
                         sciencesys = gameObject;
                     }
@@ -277,13 +387,73 @@ namespace The_Flagship
                     {
                         fueldecal = gameObject;
                     }
-                    else if (gameObject.name == "MetalBlock_01")
+                    else if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 67)
                     {
-                        metalblock = gameObject;
+                        foreach (Light light in gameObject.GetComponentsInChildren<Light>(true))
+                        {
+                            if (light != null)
+                            {
+                                allLights.Add(light);
+                            }
+                        }
+                    }
+                    else if (gameObject.name == "EngineeringSysInstance")
+                    {
+                        enginesys = gameObject;
+                    }
+                    else if (gameObject.name == "Switchboard_01")
+                    {
+                        switchboard = gameObject;
+                    }
+                    else if (gameObject.name == "Switch_01" && gameObject.transform.childCount == 4 && powerswitches[0] == null)
+                    {
+                        powerswitches[0] = gameObject;
+                    }
+                    else if (gameObject.name == "Switch_01" && gameObject.transform.childCount == 4 && powerswitches[1] == null && gameObject != powerswitches[0])
+                    {
+                        powerswitches[1] = gameObject;
+                    }
+                    else if (gameObject.name == "Switch_01" && gameObject.transform.childCount == 4 && powerswitches[2] == null && gameObject != powerswitches[1])
+                    {
+                        powerswitches[2] = gameObject;
+                    }
+                    else if (gameObject.name == "ScrapStation")
+                    {
+                        hullheal = gameObject;
+                    }
+                    else if (gameObject.name == "Chair_01 (15)" && gameObject.scene.buildIndex == 105)
+                    {
+                        chair = gameObject;
+                    }
+                    else if (gameObject.name == "Lever_01" && gameObject.GetComponent<PLReactorCoreEjectStation>() != null)
+                    {
+                        ejectswitch = gameObject;
+                    }
+                    else if (gameObject.name == "Quad" && gameObject.layer == ship.InteriorStatic.layer)
+                    {
+                        ejectlabel = gameObject;
+                    }
+                    else if (gameObject.name == "Lever_01" && gameObject.GetComponent<PLReactorSafetyPanel>() != null)
+                    {
+                        safetyswitch = gameObject;
+                    }
+                    else if (gameObject.name == "SafetySwitchboard_01")
+                    {
+                        safetybox = gameObject;
+                    }
+                    else if (gameObject.name == "Decal_CoreSafety")
+                    {
+                        safetylabel = gameObject;
+                    }
+                    else if (gameObject.name == "Door_01" && gameObject.transform.parent.name == "BridgePrefab")
+                    {
+                        teldoor = gameObject;
                     }
                     if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null && reactorroom != null && copydoor != null
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
-                        && sciencesys != null && fuelboard != null && fueldecal != null && metalblock != null) break;
+                        && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
+                        && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
+                        && safetylabel != null && teldoor != null) break;
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
@@ -291,7 +461,13 @@ namespace The_Flagship
                     GameObject newbridge = Object.Instantiate(bridge, new Vector3(0, -258.2285f, -409.0034f), bridge.transform.rotation);
                     GameObject newrighwing = Object.Instantiate(rightwing, new Vector3(357.7801f, -367.354f, 1681.315f), rightwing.transform.rotation);
                     GameObject newrightwingdeco = Object.Instantiate(rightwingDeco, new Vector3(462.3824f, -431.5907f, 1618.373f), rightwingDeco.transform.rotation);
-                    Vector3 offset = (newrighwing.transform.position - rightwing.transform.position);
+                    Vector3 offset = newrighwing.transform.position - rightwing.transform.position;
+                    foreach (Light light in allLights)
+                    {
+                        GameObject newlight = Object.Instantiate(light.gameObject, light.gameObject.transform.position + offset, light.gameObject.transform.rotation);
+                        Object.DontDestroyOnLoad(newlight);
+                        newlight.transform.SetParent(newinterior.transform);
+                    }
                     GameObject newvault = Object.Instantiate(vault, vault.transform.position + offset, vault.transform.rotation);
                     GameObject newvaultdeco = Object.Instantiate(vaultDeco, vaultDeco.transform.position + offset, vaultDeco.transform.rotation);
                     GameObject newengineering = Object.Instantiate(engineering, engineering.transform.position + offset + new Vector3(0, 0, 2), new Quaternion(0, 0.0029f, 0, 1));
@@ -319,6 +495,8 @@ namespace The_Flagship
                         GameObject newEngineDoor = Object.Instantiate(copydoor, oldEngineDoor.transform.position, oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
                         oldEngineDoor.transform.position += new Vector3(0, 20, 0);
+                        GameObject newCaptainDoor = Object.Instantiate(copydoor, new Vector3(372.6432f, -440.1014f, 1670.436f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                        newCaptainDoor.transform.SetParent(newinterior.transform);
 
                     }
                     foreach (Transform transform in newinterior.transform)
@@ -344,6 +522,21 @@ namespace The_Flagship
                     newvaultdeco.transform.SetParent(newvault.transform);
                     newengineering.transform.SetParent(newinterior.transform);
                     newreactor.transform.SetParent(newinterior.transform);
+                    newreactor.transform.GetChild(7).gameObject.SetActive(true);
+                    foreach (Transform transform in newreactor.transform)
+                    {
+                        if (transform.gameObject.name == "Sphere")
+                        {
+                            transform.gameObject.SetActive(false);
+                            break;
+                        }
+                    }
+                    Mod.reactorEffect = newreactor.transform.GetComponentInChildren<ParticleSystem>(true);
+                    Mod.reactorEffect.gameObject.SetActive(true);
+                    foreach (ParticleSystem particle in ship.ReactorInstance.gameObject.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        particle.startLifetime = 5;
+                    }
                     GameObject[] infectedstuff = GameObject.FindGameObjectsWithTag("Projectile");
                     foreach (GameObject @object in infectedstuff)
                     {
@@ -398,6 +591,13 @@ namespace The_Flagship
                     {
                         volume.enabled = false;
                     }
+                    foreach(PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>()) 
+                    {
+                        if(sfx.Event.ToLower().Contains("infected")) 
+                        {
+                            sfx.enabled = false;
+                        }
+                    }
                     PLTeleportationScreen origianlTP = null;
                     foreach (PLUIScreen mesa in ship.MyScreenBase.AllScreens)
                     {
@@ -429,12 +629,38 @@ namespace The_Flagship
                         GameObject EngineToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(378.7f, -384.8f, 1366.8f), new Quaternion(0, 0, 0, 1));
                         Object.DontDestroyOnLoad(EngineToBridgeOjb);
                         PLInteriorDoor EngineToBridge = EngineToBridgeOjb.GetComponent<PLInteriorDoor>();
-                        if(BridgeToEngine != null && EngineToBridge != null) 
+                        if (BridgeToEngine != null && EngineToBridge != null)
                         {
                             BridgeToEngine.TargetDoor = EngineToBridge;
                             BridgeToEngine.VisibleName = "Engineering";
                             EngineToBridge.TargetDoor = BridgeToEngine;
                             EngineToBridge.VisibleName = "Bridge";
+                        }
+                        GameObject BridgeToScienceOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(27.6f, -261, -395.3f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(BridgeToScienceOjb);
+                        PLInteriorDoor BridgeToScience = BridgeToScienceOjb.GetComponent<PLInteriorDoor>();
+                        GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(380.3f, -399.7f, 1723.8f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(ScienceToBridgeOjb);
+                        PLInteriorDoor ScienceToBridge = ScienceToBridgeOjb.GetComponent<PLInteriorDoor>();
+                        if (BridgeToScience != null && ScienceToBridge != null)
+                        {
+                            BridgeToScience.TargetDoor = ScienceToBridge;
+                            BridgeToScience.VisibleName = "Atrium";
+                            ScienceToBridge.TargetDoor = BridgeToScience;
+                            ScienceToBridge.VisibleName = "Bridge";
+                        }
+                        GameObject EngineToReactorOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(374.3f, -384.9f, 1387.7f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(EngineToReactorOjb);
+                        PLInteriorDoor EngineToReactor = EngineToReactorOjb.GetComponent<PLInteriorDoor>();
+                        GameObject ReactorToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(367.4f, -442.5f, 1403.1f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(ReactorToEngineOjb);
+                        PLInteriorDoor ReactorToEngine = ReactorToEngineOjb.GetComponent<PLInteriorDoor>();
+                        if (EngineToReactor != null && ReactorToEngine != null)
+                        {
+                            EngineToReactor.TargetDoor = ReactorToEngine;
+                            EngineToReactor.VisibleName = "Reactor";
+                            ReactorToEngine.TargetDoor = EngineToReactor;
+                            ReactorToEngine.VisibleName = "Engineering";
                         }
                     }
                     ship.AllInteriorShipLightIntensities = new float[ship.InteriorShipLights.Count];
@@ -482,10 +708,10 @@ namespace The_Flagship
                             break;
                         }
                     }
-                    ship.InteriorStatic.transform.position = new Vector3(367.3f,-382.3f,1548);
+                    ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
                     newinterior.transform.SetParent(ship.InteriorStatic.transform);
                     newbridge.transform.SetParent(ship.InteriorStatic.transform);
-                    if (smallturret1 != null) 
+                    if (smallturret1 != null)
                     {
                         smallturret1.transform.position = new Vector3(390.0232f, -383.5964f, 1517.274f);
                         smallturret1.transform.rotation = new Quaternion(0, 0, 0, 1);
@@ -493,75 +719,211 @@ namespace The_Flagship
                     }
                     if (smallturret2 != null)
                     {
-                        smallturret2.transform.position = new Vector3(326.2234f, - 383.5964f, 1517.274f);
+                        smallturret2.transform.position = new Vector3(326.2234f, -383.5964f, 1517.274f);
                         smallturret2.transform.rotation = new Quaternion(0, 1, 0, 0);
                         ship.InteriorRenderers.Add(smallturret2.GetComponent<MeshRenderer>());
                     }
-                    if(mainturret != null) 
+                    if (mainturret != null)
                     {
-                        mainturret.transform.position = new Vector3(358, - 383.6652f, 1572.374f);
+                        mainturret.transform.position = new Vector3(358, -383.6652f, 1572.374f);
                         mainturret.transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
                         ship.InteriorRenderers.Add(mainturret.GetComponent<MeshRenderer>());
                     }
-                    if(weaponssys != null) 
+                    if (weaponssys != null)
                     {
-                        weaponssys.transform.position = new Vector3(358.1818f, - 383.6548f, 1588.564f);
-                        weaponssys.transform.rotation = new Quaternion(0,0.7071f,0,-0.7071f);
+                        weaponssys.transform.position = new Vector3(358.1818f, -383.6548f, 1588.564f);
+                        weaponssys.transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
                         ship.SysInstUIRoots[1].transform.position = new Vector3(358.1926f, -382.2694f, 1587.644f);
                         ship.SysInstUIRoots[1].transform.rotation = new Quaternion(0, 0, 0, 1);
                     }
-                    if(nukecore != null && nukeswitch1 != null && nukeswitch2 != null) 
+                    if (nukecore != null && nukeswitch1 != null && nukeswitch2 != null)
                     {
                         nukeswitch1.transform.SetParent(nukecore.transform);
                         nukeswitch2.transform.SetParent(nukecore.transform);
                         nukeswitch2.transform.localPosition = new Vector3(0.3883f, 1.5048f, -0.873f);
                         ship.NukeActivator.transform.SetParent(nukecore.transform);
                         nukecore.transform.position = new Vector3(371.977f, -383.6779f, 1609);
-                        nukecore.transform.rotation = new Quaternion(0,1,0,0);
+                        nukecore.transform.rotation = new Quaternion(0, 1, 0, 0);
                     }
-                    if(lifesys != null) 
+                    if (lifesys != null)
                     {
-                        lifesys.transform.position = new Vector3(380.4184f, - 400.8968f, 1732.827f);
-                        lifesys.transform.rotation = new Quaternion(0,1,0,0);
-                        ship.SysInstUIRoots[3].transform.position = new Vector3(381.32f, - 399.8868f, 1732.855f);
+                        lifesys.transform.position = new Vector3(380.4184f, -400.8968f, 1732.827f);
+                        lifesys.transform.rotation = new Quaternion(0, 1, 0, 0);
+                        ship.SysInstUIRoots[3].transform.position = new Vector3(381.32f, -399.8868f, 1732.855f);
                         ship.SysInstUIRoots[3].transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
                     }
-                    if(sciencesys != null) 
+                    if (sciencesys != null)
                     {
-                        sciencesys.transform.position = new Vector3(335.9909f, - 400.8744f, 1732.785f);
+                        sciencesys.transform.position = new Vector3(335.9909f, -400.8744f, 1732.785f);
                         sciencesys.transform.rotation = new Quaternion(-0.002f, 0, 0.0005f, -1);
-                        ship.SysInstUIRoots[0].transform.position = new Vector3(335.433f,- 399.7129f, 1732.852f);
+                        ship.SysInstUIRoots[0].transform.position = new Vector3(335.433f, -399.7129f, 1732.852f);
                         ship.SysInstUIRoots[0].transform.rotation = new Quaternion(0.0014f, -0.7071f, -0.0043f, -0.7071f);
                         ship.ResearchWorldRootBGObj.transform.position = new Vector3(316.6057f, -399, 1735.064f);
                         ship.ResearchWorldRootBGObj.transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
                         ship.ResearchLockerWorldRootBGObj.transform.position = new Vector3(315.9459f, -398.9975f, 1732.498f);
                         ship.ResearchLockerWorldRootBGObj.transform.rotation = new Quaternion(0, 0.4468f, 0, -0.8946f);
-                        ship.ResearchLockerFrame.transform.position = new Vector3(316.0803f, - 399.738f, 1732.706f);
+                        ship.ResearchLockerFrame.transform.position = new Vector3(316.0803f, -399.738f, 1732.706f);
                         ship.ResearchLockerFrame.transform.rotation = new Quaternion(0, 0.4468f, 0, -0.8946f);
                         ship.ResearchLockerCollider.transform.position = new Vector3(316.0803f, -399.738f, 1732.706f);
                         ship.ResearchLockerCollider.transform.rotation = new Quaternion(0, 0.4468f, 0, -0.8946f);
                         ship.ResearchLockerWorldRoot.transform.position = new Vector3(316.0803f, -399.738f, 1732.706f);
                         ship.ResearchLockerWorldRoot.transform.rotation = new Quaternion(0, 0.4468f, 0, -0.8946f);
                     }
-                    if(fuelboard != null) 
+                    if (enginesys != null)
                     {
-                        Vector3 original = ship.WarpFuelBoostLever.transform.position;
-                        Quaternion originalrot = ship.WarpFuelBoostLever.transform.rotation;
-                        ship.WarpFuelBoostLever.transform.position = new Vector3(372.5025f, - 348.0554f, 1391.55f);
-                        ship.WarpFuelBoostLever.transform.rotation = new Quaternion(0,0.997f,0,0.0773f);
-                        fuelboard.transform.position += ship.WarpFuelBoostLever.transform.position - original;
-                        fuelboard.transform.rotation = ship.WarpFuelBoostLever.transform.rotation;
-                        if(fueldecal != null) 
+                        enginesys.transform.position = new Vector3(357.2437f, -385.8001f, 1345.707f);
+                        ship.SysInstUIRoots[2].transform.position = new Vector3(357.2109f, -384.793f, 1346.845f);
+                    }
+                    if (fuelboard != null)
+                    {
+                        ship.WarpFuelBoostLever.transform.position = new Vector3(369.8772f, -384.394f, 1390.938f);
+                        ship.WarpFuelBoostLever.transform.rotation = new Quaternion(0, 0.541f, 0, -0.841f);
+                        ship.WarpFuelBoostLever.LightModelRenderer.transform.position = new Vector3(369.8477f, -383.7385f, 1390.91f);
+                        ship.WarpFuelBoostLever.LightModelRenderer.transform.rotation = new Quaternion(0, 0.541f, 0, -0.841f);
+                        ship.WarpFuelBoostLever.CapsuleMeshRenderer.transform.position = new Vector3(369.1632f, -384.4381f, 1391.212f);
+                        ship.WarpFuelBoostLever.CapsuleMeshRenderer.transform.rotation = new Quaternion(0, 0.541f, 0, -0.841f);
+                        fuelboard.transform.position = new Vector3(369.5135f, -384.2985f, 1391.068f);
+                        fuelboard.transform.rotation = new Quaternion(0, 0.2346f, 0, 0.9721f);
+                        if (fueldecal != null)
                         {
-                            fueldecal.transform.position += ship.WarpFuelBoostLever.transform.position - original;
-                            fueldecal.transform.rotation = ship.WarpFuelBoostLever.transform.rotation;
-                        }
-                        if(metalblock != null) 
-                        {
-                            metalblock.transform.position += ship.WarpFuelBoostLever.transform.position - original;
-                            metalblock.transform.rotation = ship.WarpFuelBoostLever.transform.rotation;
+                            fueldecal.transform.position = new Vector3(369.9951f, -383.163f, 1391.209f);
+                            fueldecal.transform.rotation = new Quaternion(0, 0.2233f, 0, 0.9748f);
                         }
                     }
+                    if (switchboard != null)
+                    {
+                        switchboard.transform.position = new Vector3(347.1287f, -384.3018f, 1391.802f);
+                        switchboard.transform.rotation = new Quaternion(0, 0.8528f, 0, -0.5223f);
+                        if (powerswitches[0] != null)
+                        {
+                            powerswitches[0].transform.position = new Vector3(346.249f, -384.2436f, 1391.329f);
+                            powerswitches[0].transform.rotation = new Quaternion(0, 0.5157f, 0, 0.8568f);
+                        }
+                        if (powerswitches[1] != null)
+                        {
+                            powerswitches[1].transform.position = new Vector3(346.8275f, -384.2436f, 1391.644f);
+                            powerswitches[1].transform.rotation = new Quaternion(0, 0.5157f, 0, 0.8568f);
+                        }
+                        if (powerswitches[2] != null)
+                        {
+                            powerswitches[2].transform.position = new Vector3(347.4274f, -384.2436f, 1391.958f);
+                            powerswitches[2].transform.rotation = new Quaternion(0, 0.5157f, 0, 0.8568f);
+                        }
+                    }
+                    if (safetybox != null)
+                    {
+                        if (safetyswitch != null)
+                        {
+                            safetyswitch.transform.SetParent(safetybox.transform);
+                        }
+                        if (safetylabel != null)
+                        {
+                            safetylabel.transform.SetParent(safetybox.transform);
+                        }
+                        safetybox.transform.position = new Vector3(345.8221f, -442, 1397.913f);
+                        safetybox.transform.rotation = new Quaternion(0, 0.8348f, 0, -0.5506f);
+                    }
+                    if (hullheal != null)
+                    {
+                        ship.HullHealSwitch.transform.SetParent(hullheal.transform);
+                        (ship as PLOldWarsShip_Human).HullHealUI.transform.SetParent(hullheal.transform);
+                        hullheal.transform.localScale = new Vector3(1.8f, 1.8f, 1.8f);
+                        hullheal.transform.position = new Vector3(496.0247f, -404.446f, 1503.041f);
+                        hullheal.transform.SetParent(newvault.transform);
+                        hullheal.transform.rotation = new Quaternion(0, 0.7686f, 0, -0.6397f);
+                        hullhealer = hullheal;
+                    }
+                    if (chair != null)
+                    {
+                        GameObject cloneChair = Object.Instantiate(chair, new Vector3(327.5073f, -443.3779f, 1788.547f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(cloneChair.transform);
+                        cloneChair.layer = ship.InteriorStatic.layer;
+                        cloneChair = Object.Instantiate(chair, new Vector3(327.9145f, -443.3779f, 1792.25f), new Quaternion(0, 1, 0, 0));
+                        Object.DontDestroyOnLoad(cloneChair.transform);
+                        cloneChair.layer = ship.InteriorStatic.layer;
+                        cloneChair = Object.Instantiate(chair, new Vector3(327.0746f, -443.3779f, 1792.25f), new Quaternion(0, 1, 0, 0));
+                        Object.DontDestroyOnLoad(cloneChair.transform);
+                        cloneChair.layer = ship.InteriorStatic.layer;
+                        ship.GetLiarsDice().transform.position = new Vector3(327, -441, 1790);
+                        ship.LiarsDice_SitPositions[0].position = new Vector3(327.9145f, -443.3582f, 1792.25f);
+                        ship.LiarsDice_SitPositions[0].rotation = new Quaternion(0, 1, 0, 0);
+                        ship.LiarsDice_SitPositions[1].position = new Vector3(329.45f, -443.3582f, 1790.41f);
+                        ship.LiarsDice_SitPositions[1].rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
+                        ship.LiarsDice_SitPositions[2].position = new Vector3(327.5073f, -443.3582f, 1788.547f);
+                        ship.LiarsDice_SitPositions[2].rotation = new Quaternion(0, 0, 0, 1);
+                        ship.LiarsDice_SitPositions[3].position = new Vector3(325.72f, -443.3582f, 1790.43f);
+                        ship.LiarsDice_SitPositions[3].rotation = new Quaternion(0, 0.7071f, 0, 0.7071f);
+                        ship.LiarsDice_SitPositions[4].position = new Vector3(327.0746f, -443.3582f, 1792.25f);
+                        ship.LiarsDice_SitPositions[4].rotation = new Quaternion(0, 1, 0, 0);
+                    }
+                    if (ejectswitch != null)
+                    {
+                        if (ejectlabel != null)
+                        {
+                            ejectlabel.transform.SetParent(ejectswitch.transform);
+                        }
+                        ejectswitch.transform.position = new Vector3(370.173f, -442, 1397.611f);
+                        ejectswitch.transform.rotation = new Quaternion(-0.0003f, -0.5454f, 0.0002f, 0.8382f);
+                    }
+                    if(teldoor != null) 
+                    {
+                        GameObject newTelDoor = Object.Instantiate(teldoor, new Vector3(375.1424f, -385.9102f, 1387.404f), new Quaternion(0, 0.3806f, 0, -0.9248f));
+                        Object.DontDestroyOnLoad(newTelDoor);
+                        ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(369.0363f, - 443.5204f, 1404.2f), new Quaternion(0, 0.5421f, 0, -0.8403f));
+                        Object.DontDestroyOnLoad(newTelDoor);
+                        ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                    }
+                    ship.MyAmmoRefills[0].transform.position = new Vector3(344.9436f, -383.6307f, 1609.502f);
+                    ship.MyAmmoRefills[0].transform.rotation = new Quaternion(0, 0.7168f, 0, 0.6972f);
+                    (ship.Spawners[0] as GameObject).transform.position = new Vector3(-2, -260, -324);
+                    (ship.Spawners[1] as GameObject).transform.position = new Vector3(0, -261, -318.7f);
+                    (ship.Spawners[2] as GameObject).transform.position = new Vector3(-1, -260, -322);
+                    (ship.Spawners[3] as GameObject).transform.position = new Vector3(-2, -260, -325);
+                    (ship.Spawners[4] as GameObject).transform.position = new Vector3(0, -260, -326);
+                    (ship.Spawners[4] as GameObject).transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.ShipLogStation.transform.position = new Vector3(445.2327f, -430f, 1753);
+                    ship.ShipLogStation.transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.GetLockers()[0].transform.position = new Vector3(406.1302f, -430, 1749.819f);
+                    ship.GetLockers()[0].transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.GetLockers()[1].transform.position = new Vector3(406.1302f, -430, 1750.819f);
+                    ship.GetLockers()[1].transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.GetLockers()[2].transform.position = new Vector3(406.1302f, -430, 1751.819f);
+                    ship.GetLockers()[2].transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.GetLockers()[3].transform.position = new Vector3(406.1302f, -430, 1752.819f);
+                    ship.GetLockers()[3].transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.GetLockers()[4].transform.position = new Vector3(406.1302f, -430, 1753.819f);
+                    ship.GetLockers()[4].transform.rotation = new Quaternion(0, 0, 0, 1);
+                    for(int i = 0; i < 14; i++) 
+                    {
+                        ship.CargoBases[i].transform.position = new Vector3(281.2728f, -443.3417f, 1472.178f + (i* 2));
+                        ship.CargoBases[i].transform.rotation = new Quaternion(0, 0.7082f, 0, 0.706f);
+                    }
+                    List<GameObject> cargo = new List<GameObject>();
+                    cargo.AddRange(ship.CargoBases);
+                    int index = 14;
+                    for(int i = 0; i < 3; i++) 
+                    {
+                        for(int j = 0; j < 24; j++) 
+                        {
+                            if (i == 0 && j == 0) j = 14;
+                            GameObject cargoslot = Object.Instantiate(ship.CargoBases[0], new Vector3(281.2728f + (i * 4), -443.3417f, 1472.178f + (j * 2)), new Quaternion(0, 0.7082f, 0, 0.706f));
+                            Object.DontDestroyOnLoad(cargoslot);
+                            cargo.Add(cargoslot);
+                            CargoObjectDisplay cargoDisplay = new CargoObjectDisplay();
+                            cargoDisplay.RootObj = cargoslot;
+                            cargoDisplay.DisplayedItem = null;
+                            cargoDisplay.DisplayObj = null;
+                            cargoDisplay.Index = index;
+                            cargoDisplay.Hidden = false;
+                            ship.CargoObjectDisplays.Add(cargoDisplay);
+                            index++;
+                        }
+                    }
+                    ship.CargoBases = cargo.ToArray();
+                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
+                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SALVAGE_SYSTEM, 0);
                     PLTeleportationScreen tpscreen = null;
                     PLScientistSensorScreen sensorscreen = null;
                     PLScientistComputerScreen computerscreen = null;
@@ -576,6 +938,7 @@ namespace The_Flagship
                     PLClonedScreen clonedScreen = null;
                     PLMissileLauncherScreen misslescreen = null;
                     PLWeaponsNukeScreen nukescreen = null;
+                    PLStartupScreen powerscreen = null;
                     foreach (PLUIScreen screen in ship.MyScreenBase.AllScreens)
                     {
                         if (screen is PLTeleportationScreen)
@@ -626,13 +989,17 @@ namespace The_Flagship
                         {
                             clonedScreen = screen as PLClonedScreen;
                         }
-                        else if(screen is PLMissileLauncherScreen) 
+                        else if (screen is PLMissileLauncherScreen)
                         {
                             misslescreen = screen as PLMissileLauncherScreen;
                         }
-                        else if(screen is PLWeaponsNukeScreen) 
+                        else if (screen is PLWeaponsNukeScreen)
                         {
                             nukescreen = screen as PLWeaponsNukeScreen;
+                        }
+                        else if (screen is PLStartupScreen)
+                        {
+                            powerscreen = screen as PLStartupScreen;
                         }
                         if (screen.transform.childCount > 2)
                         {
@@ -662,9 +1029,9 @@ namespace The_Flagship
                     {
                         sensorscreen.transform.position = new Vector3(-1.1564f, -260.2763f, -321.4911f);
                         sensorscreen.transform.rotation = new Quaternion(0, 0.998f, 0, 0.0635f);
-                        if(clonedScreen != null) 
+                        if (clonedScreen != null)
                         {
-                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(336.5857f, - 399.4763f, 1730.905f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(336.5857f, -399.4763f, 1730.905f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -713,7 +1080,7 @@ namespace The_Flagship
                         reactorscreen.transform.rotation = new Quaternion(0, 0.0776f, 0, -0.997f);
                         if (clonedScreen != null)
                         {
-                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(361.3329f, -383.2109f, 1373.86f), new Quaternion(0, 0.3907f, 0, 0.9205f));
+                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(361.3329f, -383.2109f, 1373.86f), new Quaternion(0, 0.9205f, 0, -0.3907f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -726,7 +1093,7 @@ namespace The_Flagship
                         warpscreen.transform.rotation = new Quaternion(0, 0.1093f, 0, 0.994f);
                         if (clonedScreen != null)
                         {
-                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(356.2941f, -383.2109f, 1374.809f), new Quaternion(0, 0.1313f, 0, -0.9913f));
+                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(356.2941f, -383.2109f, 1374.809f), new Quaternion(0, 0.9913f, 0, 0.1313f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -739,7 +1106,7 @@ namespace The_Flagship
                         coolantscreen.transform.rotation = new Quaternion(0, 0.2374f, 0, -0.9714f);
                         if (clonedScreen != null)
                         {
-                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.9745f, -383.2109f, 1375.063f), new Quaternion(0, 0.1502f, 0, 0.9887f));
+                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.9745f, -383.2109f, 1375.063f), new Quaternion(0, 0.9887f, 0, -0.1502f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -752,7 +1119,7 @@ namespace The_Flagship
                         auxscreen.transform.rotation = new Quaternion(0, 0.2286f, 0, 0.9735f);
                         if (clonedScreen != null)
                         {
-                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(362.6146f, - 383.2109f, 1371.575f), new Quaternion(0, 0.6088f, 0, 0.7934f));
+                            GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(362.6146f, -383.2109f, 1371.575f), new Quaternion(0, 0.7934f, 0, -0.6088f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -763,23 +1130,32 @@ namespace The_Flagship
                     {
                         pilotscren.transform.position = new Vector3(-1.5436f, -260.6036f, -316.256f);
                     }
-                    if(clonedScreen != null) 
+                    if (clonedScreen != null)
                     {
                         clonedScreen.transform.position = new Vector3(0.0273f, -260.6036f, -316.256f);
                         clonedScreen.transform.rotation = new Quaternion(0, 0.9239f, 0, -0.3827f);
                     }
                     if (misslescreen != null)
                     {
-                        misslescreen.transform.position = new Vector3(359.1238f, - 382.3235f, 1572.909f);
+                        misslescreen.transform.position = new Vector3(359.1238f, -382.3235f, 1572.909f);
                         misslescreen.transform.rotation = new Quaternion(0, 0.3827f, 0, -0.9239f);
                     }
-                    if(nukescreen != null) 
+                    if (nukescreen != null)
                     {
-                        nukescreen.transform.position = new Vector3(371.3765f, - 382.3674f, 1610.65f);
+                        nukescreen.transform.position = new Vector3(371.3765f, -382.3674f, 1610.65f);
                         nukescreen.transform.rotation = new Quaternion(0, 0.9239f, 0, -0.3827f);
                     }
-                    ship.DialogueChoiceBG.transform.position = new Vector3(0.7823f, - 259, - 321.5387f);
-                    ship.DialogueChoiceBG.transform.rotation = new Quaternion(-0.1016f,0.1994f,0.0202f,0.9744f);
+                    if (powerscreen != null)
+                    {
+                        powerscreen.transform.position = new Vector3(347.9655f, -384.222f, 1392.117f);
+                        powerscreen.transform.rotation = new Quaternion(0, 0.9732f, 0, 0.2298f);
+                    }
+                    GameObject starmap = Object.Instantiate(Object.FindObjectOfType<PLWDParticleSystem>().gameObject, new Vector3(287.5f, -430, 1749.5f), Object.FindObjectOfType<PLWDParticleSystem>().transform.rotation);
+                    starmap.layer = newinterior.layer;
+                    Object.DontDestroyOnLoad(starmap);
+                    starmap.transform.SetParent(newinterior.transform);
+                    ship.DialogueChoiceBG.transform.position = new Vector3(0.7823f, -259, -321.5387f);
+                    ship.DialogueChoiceBG.transform.rotation = new Quaternion(-0.1016f, 0.1994f, 0.0202f, 0.9744f);
                     ship.DialogueTextBG.transform.position = new Vector3(-2.7849f, -259, -321.5387f);
                     ship.DialogueTextBG.transform.rotation = new Quaternion(0.0861f, 0.2357f, 0.0244f, -0.9672f);
                     ship.MyTLI.AllTTIs[0].transform.position = new Vector3(425.1f, -430, 1729.7f);
@@ -795,15 +1171,15 @@ namespace The_Flagship
                     newtargets[1].TeleporterTargetName = "Reactor";
                     newtargets[2].TeleporterTargetName = "Bar";
                     ship.MyTLI.AllTTIs = newtargets;
-                    ship.ExosuitVisualAssets[0].transform.position = new Vector3(388.613f, - 400.052f, 1724.208f);
-                    ship.ExosuitVisualAssets[0].transform.rotation = new Quaternion(0,0.7377f,0,-0.6752f);
-                    ship.ExosuitVisualAssets[1].transform.position = new Vector3(389.513f, -400.052f, 1724.208f);
+                    ship.ExosuitVisualAssets[0].transform.position = new Vector3(388.613f, -400.052f, 1724.208f);
+                    ship.ExosuitVisualAssets[0].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
+                    ship.ExosuitVisualAssets[1].transform.position = new Vector3(389.013f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[1].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
-                    ship.ExosuitVisualAssets[2].transform.position = new Vector3(390.213f, -400.052f, 1724.208f);
+                    ship.ExosuitVisualAssets[2].transform.position = new Vector3(389.413f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[2].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
-                    ship.ExosuitVisualAssets[3].transform.position = new Vector3(390.913f, -400.052f, 1724.208f);
+                    ship.ExosuitVisualAssets[3].transform.position = new Vector3(389.813f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[3].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
-                    ship.ExosuitVisualAssets[4].transform.position = new Vector3(391.613f, -400.052f, 1724.208f);
+                    ship.ExosuitVisualAssets[4].transform.position = new Vector3(390.213f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[4].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
                     ship.MyAtrium.transform.position = new Vector3(380.1347f, -399.7f, 1723f);
                     GameObject newatrium = Object.Instantiate(ship.MyAtrium.gameObject, new Vector3(380.1347f, -399.7f, 1727f), ship.MyAtrium.transform.rotation);
@@ -816,11 +1192,37 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
                     //ship.InteriorStatic = interior;
-                    PLNetworkManager.Instance.MyLocalPawn.transform.position = new Vector3(0, -258.2285f, -409.0034f);
+                    if (PLNetworkManager.Instance.MyLocalPawn != null) PLNetworkManager.Instance.MyLocalPawn.transform.position = (ship.Spawners[PLNetworkManager.Instance.LocalPlayer.GetClassID()] as GameObject).transform.position;
+                    ship.ReactorInstance.transform.position = new Vector3(357.6467f, -425.7683f, 1368.178f);
+                    ship.ReactorInstance.LightMeltdownEnd = new Vector3(0, -12, 0);
                 }
             }
-            SceneManager.UnloadSceneAsync(Estate);
-            SceneManager.UnloadSceneAsync(Flagship);
+            ship.IsGodModeActive = false;
+            ship.MyStats.Mass = 1200;
+            ship.FactionID = 2;
+            if(ship.MyHull != null && ship.MyHull.Level < 4) 
+            {
+                ship.MyHull.Level = 4;
+                ship.MyHull.Current = ship.MyStats.HullMax;
+            }
+            PLServer.Instance.RepLevels[2] = 5;
+            PLServer.Instance.CrewFactionID = 2;
+            AsyncOperation des = SceneManager.UnloadSceneAsync(Estate);
+            AsyncOperation des1 = SceneManager.UnloadSceneAsync(Flagship);
+            AsyncOperation des2 = SceneManager.UnloadSceneAsync(WDHub);
+            while (!des.isDone || !des1.isDone || !des2.isDone)
+            {
+                await Task.Yield();
+            }
+            PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
+            if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
+            if (hullhealer != null)
+            {
+                await Task.Delay(10000);
+                hullhealer.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
+                hullhealer = ship.HullHealSwitch.transform.parent.gameObject;
+                hullhealer.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
+            }
         }
     }
 
@@ -843,6 +1245,11 @@ namespace The_Flagship
                     render.enabled = true;
                     render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                 }
+                PLWDParticleSystem starmap = __instance.InteriorStatic.GetComponentInChildren<PLWDParticleSystem>();
+                if (starmap != null)
+                {
+                    starmap.gameObject.GetComponent<ParticleSystemRenderer>().enabled = true;
+                }
                 foreach (Light light in __instance.InteriorShipLights)
                 {
                     try
@@ -854,6 +1261,47 @@ namespace The_Flagship
                     }
                     catch { }
                 }
+                if (Mod.reactorEffect != null)
+                {
+                    Mod.reactorEffect.enableEmission = __instance.IsReactorInMeltdown();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(PLWDParticleSystem), "Update")]
+        internal class WD_Hub_Map
+        {
+            static bool Prefix(PLWDParticleSystem __instance)
+            {
+                if (Time.time - __instance.LastSetupTime > 10f && PLGlobal.Instance.Galaxy != null)
+                {
+                    __instance.LastSetupTime = Time.time;
+                    __instance.System.maxParticles = PLGlobal.Instance.Galaxy.AllSectorInfos.Count;
+                    List<ParticleSystem.Particle> list = new List<ParticleSystem.Particle>();
+                    foreach (PLSectorInfo plsectorInfo in PLGlobal.Instance.Galaxy.AllSectorInfos.Values)
+                    {
+                        if (PLStarmap.ShouldShowSector(plsectorInfo))
+                        {
+                            ParticleSystem.Particle item = default(ParticleSystem.Particle);
+                            int faction = plsectorInfo.MySPI.Faction;
+                            if (faction != 2)
+                            {
+                                item.color = PLGlobal.Instance.Galaxy.GetFactionColorForID(faction);
+                                item.size = 0.25f;
+                            }
+                            else
+                            {
+                                item.color = PLGlobal.Instance.Galaxy.GetFactionColorForID(2);
+                                item.size = 0.4f;
+                            }
+                            item.position = __instance.transform.position + new Vector3(plsectorInfo.Position.x, plsectorInfo.Position.z, plsectorInfo.Position.y) * __instance.Size;
+                            item.remainingLifetime = 10f;
+                            list.Add(item);
+                        }
+                    }
+                    __instance.System.SetParticles(list.ToArray(), list.Count);
+                }
+                return false;
             }
         }
     }
