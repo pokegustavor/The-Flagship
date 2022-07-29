@@ -18,7 +18,7 @@ namespace The_Flagship
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "Beta 3";
+        public override string Version => "Beta 4";
 
         public override string Author => "pokegustavo";
 
@@ -155,6 +155,55 @@ namespace The_Flagship
             }
         }
     }
+    [HarmonyPatch(typeof(PLUIPawnAppearanceMenu), "IsLocalPawnNearAppearanceStation")]
+    class BarberInShip 
+    {
+        static void Postfix(PLUIPawnAppearanceMenu __instance, ref bool __result) 
+        {
+            if (PLNetworkManager.Instance.MyLocalPawn != null && PLNetworkManager.Instance.MyLocalPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip && Command.shipAssembled)
+            {
+                foreach (PLAppearanceStation plappearanceStation in PLGameStatic.Instance.m_AppearanceStations)
+                {
+                    if (plappearanceStation != null && Vector3.SqrMagnitude(plappearanceStation.transform.position - PLNetworkManager.Instance.MyLocalPawn.transform.position) < 25f)
+                    {
+                        __result = true;
+                    }
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLDoor), "Open")]
+    class DoorSoundOpen 
+    {
+        static void Prefix(PLDoor __instance) 
+        {
+            if (PLEncounterManager.Instance.PlayerShip == null) return;
+            if(!__instance.IsOpen && __instance.MyShipInfo == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip) 
+            {
+                if (__instance.TheEstateDoorSFX)
+                {
+                    PLMusic.PostEvent("play_sx_station_estate_door_open", __instance.gameObject);
+                    return;
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLDoor), "Close")]
+    class DoorSoundClose
+    {
+        static void Prefix(PLDoor __instance)
+        {
+            if (PLEncounterManager.Instance.PlayerShip == null) return;
+            if (__instance.IsOpen && __instance.MyShipInfo == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip)
+            {
+                if (__instance.TheEstateDoorSFX)
+                {
+                    PLMusic.PostEvent("play_sx_station_estate_door_close", __instance.gameObject);
+                    return;
+                }
+            }
+        }
+    }
     [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
     class OnJoin
     {
@@ -244,7 +293,7 @@ namespace The_Flagship
                     {
                         FabricateFlagship();
                         shipAssembled = true;
-                        PulsarModLoader.ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
                     }
                     else
                     {
@@ -286,7 +335,6 @@ namespace The_Flagship
                 transform.gameObject.SetActive(true);
             }
         }
-
         public static async void FabricateFlagship()
         {
             PulsarModLoader.Utilities.Messaging.Notification("Assembling the flagship, please stand by...", PLNetworkManager.Instance.LocalPlayer, default, 10000);
@@ -458,6 +506,9 @@ namespace The_Flagship
                 GameObject safetybox = null;
                 GameObject safetylabel = null;
                 GameObject teldoor = null;
+                GameObject barber = null;
+                GameObject neural = null;
+                GameObject landdrone = null;
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
                 {
                     if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 105)
@@ -602,11 +653,23 @@ namespace The_Flagship
                     {
                         teldoor = gameObject;
                     }
+                    else if(gameObject.name == "TheBarber")
+                    {
+                        barber = gameObject;
+                    }
+                    else if(gameObject.name == "NeuralRewriter") 
+                    {
+                        neural = gameObject;
+                    }
+                    else if(gameObject.name == "LandDrone_Idle") 
+                    {
+                        landdrone = gameObject;
+                    }
                     if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null && reactorroom != null && copydoor != null
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
                         && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
                         && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
-                        && safetylabel != null && teldoor != null) break;
+                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null) break;
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
@@ -634,6 +697,17 @@ namespace The_Flagship
                     GameObject newengineering = Object.Instantiate(engineering, engineering.transform.position + offset + new Vector3(0, 0, 2), new Quaternion(0, 0.0029f, 0, 1));
                     GameObject newreactor = Object.Instantiate(reactorroom, reactorroom.transform.position + offset, new Quaternion(0, 0.0029f, 0, 1));
                     newbridge.transform.localRotation = new Quaternion(0.2202f, 0.0157f, 0.0263f, -0.975f);
+                    GameObject newbarber = Object.Instantiate(barber, new Vector3(369f, - 443.3361f, 1497), new Quaternion(0, -0.0376f, 0, 0.9993f));
+                    Object.DontDestroyOnLoad(newbarber);
+                    newbarber.transform.SetParent(newinterior.transform);
+                    PLGameStatic.Instance.m_AppearanceStations.Add(newbarber.GetComponentInChildren<PLAppearanceStation>());
+                    GameObject newneural = Object.Instantiate(neural, new Vector3(370, - 443.3894f, 1551.893f), neural.transform.rotation);
+                    Object.DontDestroyOnLoad(newneural);
+                    newneural.transform.SetParent(newinterior.transform);
+                    PLGameStatic.Instance.m_NeuralRewriters.Add(newneural.GetComponentInChildren<PLNeuralRewriter>());
+                    GameObject newlanddrone = Object.Instantiate(landdrone, landdrone.transform.position + offset, landdrone.transform.rotation);
+                    Object.DontDestroyOnLoad(newlanddrone);
+                    newlanddrone.transform.SetParent(newinterior.transform);
                     Object.DontDestroyOnLoad(newinterior);
                     Object.DontDestroyOnLoad(newbridge);
                     Object.DontDestroyOnLoad(newrighwing);
@@ -686,10 +760,10 @@ namespace The_Flagship
                     newreactor.transform.GetChild(7).gameObject.SetActive(true);
                     foreach (Transform transform in newreactor.transform)
                     {
+                        PulsarModLoader.Utilities.Logger.Info("Child name: " + transform.gameObject.name);
                         if (transform.gameObject.name == "Sphere")
                         {
                             transform.gameObject.SetActive(false);
-                            break;
                         }
                     }
                     Mod.reactorEffect = newreactor.transform.GetComponentInChildren<ParticleSystem>(true);
@@ -749,10 +823,9 @@ namespace The_Flagship
                             lockedoor.RequiredItem = "Hands";
                         }
                     }
-                    foreach (PLKillVolume volume in newinterior.GetComponentsInChildren<PLKillVolume>())
-                    {
-                        volume.enabled = false;
-                    }
+                    PLKillVolume abyssdeath = newinterior.AddComponent<PLKillVolume>();
+                    abyssdeath.transform.position = new Vector3(447,-501,1514);
+                    abyssdeath.Dimensions = new Vector3(200,5,200);
                     foreach(PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>()) 
                     {
                         if(sfx.Event.ToLower().Contains("infected")) 
