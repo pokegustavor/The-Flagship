@@ -178,7 +178,7 @@ namespace The_Flagship
         static void Prefix(PLDoor __instance) 
         {
             if (PLEncounterManager.Instance.PlayerShip == null) return;
-            if(!__instance.IsOpen && __instance.MyShipInfo == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip) 
+            if(!__instance.IsOpen && __instance.MyInterior == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip) 
             {
                 if (__instance.TheEstateDoorSFX)
                 {
@@ -194,7 +194,7 @@ namespace The_Flagship
         static void Prefix(PLDoor __instance)
         {
             if (PLEncounterManager.Instance.PlayerShip == null) return;
-            if (__instance.IsOpen && __instance.MyShipInfo == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip)
+            if (__instance.IsOpen && __instance.MyInterior == null && __instance.gameObject.layer == PLEncounterManager.Instance.PlayerShip.InteriorStatic.layer && PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.CurrentShip == PLEncounterManager.Instance.PlayerShip)
             {
                 if (__instance.TheEstateDoorSFX)
                 {
@@ -204,6 +204,7 @@ namespace The_Flagship
             }
         }
     }
+
     [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
     class OnJoin
     {
@@ -343,16 +344,17 @@ namespace The_Flagship
             AsyncOperation op = SceneManager.LoadSceneAsync(67, LoadSceneMode.Additive);
             AsyncOperation op2 = SceneManager.LoadSceneAsync(10, LoadSceneMode.Additive);
             AsyncOperation op3 = SceneManager.LoadSceneAsync(105, LoadSceneMode.Additive);
-            while (!op.isDone || !op2.isDone || !op3.isDone)
+            AsyncOperation op4 = SceneManager.LoadSceneAsync(98, LoadSceneMode.Additive);
+            while (!op.isDone || !op2.isDone || !op3.isDone || !op4.isDone)
             {
                 await Task.Yield();
             }
             Scene Estate = SceneManager.GetSceneByBuildIndex(67);
             Scene Flagship = SceneManager.GetSceneByBuildIndex(105);
             Scene WDHub = SceneManager.GetSceneByBuildIndex(10);
+            Scene FluffyMansion = SceneManager.GetSceneByBuildIndex(98);
             PLPilotingSystem currentpisys = ship.PilotingSystem;
             GameObject currentexterior = ship.Exterior;
-            GameObject hullhealer = null;
             if (ship != null)
             {
                 GameObject exterior = null;
@@ -509,6 +511,9 @@ namespace The_Flagship
                 GameObject barber = null;
                 GameObject neural = null;
                 GameObject landdrone = null;
+                GameObject blackbox = null;
+                GameObject foxplush = null;
+                GameObject walkway = null;
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
                 {
                     if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 105)
@@ -665,11 +670,23 @@ namespace The_Flagship
                     {
                         landdrone = gameObject;
                     }
+                    else if(gameObject.name == "Quad" && gameObject.scene == WDHub) 
+                    {
+                        blackbox = gameObject;
+                    }
+                    else if(gameObject.name == "Toy_Fox") 
+                    {
+                        foxplush = gameObject;
+                    }
+                    else if(gameObject.name == "Walkway") 
+                    {
+                        walkway = gameObject;
+                    }
                     if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null && reactorroom != null && copydoor != null
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
                         && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
                         && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
-                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null) break;
+                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox !=null && foxplush != null && walkway != null) break;
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
@@ -708,6 +725,10 @@ namespace The_Flagship
                     GameObject newlanddrone = Object.Instantiate(landdrone, landdrone.transform.position + offset, landdrone.transform.rotation);
                     Object.DontDestroyOnLoad(newlanddrone);
                     newlanddrone.transform.SetParent(newinterior.transform);
+                    GameObject newblackbox = Object.Instantiate(blackbox, new Vector3(282, -432.9246f, 1740), blackbox.transform.rotation);
+                    newblackbox.transform.SetParent(newinterior.transform);
+                    Object.DontDestroyOnLoad(newblackbox);
+                    ship.InteriorRenderers.Add(newblackbox.GetComponent<MeshRenderer>());
                     Object.DontDestroyOnLoad(newinterior);
                     Object.DontDestroyOnLoad(newbridge);
                     Object.DontDestroyOnLoad(newrighwing);
@@ -734,12 +755,42 @@ namespace The_Flagship
                         newCaptainDoor.transform.SetParent(newinterior.transform);
 
                     }
+                    if(walkway != null) 
+                    {
+                        GameObject newwalkway = Object.Instantiate(walkway, new Vector3(396,2569f, -383.5245f, 1519.001f), walkway.transform.rotation);
+                        Object.DontDestroyOnLoad(newwalkway);
+                        newwalkway.GetComponentInChildren<PLPushVolume>().MyTLI = ship.MyTLI;
+                        newwalkway.transform.SetParent(newinterior.transform);
+                        newwalkway = Object.Instantiate(walkway, new Vector3(320.078f, -383.5245f, 1519.001f), new Quaternion(0,1,0,0));
+                        Object.DontDestroyOnLoad(newwalkway);
+                        newwalkway.GetComponentInChildren<PLPushVolume>().MyTLI = ship.MyTLI;
+                        newwalkway.GetComponentInChildren<PLPushVolume>().WindForceGlobal.z *= -1;
+                        newwalkway.transform.SetParent(newinterior.transform);
+                    }
                     foreach (Transform transform in newinterior.transform)
                     {
                         if (transform.gameObject.name == "REACTOR")
                         {
                             transform.gameObject.tag = "Projectile";
                             break;
+                        }
+                    }
+                    newreactor.transform.GetChild(7).gameObject.SetActive(true);
+                    Mod.reactorEffect = newreactor.transform.GetComponentInChildren<ParticleSystem>(true);
+                    Mod.reactorEffect.startColor = new Color(0.3835f, 0, 0.6f, 1);
+                    Mod.reactorEffect.startSize = 1f;
+                    Mod.reactorEffect.gameObject.SetActive(true);
+                    Object.DontDestroyOnLoad(Mod.reactorEffect.gameObject);
+                    foreach (Transform transform in newreactor.transform)
+                    {
+                        PulsarModLoader.Utilities.Logger.Info("Child name: " + transform.gameObject.name);
+                        if (transform.gameObject.name == "Sphere")
+                        {
+                            transform.gameObject.SetActive(false);
+                        }
+                        if (transform.gameObject.name.Contains("Particle System"))
+                        {
+                            transform.gameObject.name = transform.gameObject.name.Replace("Particle System", "Reactor Particle");
                         }
                     }
                     MoveObjAndChild(newinterior.transform, ship.InteriorStatic.layer);
@@ -757,18 +808,6 @@ namespace The_Flagship
                     newvaultdeco.transform.SetParent(newvault.transform);
                     newengineering.transform.SetParent(newinterior.transform);
                     newreactor.transform.SetParent(newinterior.transform);
-                    newreactor.transform.GetChild(7).gameObject.SetActive(true);
-                    foreach (Transform transform in newreactor.transform)
-                    {
-                        PulsarModLoader.Utilities.Logger.Info("Child name: " + transform.gameObject.name);
-                        if (transform.gameObject.name == "Sphere")
-                        {
-                            transform.gameObject.SetActive(false);
-                        }
-                    }
-                    Mod.reactorEffect = newreactor.transform.GetComponentInChildren<ParticleSystem>(true);
-                    Mod.reactorEffect.gameObject.SetActive(true);
-                    Object.DontDestroyOnLoad(Mod.reactorEffect.gameObject);
                     foreach (ParticleSystem particle in ship.ReactorInstance.gameObject.GetComponentsInChildren<ParticleSystem>(true))
                     {
                         particle.startLifetime = 5;
@@ -814,6 +853,7 @@ namespace The_Flagship
                         if (door != null)
                         {
                             door.gameObject.SetActive(true);
+                            door.MyShipInfo = ship;
                         }
                     }
                     foreach (PLLockedSeamlessDoor lockedoor in newinterior.GetComponentsInChildren<PLLockedSeamlessDoor>(true))
@@ -823,9 +863,12 @@ namespace The_Flagship
                             lockedoor.RequiredItem = "Hands";
                         }
                     }
-                    PLKillVolume abyssdeath = newinterior.AddComponent<PLKillVolume>();
-                    abyssdeath.transform.position = new Vector3(447,-501,1514);
+                    GameObject Abyssdeathobject = Object.Instantiate(blackbox);
+                    PLKillVolume abyssdeath = Abyssdeathobject.AddComponent<PLKillVolume>();
+                    Abyssdeathobject.transform.position = new Vector3(447,-501,1514);
                     abyssdeath.Dimensions = new Vector3(200,5,200);
+                    Object.DontDestroyOnLoad(Abyssdeathobject);
+                    Abyssdeathobject.transform.SetParent(newinterior.transform);
                     foreach(PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>()) 
                     {
                         if(sfx.Event.ToLower().Contains("infected")) 
@@ -973,6 +1016,8 @@ namespace The_Flagship
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
                     newinterior.transform.SetParent(ship.InteriorStatic.transform);
                     newbridge.transform.SetParent(ship.InteriorStatic.transform);
+                    newinterior.GetComponentInChildren<PLPlanetAStarConnection>().TLI = ship.MyTLI;
+                    newbridge.GetComponentInChildren<PLCustomAStarConnection>().TLI = ship.MyTLI;
                     List<Transform> allturrets = new List<Transform>();
                     if (smallturret1 != null)
                     {
@@ -1112,8 +1157,7 @@ namespace The_Flagship
                         hullheal.transform.localScale = new Vector3(1.8f, 1.8f, 1.8f);
                         hullheal.transform.position = new Vector3(496.0247f, -404.446f, 1503.041f);
                         hullheal.transform.SetParent(newvault.transform);
-                        hullheal.transform.rotation = new Quaternion(0, 0.7686f, 0, -0.6397f);
-                        hullhealer = hullheal;
+                        hullheal.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
                     }
                     if (chair != null)
                     {
@@ -1144,8 +1188,9 @@ namespace The_Flagship
                         {
                             ejectlabel.transform.SetParent(ejectswitch.transform);
                         }
-                        ejectswitch.transform.position = new Vector3(370.173f, -442, 1397.611f);
+                        ejectswitch.transform.position = new Vector3(370.173f, -442.6216f, 1397.611f);
                         ejectswitch.transform.rotation = new Quaternion(-0.0003f, -0.5454f, 0.0002f, 0.8382f);
+                        ejectswitch.transform.localScale = Vector3.one * 2.5f;
                     }
                     if(teldoor != null) 
                     {
@@ -1512,6 +1557,25 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
                     //ship.InteriorStatic = interior;
+                    if(foxplush != null) 
+                    {
+                        GameObject newfox = Object.Instantiate(foxplush, new Vector3(330.5399f, -443.1522f, 1735.403f), new Quaternion(0, 0.5688f, 0, -0.8225f));
+                        Object.DontDestroyOnLoad(newfox);
+                        newfox.transform.SetParent(newinterior.transform);
+                        newfox.transform.localScale = Vector3.one;
+                        newfox = Object.Instantiate(foxplush, new Vector3(266.4287f, - 431.316f, 1672.744f), new Quaternion(0, 0.5688f, 0, -0.8225f));
+                        Object.DontDestroyOnLoad(newfox);
+                        newfox.transform.SetParent(newinterior.transform);
+                        newfox.transform.localScale = Vector3.one * 0.3f;
+                        newfox = Object.Instantiate(foxplush, new Vector3(449.5674f, - 430.5944f, 1666.002f), new Quaternion(0, 0.5688f, 0, -0.8225f));
+                        Object.DontDestroyOnLoad(newfox);
+                        newfox.transform.SetParent(newinterior.transform);
+                        newfox.transform.localScale = Vector3.one * 0.3f;
+                        newfox = Object.Instantiate(foxplush, new Vector3(319.6508f, - 434.2854f, 1486.746f), new Quaternion(0, 0, 0, 1));
+                        Object.DontDestroyOnLoad(newfox);
+                        newfox.transform.SetParent(newinterior.transform);
+                        newfox.transform.localScale = Vector3.one * 0.5f;
+                    }
                     if (PLNetworkManager.Instance.MyLocalPawn != null) PLNetworkManager.Instance.MyLocalPawn.transform.position = (ship.Spawners[PLNetworkManager.Instance.LocalPlayer.GetClassID()] as GameObject).transform.position;
                     ship.ReactorInstance.transform.position = new Vector3(357.8f, -425.7683f, 1368.4f);
                     ship.ReactorInstance.LightMeltdownEnd = new Vector3(0, -12, 0);
@@ -1519,7 +1583,7 @@ namespace The_Flagship
             }
             ship.IsGodModeActive = false;
             ship.MyStats.Mass = 4620;
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SALVAGE_SYSTEM, 0);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
@@ -1527,6 +1591,7 @@ namespace The_Flagship
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, false);
             ship.FactionID = 2;
             ship.SensorDishCollectingScrapRange = 1800;
             if(ship.MyHull != null && ship.MyHull.Level < 9) 
@@ -1551,19 +1616,14 @@ namespace The_Flagship
             AsyncOperation des = SceneManager.UnloadSceneAsync(Estate);
             AsyncOperation des1 = SceneManager.UnloadSceneAsync(Flagship);
             AsyncOperation des2 = SceneManager.UnloadSceneAsync(WDHub);
-            while (!des.isDone || !des1.isDone || !des2.isDone)
+            AsyncOperation des3 = SceneManager.UnloadSceneAsync(FluffyMansion);
+            while (!des.isDone || !des1.isDone || !des2.isDone || !des3.isDone)
             {
                 await Task.Yield();
             }
             PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
             if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
-            if (hullhealer != null)
-            {
-                await Task.Delay(10000);
-                hullhealer.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
-                hullhealer = ship.HullHealSwitch.transform.parent.gameObject;
-                hullhealer.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
-            }
+            
         }
     }
 
@@ -1576,7 +1636,7 @@ namespace The_Flagship
             {
                 __instance.WarpBlocker.transform.localScale = Vector3.one * (12000f - ___WarpObjectCurColor.a * 6000f);
             }
-            if (!__instance.ShowingExterior && __instance.GetIsPlayerShip() && (PLNetworkManager.Instance.MyLocalPawn == null || PLNetworkManager.Instance.MyLocalPawn.CurrentShip == __instance) && Command.shipAssembled)
+            if (!__instance.ShowingExterior && __instance.GetIsPlayerShip() && (PLNetworkManager.Instance.MyLocalPawn == null || PLNetworkManager.Instance.MyLocalPawn.CurrentShip == __instance) && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
                 __instance.InteriorRenderers.RemoveAll((MeshRenderer render) => render == null);
                 __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
@@ -1604,7 +1664,24 @@ namespace The_Flagship
                 }
                 if (Mod.reactorEffect != null)
                 {
-                    Mod.reactorEffect.enableEmission = __instance.IsReactorInMeltdown();
+                    Mod.reactorEffect.enableEmission = __instance.IsReactorInMeltdown() && __instance.MyReactor != null;
+                }
+            }
+            if(Command.shipAssembled && __instance.GetIsPlayerShip() && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+            {
+                foreach(Transform transform in __instance.RegularTurretPoints) 
+                {
+                    foreach(Transform child in transform) 
+                    {
+                        if(child.localScale.x < 1) 
+                        {
+                            child.localScale = Vector3.one;
+                        }
+                    }
+                }
+                if(__instance.MainTurretPoint.childCount > 0 && __instance.MainTurretPoint.GetChild(0).localScale.x < 10) 
+                {
+                    __instance.MainTurretPoint.GetChild(0).localScale = Vector3.one * 13;
                 }
             }
         }
