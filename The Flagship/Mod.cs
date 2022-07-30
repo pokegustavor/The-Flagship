@@ -12,13 +12,13 @@ namespace The_Flagship
 {
     /*
     TODO
-    prision command
+    fix AI pathfind(maybe)
      */
     public class Mod : PulsarMod
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "Beta 4";
+        public override string Version => "Beta 4.1";
 
         public override string Author => "pokegustavo";
 
@@ -211,6 +211,8 @@ namespace The_Flagship
         static void Prefix()
         {
             Command.shipAssembled = false;
+            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+            Command.prisionCells = new GameObject[10];
             if (PhotonNetwork.isMasterClient)
             {
                 string savedoptions = PLXMLOptionsIO.Instance.CurrentOptions.GetStringValue("flagship");
@@ -259,9 +261,21 @@ namespace The_Flagship
             }
         }
     }
+    public class prisionRPC : ModMessage 
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (sender.sender == PhotonNetwork.masterClient)
+            {
+                Command.playersArrested = (int[])arguments[0];
+            }
+        }
+    }
     public class Command : ChatCommand
     {
         public static bool shipAssembled = false;
+        public static int[] playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+        public static GameObject[] prisionCells = new GameObject[10];
         public override string[] CommandAliases()
         {
             return new string[]
@@ -271,11 +285,11 @@ namespace The_Flagship
         }
         public override string[][] Arguments()
         {
-            return new string[][] { new string[] { "assemble", "autoassemble" } };
+            return new string[][] { new string[] { "assemble", "autoassemble","prision" } };
         }
         public override string Description()
         {
-            return "Assembles the flagship";
+            return "Assembles the flagship and allows for prision control";
         }
 
         public override void Execute(string arguments)
@@ -283,6 +297,7 @@ namespace The_Flagship
             if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
             if (PLEncounterManager.Instance.PlayerShip != null)
             {
+                string[] separatedArguments = arguments.Split(' ');
                 if (PLEncounterManager.Instance.PlayerShip.ShipTypeID != EShipType.OLDWARS_HUMAN)
                 {
                     PulsarModLoader.Utilities.Messaging.Notification("You must be playing with an Interceptor to use the flagship!");
@@ -309,6 +324,47 @@ namespace The_Flagship
                         Mod.AutoAssemble
                     }));
                     PulsarModLoader.Utilities.Messaging.Notification("Auto assemble " + (Mod.AutoAssemble ? "Enabled" : "Disabled"));
+                }
+                if(separatedArguments[0] == Arguments()[0][2]) 
+                {
+                    if (!shipAssembled) 
+                    {
+                        PulsarModLoader.Utilities.Messaging.Notification("Ship needs to be assembled!");
+                    }
+                    else if(separatedArguments.Length > 1) 
+                    {
+                        PLPlayer targetPlayer = PulsarModLoader.Utilities.HelperMethods.GetPlayerFromPlayerName(separatedArguments[1]);
+                        int targetPlayerID;
+                        if(targetPlayer == null && int.TryParse(separatedArguments[1],out targetPlayerID)) 
+                        {
+                            targetPlayer = PulsarModLoader.Utilities.HelperMethods.GetPlayerFromPlayerID(targetPlayerID);
+                        }
+                        if(targetPlayer != null) 
+                        {
+                            if(targetPlayer.TeamID != 0) 
+                            {
+                                PulsarModLoader.Utilities.Messaging.Notification("Player is not part of your crew!");
+                                return;
+                            }
+                            for(int i = 0; i < 10; i++) 
+                            {
+                                if(playersArrested[i] == -1) 
+                                {
+                                    playersArrested[i] = targetPlayer.GetPlayerID();
+                                    break;
+                                }
+                                else if(playersArrested[i] == targetPlayer.GetPlayerID()) 
+                                {
+                                    playersArrested[i] = -1;
+                                    break;
+                                }
+                            }
+                        }
+                        else 
+                        {
+                            PulsarModLoader.Utilities.Messaging.Notification("Player not found!");
+                        }
+                    }
                 }
             }
         }
@@ -861,6 +917,25 @@ namespace The_Flagship
                         if (lockedoor != null)
                         {
                             lockedoor.RequiredItem = "Hands";
+                        }
+                    }
+                    foreach(Transform transform in newinterior.transform.GetChild(5)) 
+                    {
+                        if (transform.gameObject.name.Contains("FS_Bar_Brig_Deco_02")) 
+                        {
+                            if (!transform.gameObject.name.Contains("("))
+                            {
+                                prisionCells[0] = transform.gameObject;
+                                continue;
+                            }
+                            for (int i = 1; i < 10; i++) 
+                            {
+                                if(transform.gameObject.name.Contains("(" + i + ")")) 
+                                {
+                                    prisionCells[i] = transform.gameObject;
+                                    break;
+                                }
+                            }
                         }
                     }
                     GameObject Abyssdeathobject = Object.Instantiate(blackbox);
@@ -1683,9 +1758,79 @@ namespace The_Flagship
                 {
                     __instance.MainTurretPoint.GetChild(0).localScale = Vector3.one * 13;
                 }
+                for(int i = 0; i < 10; i++) 
+                {
+                    if (Command.prisionCells[i] != null) 
+                    {
+                        if (PLServer.Instance.GetPlayerFromPlayerID(Command.playersArrested[i]) == null) Command.playersArrested[i] = -1;
+                        Command.prisionCells[i].SetActive(Command.playersArrested[i] != -1);
+                    }
+                }
+                if(PhotonNetwork.isMasterClient)ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.Others, new object[] { Command.playersArrested });
             }
         }
-
+        [HarmonyPatch(typeof(PLPlayer),"Update")]
+        class PlayerUpdate 
+        {
+            static void Postfix(PLPlayer __instance) 
+            {
+                if(__instance == PLNetworkManager.Instance.LocalPlayer && Command.playersArrested.Contains(__instance.GetPlayerID()) && __instance.GetPawn() != null) 
+                {
+                    for(int i = 0; i < 10; i++) 
+                    {
+                        if(Command.playersArrested[i] == __instance.GetPlayerID()) 
+                        {
+                            Vector3 prisioncell = Vector3.one;
+                            switch (i) 
+                            {
+                                default:
+                                case 0:
+                                    prisioncell = new Vector3(335.8f,-442.2f,1744.3f);
+                                    break;
+                                case 1:
+                                    prisioncell = new Vector3(335.8f, -442.2f, 1741.3f);
+                                    break;
+                                case 2:
+                                    prisioncell = new Vector3(335.8f, -442.2f, 1738.3f);
+                                    break;
+                                case 3:
+                                    prisioncell = new Vector3(335.8f, -442.2f, 1735.3f);
+                                    break;
+                                case 4:
+                                    prisioncell = new Vector3(335.8f, -442.2f, 1732.3f);
+                                    break;
+                                case 5:
+                                    prisioncell = new Vector3(331f, -442.2f, 1732.3f);
+                                    break;
+                                case 6:
+                                    prisioncell = new Vector3(331f, -442.2f, 1735.3f);
+                                    break;
+                                case 7:
+                                    prisioncell = new Vector3(331f, -442.2f, 1738.3f);
+                                    break;
+                                case 8:
+                                    prisioncell = new Vector3(331f, -442.2f, 1741.3f);
+                                    break;
+                                case 9:
+                                    prisioncell = new Vector3(331f, -442.2f, 1744.3f);
+                                    break;
+                            }
+                            if((__instance.GetPawn().transform.position - prisioncell).sqrMagnitude > 5) 
+                            {
+                                __instance.photonView.RPC("NetworkTeleportToSubHub", PhotonTargets.All, new object[]
+                                {
+                                __instance.StartingShip.MyTLI.SubHubID,
+                                0
+                                });
+                                __instance.RecallPawnToPos(prisioncell);
+                                PLServer.Instance.AddCrewWarning("Your host arrested you!", Color.red, 1, "Prision");
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         [HarmonyPatch(typeof(PLWDParticleSystem), "Update")]
         internal class WD_Hub_Map
         {
