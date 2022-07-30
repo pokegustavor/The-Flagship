@@ -757,7 +757,7 @@ namespace The_Flagship
                     }
                     if(walkway != null) 
                     {
-                        GameObject newwalkway = Object.Instantiate(walkway, new Vector3(396,2569f, -383.5245f, 1519.001f), walkway.transform.rotation);
+                        GameObject newwalkway = Object.Instantiate(walkway, new Vector3(396.2569f, -383.5245f, 1519.001f), walkway.transform.rotation);
                         Object.DontDestroyOnLoad(newwalkway);
                         newwalkway.GetComponentInChildren<PLPushVolume>().MyTLI = ship.MyTLI;
                         newwalkway.transform.SetParent(newinterior.transform);
