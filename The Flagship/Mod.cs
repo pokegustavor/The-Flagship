@@ -18,7 +18,7 @@ namespace The_Flagship
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "Beta 4.1";
+        public override string Version => "Beta 4.2";
 
         public override string Author => "pokegustavo";
 
@@ -1088,10 +1088,24 @@ namespace The_Flagship
                             break;
                         }
                     }
+                    PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
+                    ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
+                    //Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
                     newinterior.transform.SetParent(ship.InteriorStatic.transform);
                     newbridge.transform.SetParent(ship.InteriorStatic.transform);
+                    /*
+                    newinterior.transform.GetChild(0).localPosition = new Vector3(-117, 22.6f, 7);
+                    newinterior.transform.GetChild(0).gameObject.AddMissingComponent<PLCustomAStarConnection>();
+                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
+                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().SavedLoc = new Vector3(-43.8946f, 34.6f, 69.9739f);
+                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().Start();
+                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().TLI = ship.MyTLI;
+                    */
+                    newinterior.transform.GetChild(0).localPosition = new Vector3(-117, 22.6f, 7);
                     newinterior.GetComponentInChildren<PLPlanetAStarConnection>().TLI = ship.MyTLI;
+                    //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc = new Vector3(-43.8946f, 34.6f, 69.9739f);
+                    //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
                     newbridge.GetComponentInChildren<PLCustomAStarConnection>().TLI = ship.MyTLI;
                     List<Transform> allturrets = new List<Transform>();
                     if (smallturret1 != null)
@@ -1674,15 +1688,15 @@ namespace The_Flagship
                 ship.MyHull.Level = 9;
                 ship.MyHull.Current = 3920;
             }
-            if(ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2) 
+            if(ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2 && PhotonNetwork.isMasterClient) 
             {
                 for(int i = 0; i < 7;i++)ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
             }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count  == 1)
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count  == 1 && PhotonNetwork.isMasterClient)
             {
                 for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(25, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_INERTIA_THRUSTER);
             }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Count == 1)
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Count == 1 && PhotonNetwork.isMasterClient)
             {
                 for (int i = 0; i < 5; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(26, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_MANEUVER_THRUSTER);
             }
@@ -1772,6 +1786,7 @@ namespace The_Flagship
         [HarmonyPatch(typeof(PLPlayer),"Update")]
         class PlayerUpdate 
         {
+            static float LastWarning = Time.time;
             static void Postfix(PLPlayer __instance) 
             {
                 if(__instance == PLNetworkManager.Instance.LocalPlayer && Command.playersArrested.Contains(__instance.GetPlayerID()) && __instance.GetPawn() != null) 
@@ -1823,7 +1838,11 @@ namespace The_Flagship
                                 0
                                 });
                                 __instance.RecallPawnToPos(prisioncell);
-                                PLServer.Instance.AddCrewWarning("Your host arrested you!", Color.red, 1, "Prision");
+                                if (Time.time - LastWarning > 10)
+                                {
+                                    PLServer.Instance.AddCrewWarning("Your host arrested you!", Color.red, 1, "Prision");
+                                    LastWarning = Time.time;
+                                }
                             }
                             break;
                         }
