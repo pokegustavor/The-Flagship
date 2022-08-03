@@ -22,6 +22,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\PULSARLostColony\PULSAR_LostColony_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="AstarPathfindingProject">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\PULSARLostColony\PULSAR_LostColony_Data\Managed\AstarPathfindingProject.dll</HintPath>
+    </Reference>
     <Reference Include="CrewAILibraryBuild">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\PULSARLostColony\PULSAR_LostColony_Data\Managed\CrewAILibraryBuild.dll</HintPath>
     </Reference>

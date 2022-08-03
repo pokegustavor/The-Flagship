@@ -8,17 +8,19 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using Pathfinding;
 namespace The_Flagship
 {
     /*
     TODO
-    fix AI pathfind(maybe)
+    fix fire on systems
+    fix ai interior
      */
     public class Mod : PulsarMod
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "Beta 4.2";
+        public override string Version => "Beta 5";
 
         public override string Author => "pokegustavo";
 
@@ -117,6 +119,18 @@ namespace The_Flagship
             {
                 __instance.ShipInfo.ExteriorRigidbody.AddTorque(collision.impulse *-1, ForceMode.Force);
                 __instance.ShipInfo.ExteriorRigidbody.AddForce(collision.impulse * -1, ForceMode.Force);
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLFire),"Update")]
+    class FireUpdate 
+    {
+        static void Postfix(PLFire __instance) 
+        {
+            if(__instance.MyShip == PLEncounterManager.Instance.PlayerShip && PLEncounterManager.Instance.PlayerShip && Command.shipAssembled) 
+            {
+                __instance.MyRoomArea = PLEncounterManager.Instance.PlayerShip.AllRoomAreas[0];
+                PLEncounterManager.Instance.PlayerShip.AllRoomAreas[0].IsHidden = false;
             }
         }
     }
@@ -975,6 +989,7 @@ namespace The_Flagship
                         CapitanToBridge.OptionalTLI = ship.MyTLI;
                         CapitanToBridge.TargetDoor = BridgeToCaptain;
                         CapitanToBridge.transform.rotation = new Quaternion(0,0.7124f,0,-0.7018f);
+                        CapitanToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                         BridgeToCaptain.TargetDoor = CapitanToBridge;
                         BridgeToCaptain.OptionalTLI = ship.MyTLI;
                         GameObject BridgeToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-0.6f, -261, -443.1f), new Quaternion(0, 0, 0, 1));
@@ -983,6 +998,7 @@ namespace The_Flagship
                         GameObject EngineToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(378.7f, -384.8f, 1366.8f), new Quaternion(0, -0.6448f, 0, 0.7644f));
                         Object.DontDestroyOnLoad(EngineToBridgeOjb);
                         PLInteriorDoor EngineToBridge = EngineToBridgeOjb.GetComponent<PLInteriorDoor>();
+                        EngineToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                         if (BridgeToEngine != null && EngineToBridge != null)
                         {
                             BridgeToEngine.TargetDoor = EngineToBridge;
@@ -996,6 +1012,7 @@ namespace The_Flagship
                         GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(380.3f, -399.7f, 1723.8f), new Quaternion(0, 0.7158f, 0, 0.6983f));
                         Object.DontDestroyOnLoad(ScienceToBridgeOjb);
                         PLInteriorDoor ScienceToBridge = ScienceToBridgeOjb.GetComponent<PLInteriorDoor>();
+                        ScienceToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                         if (BridgeToScience != null && ScienceToBridge != null)
                         {
                             BridgeToScience.TargetDoor = ScienceToBridge;
@@ -1032,6 +1049,7 @@ namespace The_Flagship
                         GameObject WeaponsToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-13.4f, -261f, -364.3f), new Quaternion(0, 0, 0, 1));
                         Object.DontDestroyOnLoad(WeaponsToBridgeOjb);
                         PLInteriorDoor WeaponsToBridge = WeaponsToBridgeOjb.GetComponent<PLInteriorDoor>();
+                        WeaponsToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                         GameObject BridgeToWeaponsOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(375.4f, -382.7f, 1575.7f), new Quaternion(0, 0, 0, 1));
                         Object.DontDestroyOnLoad(BridgeToWeaponsOjb);
                         PLInteriorDoor BridgeToWeapons = BridgeToWeaponsOjb.GetComponent<PLInteriorDoor>();
@@ -1090,23 +1108,31 @@ namespace The_Flagship
                     }
                     PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
                     ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
-                    //Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
+                    Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
                     newinterior.transform.SetParent(ship.InteriorStatic.transform);
                     newbridge.transform.SetParent(ship.InteriorStatic.transform);
-                    /*
-                    newinterior.transform.GetChild(0).localPosition = new Vector3(-117, 22.6f, 7);
-                    newinterior.transform.GetChild(0).gameObject.AddMissingComponent<PLCustomAStarConnection>();
-                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
-                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().SavedLoc = new Vector3(-43.8946f, 34.6f, 69.9739f);
-                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().Start();
-                    newinterior.transform.GetChild(0).gameObject.GetComponent<PLCustomAStarConnection>().TLI = ship.MyTLI;
-                    */
                     newinterior.transform.GetChild(0).localPosition = new Vector3(-117, 22.6f, 7);
                     newinterior.GetComponentInChildren<PLPlanetAStarConnection>().TLI = ship.MyTLI;
+                    newinterior.GetComponentInChildren<PLPlanetAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
+                    //Matrix4x4 oldMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc, Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one);
+                    Matrix4x4 oldMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position + new Vector3(400, -400, 1500), Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
+                    Matrix4x4 newMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position + new Vector3(400, -400, 1500) + new Vector3(400, -400, 1500), Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
+                    foreach (uint inID2 in newinterior.GetComponentInChildren<PLPlanetAStarConnection>().navGraphIDs)
+                    {
+                        RecastGraph graph = PLPathfinder.GetInstance().GetPGEFromID(inID2).Graph;
+                        graph.forcedBoundsCenter += newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position - newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc;
+                        graph.RelocateNodes(newMat * oldMat.inverse);
+                    }
                     //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc = new Vector3(-43.8946f, 34.6f, 69.9739f);
                     //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
                     newbridge.GetComponentInChildren<PLCustomAStarConnection>().TLI = ship.MyTLI;
+                    //newbridge.AddComponent<PLRoomArea>();
+                    //newbridge.GetComponent<PLRoomArea>().Dimensions = new Vector3(1500, 800, 9999);
+                    //List<PLRoomArea> areas = PLEncounterManager.Instance.PlayerShip.AllRoomAreas.ToList();
+                    //areas.Add(newbridge.GetComponent<PLRoomArea>());
+                    //PLEncounterManager.Instance.PlayerShip.AllRoomAreas = areas.ToArray();
+                    //newbridge.GetComponent<PLRoomArea>().Show();
                     List<Transform> allturrets = new List<Transform>();
                     if (smallturret1 != null)
                     {
@@ -1588,6 +1614,15 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
+                        /*
+                        GameObject temperature = Object.Instantiate(clonedScreen.gameObject, new Vector3(-9, -261, -323), new Quaternion(0, 0.3755f, 0, -0.9268f));
+                        Object.DontDestroyOnLoad(temperature);
+                        //Object.Destroy(temperature.GetComponent<PLClonedScreen>());
+                        temperature.transform.SetParent(ship.InteriorDynamic.transform);
+                        PLTemperatureScreen tempscreen = temperature.AddComponent<PLTemperatureScreen>();
+                        tempscreen.MyScreenHubBase = ship.MyScreenBase;
+                        ship.MyScreenBase.AllScreens.Add(tempscreen);
+                        */
                     }
                     if (misslescreen != null)
                     {
@@ -1712,7 +1747,20 @@ namespace The_Flagship
             }
             PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
             if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
-            
+            await Task.Delay(15 * 1000);
+            if (PLEncounterManager.Instance.PlayerShip != null)
+            {
+                GameObject newinterior = PLEncounterManager.Instance.PlayerShip.InteriorStatic;
+                Matrix4x4 oldMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position, Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
+                Matrix4x4 newMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position + new Vector3(400, -400, 1500), Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
+                foreach (uint inID2 in newinterior.GetComponentInChildren<PLPlanetAStarConnection>().navGraphIDs)
+                {
+                    RecastGraph graph = PLPathfinder.GetInstance().GetPGEFromID(inID2).Graph;
+                    graph.forcedBoundsCenter += newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position - newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc;
+                    graph.RelocateNodes(newMat * oldMat.inverse);
+                }
+            }
+            PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
     }
 
