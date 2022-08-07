@@ -20,7 +20,7 @@ namespace The_Flagship
         {
             base.SetupUI();
 
-            panel = CreatePanelEditable("TEMPERATURE CONTROL", Vector3.zero, new Vector2(512f, 256f), UI_White, out panelLabel, null, UIWidget.Pivot.TopLeft);
+            panel = CreatePanelEditable("TEMPERATURE CONTROL", new Vector3(256f, 60f), new Vector2(512f, 256f), UI_White, out panelLabel, null, UIWidget.Pivot.TopLeft);
             controlButtonsLabel = new UILabel[2];
             controlButtons = new UISprite[2];
             controlButtons[0] = CreateButtonEditable("Dec", "-", new Vector3(256f, 60f), new Vector2(5f, 10f), UI_White, out controlButtonsLabel[0], panel.cachedTransform, UIWidget.Pivot.TopLeft);
