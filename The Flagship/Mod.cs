@@ -13,13 +13,12 @@ namespace The_Flagship
 {
     /*
     TODO
-    fix ai interior
      */
     public class Mod : PulsarMod
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "Beta 5";
+        public override string Version => "1.0";
 
         public override string Author => "pokegustavo";
 
@@ -569,6 +568,16 @@ namespace The_Flagship
                     newblackbox.transform.SetParent(newinterior.transform);
                     Object.DontDestroyOnLoad(newblackbox);
                     ship.InteriorRenderers.Add(newblackbox.GetComponent<MeshRenderer>());
+                    GameObject StarPlataform1 = Object.Instantiate(blackbox, new Vector3(274.9763f, -424.1945f, 1737.242f), new Quaternion(0.6533f,-0.2706f,-0.2706f,-0.6553f));
+                    StarPlataform1.transform.SetParent(newinterior.transform);
+                    StarPlataform1.transform.localScale = new Vector3(15, 5, 1);
+                    Object.DontDestroyOnLoad(StarPlataform1);
+                    ship.InteriorRenderers.Add(StarPlataform1.GetComponent<MeshRenderer>());
+                    GameObject StarPlataform2 = Object.Instantiate(blackbox, new Vector3(274.9763f, -424.1945f, 1737.242f), new Quaternion(0.6533f, 0.2706f, -0.2706f, 0.6553f));
+                    StarPlataform2.transform.SetParent(newinterior.transform);
+                    StarPlataform2.transform.localScale = new Vector3(15, 5, 1);
+                    Object.DontDestroyOnLoad(StarPlataform2);
+                    ship.InteriorRenderers.Add(StarPlataform2.GetComponent<MeshRenderer>());
                     Object.DontDestroyOnLoad(newinterior);
                     Object.DontDestroyOnLoad(newbridge);
                     Object.DontDestroyOnLoad(newrighwing);
@@ -590,6 +599,8 @@ namespace The_Flagship
                     {
                         GameObject newEngineDoor = Object.Instantiate(copydoor, oldEngineDoor.transform.position, oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
+                        GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f,-428.5895f,1715.356f), new Quaternion(0,0.7071f,0,-0.7071f));
+                        newStarDoor.transform.SetParent(newinterior.transform);
                         oldEngineDoor.transform.position += new Vector3(0, 20, 0);
                         GameObject newCaptainDoor = Object.Instantiate(copydoor, new Vector3(372.6432f, -440.1014f, 1670.436f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newCaptainDoor.transform.SetParent(newinterior.transform);
@@ -1152,6 +1163,10 @@ namespace The_Flagship
                     ship.WeapUpgradeUIRoot.transform.rotation = new Quaternion(0, 0, 0, 1);
                     ship.WeapUpgradeUIWorldRoot.transform.position = new Vector3(358.1492f, -383.6829f, 1507.708f);
                     ship.WeapUpgradeUIWorldRoot.transform.rotation = new Quaternion(0, 0, 0, 1);
+                    ship.SalvageUIRoot.transform.position = new Vector3(336.5367f, - 384.5613f, 1381.647f);
+                    ship.SalvageUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
+                    ship.SalvageShipUIRoot.transform.position = new Vector3(336.0931f, -384.0558f, 1380.696f);
+                    ship.SalvageShipUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
                     PLTeleportationScreen tpscreen = null;
                     PLScientistSensorScreen sensorscreen = null;
                     PLScientistComputerScreen computerscreen = null;
@@ -1441,6 +1456,7 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
+                        /*
                         GameObject temperature = Object.Instantiate(clonedScreen.gameObject, new Vector3(-9, -261, -323), new Quaternion(0, 0.3755f, 0, -0.9268f));
                         Object.DontDestroyOnLoad(temperature);
                         //Object.Destroy(temperature.GetComponent<PLClonedScreen>());
@@ -1448,6 +1464,7 @@ namespace The_Flagship
                         PLTemperatureScreen tempscreen = temperature.AddComponent<PLTemperatureScreen>();
                         tempscreen.MyScreenHubBase = ship.MyScreenBase;
                         ship.MyScreenBase.AllScreens.Add(tempscreen);
+                        */
                     }
                     if (misslescreen != null)
                     {
@@ -1534,7 +1551,6 @@ namespace The_Flagship
             ship.MyStats.Mass = 4620;
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SALVAGE_SYSTEM, 0);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
