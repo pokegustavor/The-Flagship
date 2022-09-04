@@ -126,7 +126,7 @@ namespace The_Flagship
         */
         static void Postfix(PLShipControl __instance)
         {
-            if (__instance.ShipInfo.GetIsPlayerShip() && Command.shipAssembled)
+            if (__instance.ShipInfo != null && __instance.ShipInfo.GetIsPlayerShip() && Command.shipAssembled)
             {
                 __instance._rigidbody.AddTorque(__instance.InputTorque * __instance.RotationSpeed * (__instance.IsBoosting ? 1.32f : 1f) * -0.9f);
             }
