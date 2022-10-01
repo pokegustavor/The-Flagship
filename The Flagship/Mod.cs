@@ -18,7 +18,7 @@ namespace The_Flagship
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "1.0";
+        public override string Version => "1.1";
 
         public override string Author => "pokegustavo";
 
