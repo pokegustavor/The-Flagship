@@ -481,6 +481,78 @@ namespace The_Flagship
                 return true;
             }
         }
+        [HarmonyPatch(typeof(PLPersistantEncounterInstance), "GetPlayerStartLoc")]
+        class InspectionSpawn 
+        {
+            static void Postfix(PLPersistantEncounterInstance __instance, ref Vector3 __result) 
+            {
+                if(__instance.GetType() == typeof(PLCUContrabandStationEncounter) && Command.shipAssembled) 
+                {
+                    __result = new Vector3(-8.8961f, 22.3574f, -258.0648f);
+                }
+            }
+        }
+        [HarmonyPatch(typeof(PLOldWarsShip_Human), "SetupShipStats")]
+        class StartingSlots 
+        {
+            static void Postfix(PLOldWarsShip_Human __instance) 
+            {
+                if (__instance.GetIsPlayerShip()) 
+                {
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
+                    __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+                }
+            }
+        }
+        [HarmonyPatch(typeof(PLServer), "SpawnPlayerShipFromSaveData")]
+        class FinishSlots 
+        {
+            static void Postfix() 
+            {
+                if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+                {
+                    PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+                    if(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_CPU).Count <= 5 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET).Count <= 2 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_THRUSTER).Count <= 2 
+                        && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_INERTIA_THRUSTER).Count <= 1 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MANEUVER_THRUSTER).Count <= 1 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_SENS).Count <= 1) 
+                    {
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 14);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 5);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 2);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 2);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 1);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 1);
+                        ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 1);
+                    }
+                }
+            }
+        }
+        [HarmonyPatch(typeof(PLShipInfoBase),"Start")]
+        class PowerSlide 
+        {
+            static void Postfix(PLShipInfoBase __instance) 
+            {
+                float[] powerPercent = new float[17];
+                powerPercent.AddRangeToArray(__instance.PowerPercent_SysIntConduits);
+                __instance.PowerPercent_SysIntConduits = powerPercent;
+                for (int i = 0; i < __instance.PowerPercent_SysIntConduits.Length; i++)
+                {
+                    __instance.PowerPercent_SysIntConduits[i] = 1f;
+                }
+                powerPercent = new float[17];
+                powerPercent.AddRangeToArray(__instance.m_SysIntConduit_LocalChangeTime);
+                powerPercent[16] = 0;
+                __instance.m_SysIntConduit_LocalChangeTime = powerPercent;
+                powerPercent = new float[17];
+                powerPercent.AddRangeToArray(__instance.m_SysIntConduit_LocalChangeValue);
+                powerPercent[16] = 0;
+                __instance.m_SysIntConduit_LocalChangeValue = powerPercent;
+            }
+        }
         [HarmonyPatch(typeof(PLBot), "Update")]
         class GiveControllerBot
         {

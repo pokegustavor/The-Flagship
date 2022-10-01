@@ -889,7 +889,8 @@ namespace The_Flagship
                             break;
                         }
                     }
-                    PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
+                    //How me changing the starting position of the contraband station broke this part of the code???????
+                    //PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
                     ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
                     Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
@@ -1559,7 +1560,23 @@ namespace The_Flagship
             ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, false);
             ship.FactionID = 2;
             ship.SensorDishCollectingScrapRange = 1800;
-            if(ship.MyHull != null && ship.MyHull.Level < 9) 
+            float[] powerPercent = new float[17];
+            powerPercent.AddRangeToArray(ship.PowerPercent_SysIntConduits);
+            powerPercent[16] = 0;
+            ship.PowerPercent_SysIntConduits = powerPercent;
+            for (int i = 0; i < ship.PowerPercent_SysIntConduits.Length; i++)
+            {
+                ship.PowerPercent_SysIntConduits[i] = 1f;
+            }
+            powerPercent = new float[17];
+            powerPercent.AddRangeToArray(ship.m_SysIntConduit_LocalChangeTime);
+            powerPercent[16] = 0;
+            ship.m_SysIntConduit_LocalChangeTime = powerPercent;
+            powerPercent = new float[17];
+            powerPercent.AddRangeToArray(ship.m_SysIntConduit_LocalChangeValue);
+            powerPercent[16] = 0;
+            ship.m_SysIntConduit_LocalChangeValue = powerPercent;
+            if (ship.MyHull != null && ship.MyHull.Level < 9) 
             {
                 ship.MyHull.Level = 9;
                 ship.MyHull.Current = 3920;
