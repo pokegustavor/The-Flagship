@@ -18,7 +18,7 @@ namespace The_Flagship
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "1.1";
+        public override string Version => "1.1.1";
 
         public override string Author => "pokegustavo";
 
@@ -274,20 +274,48 @@ namespace The_Flagship
                     newturretpoint.transform.localPosition = new Vector3(-0.3341f, 54.5146f, 237.6466f);
                     Object.DontDestroyOnLoad(newturretpoint);
                     allturretpoints.Add(newturretpoint.transform);
+                    if (ship.GetTurretAtID(3) != null && ship.GetTurretAtID(3).TurretInstance != null)
+                    {
+                        ship.GetTurretAtID(3).TurretInstance.transform.position = newturretpoint.transform.position;
+                        ship.GetTurretAtID(3).TurretInstance.transform.rotation = newturretpoint.transform.rotation;
+                        if (newturretpoint.transform.childCount > 0) Object.Destroy(newturretpoint.transform.GetChild(0).gameObject);
+                        ship.GetTurretAtID(3).TurretInstance.transform.SetParent(newturretpoint.transform);
+                    }
                     newturretpoint = Object.Instantiate(ship.RegularTurretPoints[0].gameObject, newexterior.transform);
                     newturretpoint.transform.localPosition = new Vector3(0.9832f, 63.7453f, 12.822f);
                     Object.DontDestroyOnLoad(newturretpoint);
                     allturretpoints.Add(newturretpoint.transform);
+                    if (ship.GetTurretAtID(4) != null && ship.GetTurretAtID(4).TurretInstance != null)
+                    {
+                        ship.GetTurretAtID(4).TurretInstance.transform.position = newturretpoint.transform.position;
+                        ship.GetTurretAtID(4).TurretInstance.transform.rotation = newturretpoint.transform.rotation;
+                        if (newturretpoint.transform.childCount > 0) Object.Destroy(newturretpoint.transform.GetChild(0).gameObject);
+                        ship.GetTurretAtID(4).TurretInstance.transform.SetParent(newturretpoint.transform);
+                    }
                     newturretpoint = Object.Instantiate(ship.RegularTurretPoints[0].gameObject, newexterior.transform);
                     newturretpoint.transform.localPosition = new Vector3(-193.6323f, - 28.8545f, - 608.6761f);
                     newturretpoint.transform.localRotation = new Quaternion(0, 0, 0.7071f, 0.7071f);
                     Object.DontDestroyOnLoad(newturretpoint);
                     allturretpoints.Add(newturretpoint.transform);
+                    if (ship.GetTurretAtID(5) != null && ship.GetTurretAtID(5).TurretInstance != null)
+                    {
+                        ship.GetTurretAtID(5).TurretInstance.transform.position = newturretpoint.transform.position;
+                        ship.GetTurretAtID(5).TurretInstance.transform.rotation = newturretpoint.transform.rotation;
+                        if (newturretpoint.transform.childCount > 0) Object.Destroy(newturretpoint.transform.GetChild(0).gameObject);
+                        ship.GetTurretAtID(5).TurretInstance.transform.SetParent(newturretpoint.transform);
+                    }
                     newturretpoint = Object.Instantiate(ship.RegularTurretPoints[0].gameObject, newexterior.transform);
                     newturretpoint.transform.localPosition = new Vector3(193.2294f, -28.8545f, -608.6761f);
                     newturretpoint.transform.localRotation = new Quaternion(0, 0, 0.7071f, -0.7071f);
                     Object.DontDestroyOnLoad(newturretpoint);
                     allturretpoints.Add(newturretpoint.transform);
+                    if (ship.GetTurretAtID(6) != null && ship.GetTurretAtID(6).TurretInstance != null)
+                    {
+                        ship.GetTurretAtID(6).TurretInstance.transform.position = newturretpoint.transform.position;
+                        ship.GetTurretAtID(6).TurretInstance.transform.rotation = newturretpoint.transform.rotation;
+                        if (newturretpoint.transform.childCount > 0) Object.Destroy(newturretpoint.transform.GetChild(0).gameObject);
+                        ship.GetTurretAtID(6).TurretInstance.transform.SetParent(newturretpoint.transform);
+                    }
                     ship.RegularTurretPoints = allturretpoints.ToArray();
                     ship.CurrentTurretControllerPlayerID = new int[7] { -1, -1, -1, -1, -1, -1,-1 };
                     GameObject clamps = null;
