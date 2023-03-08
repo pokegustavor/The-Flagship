@@ -18,7 +18,8 @@ namespace The_Flagship
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
-        public override string Version => "1.1.1";
+        public static List<GameObject> moddedScreens = new List<GameObject>();
+        public override string Version => "1.2";
 
         public override string Author => "pokegustavo";
 
@@ -1386,6 +1387,25 @@ namespace The_Flagship
                     {
                         coolantscreen.transform.position = new Vector3(0.6817f, -260.276f, -326.9217f);
                         coolantscreen.transform.rotation = new Quaternion(0, 0.2374f, 0, -0.9714f);
+                        GameObject temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(379.5182f, - 399.564f, 1731.114f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        Object.DontDestroyOnLoad(temperature);
+                        foreach(Transform transform in temperature.transform) 
+                        {
+                           Object.DestroyImmediate(transform.gameObject);
+                        }
+                        Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
+                        PLTemperatureScreen temperatureScreen = temperature.AddComponent<PLTemperatureScreen>();
+                        temperatureScreen.Engage();
+                        Mod.moddedScreens.Add(temperature);
+                        //Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
+                        /*
+                        GameObject test = Object.Instantiate(coolantscreen.gameObject, new Vector3(-9, -261, -323), new Quaternion(0, 0.3755f, 0, -0.9268f));
+                        await Task.Delay(1000);
+                        PLEngineerCoolantScreen testScreen = test.GetComponent<PLEngineerCoolantScreen>();
+                        testScreen.FuelPanel.transform.position = new Vector3(0, 500);
+                        testScreen.DistressPanel.transform.position = new Vector3(0, 500);
+                        testScreen.FuelCountLabel.transform.position = new Vector3(0, 500);
+                        */
                         if (clonedScreen != null)
                         {
                             GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.9745f, -383.2109f, 1375.063f), new Quaternion(0, 0.1361f, 0, 0.9907f));
@@ -1485,15 +1505,6 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        /*
-                        GameObject temperature = Object.Instantiate(clonedScreen.gameObject, new Vector3(-9, -261, -323), new Quaternion(0, 0.3755f, 0, -0.9268f));
-                        Object.DontDestroyOnLoad(temperature);
-                        //Object.Destroy(temperature.GetComponent<PLClonedScreen>());
-                        temperature.transform.SetParent(ship.InteriorDynamic.transform);
-                        PLTemperatureScreen tempscreen = temperature.AddComponent<PLTemperatureScreen>();
-                        tempscreen.MyScreenHubBase = ship.MyScreenBase;
-                        ship.MyScreenBase.AllScreens.Add(tempscreen);
-                        */
                     }
                     if (misslescreen != null)
                     {
@@ -1647,6 +1658,18 @@ namespace The_Flagship
                 }
             }
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
+        }
+    }
+    [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
+    class OnExit 
+    {
+        static void Postfix() 
+        {
+            foreach(GameObject gameObject in Mod.moddedScreens) 
+            {
+                Object.Destroy(gameObject);
+            }
+            Mod.moddedScreens.Clear();
         }
     }
 }

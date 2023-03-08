@@ -558,7 +558,6 @@ namespace The_Flagship
         {
             static void Postfix(PLBot __instance)
             {
-                /*
                 if (__instance.MyBotController != null)
                 {
                     __instance.MyBotController.MyBot = __instance;
@@ -600,6 +599,7 @@ namespace The_Flagship
                                             __instance.MyBotController.Path = null;
                                             __instance.PlayerOwner.GetPawn().transform.position = new Vector3(434.2143f, -430.2697f, 1730.034f);
                                             __instance.PlayerOwner.GetPawn().OnTeleport();
+                                            Physics.SyncTransforms();
                                             if (__instance.PlayerOwner.GetPawn() != null)
                                             {
                                                 __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
@@ -617,6 +617,7 @@ namespace The_Flagship
                                             __instance.MyBotController.Path = null;
                                             __instance.PlayerOwner.GetPawn().transform.position = new Vector3(378.7f, -384.8338f, 1366.8f);
                                             __instance.PlayerOwner.GetPawn().OnTeleport();
+                                            Physics.SyncTransforms();
                                             if (__instance.PlayerOwner.GetPawn() != null)
                                             {
                                                 __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
@@ -635,6 +636,7 @@ namespace The_Flagship
                                             __instance.MyBotController.Path = null;
                                             __instance.PlayerOwner.GetPawn().transform.position = new Vector3(380.3f, -399.7f, 1723.8f);
                                             __instance.PlayerOwner.GetPawn().OnTeleport();
+                                            Physics.SyncTransforms();
                                             if (__instance.PlayerOwner.GetPawn() != null)
                                             {
                                                 __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
@@ -652,6 +654,7 @@ namespace The_Flagship
                                         {
                                             __instance.PlayerOwner.GetPawn().transform.position = new Vector3(375.4f, -382.7f, 1575.7f);
                                             __instance.PlayerOwner.GetPawn().OnTeleport();
+                                            Physics.SyncTransforms();
                                             __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
                                             __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
                                             __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
@@ -664,10 +667,9 @@ namespace The_Flagship
 
                             }
                         }
-                        PulsarModLoader.Utilities.Messaging.Notification("New Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
+                        //PulsarModLoader.Utilities.Messaging.Notification("New Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
                     }
                 }
-                */
             }
         }
     }
