@@ -19,7 +19,7 @@ namespace The_Flagship
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
-        public override string Version => "1.2";
+        public override string Version => "1.3";
 
         public override string Author => "pokegustavo";
 
@@ -46,7 +46,7 @@ namespace The_Flagship
         }
         public override string[][] Arguments()
         {
-            return new string[][] { new string[] { "assemble", "autoassemble","prison" } };
+            return new string[][] { new string[] { "assemble", "autoassemble", "prison" } };
         }
         public override string Description()
         {
@@ -86,36 +86,36 @@ namespace The_Flagship
                     }));
                     PulsarModLoader.Utilities.Messaging.Notification("Auto assemble " + (Mod.AutoAssemble ? "Enabled" : "Disabled"));
                 }
-                if(separatedArguments[0] == Arguments()[0][2]) 
+                if (separatedArguments[0] == Arguments()[0][2])
                 {
-                    if (!shipAssembled) 
+                    if (!shipAssembled)
                     {
                         PulsarModLoader.Utilities.Messaging.Notification("Ship needs to be assembled!");
                     }
-                    else if(separatedArguments.Length > 1) 
+                    else if (separatedArguments.Length > 1)
                     {
                         PLPlayer targetPlayer = PulsarModLoader.Utilities.HelperMethods.GetPlayerFromPlayerName(separatedArguments[1]);
                         int targetPlayerID;
-                        if(targetPlayer == null && int.TryParse(separatedArguments[1],out targetPlayerID)) 
+                        if (targetPlayer == null && int.TryParse(separatedArguments[1], out targetPlayerID))
                         {
                             targetPlayer = PulsarModLoader.Utilities.HelperMethods.GetPlayerFromPlayerID(targetPlayerID);
                         }
-                        if(targetPlayer != null) 
+                        if (targetPlayer != null)
                         {
-                            if(targetPlayer.TeamID != 0) 
+                            if (targetPlayer.TeamID != 0)
                             {
                                 PulsarModLoader.Utilities.Messaging.Notification("Player is not part of your crew!");
                                 return;
                             }
-                            for(int i = 0; i < 10; i++) 
+                            for (int i = 0; i < 10; i++)
                             {
-                                if(playersArrested[i] == -1) 
+                                if (playersArrested[i] == -1)
                                 {
                                     playersArrested[i] = targetPlayer.GetPlayerID();
                                     PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-                                    if(ship != null) 
+                                    if (ship != null)
                                     {
-                                        if(ship.GetCurrentShipControllerPlayerID() == targetPlayer.GetPlayerID()) 
+                                        if (ship.GetCurrentShipControllerPlayerID() == targetPlayer.GetPlayerID())
                                         {
                                             ship.photonView.RPC("NewShipController", PhotonTargets.All, new object[] { -1 });
                                         }
@@ -130,21 +130,21 @@ namespace The_Flagship
                                         {
                                             ship.photonView.RPC("RequestSensorDishController", PhotonTargets.All, new object[] { -1 });
                                         }
-                                        if(ship.CaptainsChairPlayerID == targetPlayer.GetPlayerID()) 
+                                        if (ship.CaptainsChairPlayerID == targetPlayer.GetPlayerID())
                                         {
                                             ship.photonView.RPC("AttemptToSitInCaptainsChair", PhotonTargets.All, new object[] { -1 });
                                         }
                                     }
                                     break;
                                 }
-                                else if(playersArrested[i] == targetPlayer.GetPlayerID()) 
+                                else if (playersArrested[i] == targetPlayer.GetPlayerID())
                                 {
                                     playersArrested[i] = -1;
                                     break;
                                 }
                             }
                         }
-                        else 
+                        else
                         {
                             PulsarModLoader.Utilities.Messaging.Notification("Player not found!");
                         }
@@ -294,7 +294,7 @@ namespace The_Flagship
                         ship.GetTurretAtID(4).TurretInstance.transform.SetParent(newturretpoint.transform);
                     }
                     newturretpoint = Object.Instantiate(ship.RegularTurretPoints[0].gameObject, newexterior.transform);
-                    newturretpoint.transform.localPosition = new Vector3(-193.6323f, - 28.8545f, - 608.6761f);
+                    newturretpoint.transform.localPosition = new Vector3(-193.6323f, -28.8545f, -608.6761f);
                     newturretpoint.transform.localRotation = new Quaternion(0, 0, 0.7071f, 0.7071f);
                     Object.DontDestroyOnLoad(newturretpoint);
                     allturretpoints.Add(newturretpoint.transform);
@@ -318,7 +318,7 @@ namespace The_Flagship
                         ship.GetTurretAtID(6).TurretInstance.transform.SetParent(newturretpoint.transform);
                     }
                     ship.RegularTurretPoints = allturretpoints.ToArray();
-                    ship.CurrentTurretControllerPlayerID = new int[7] { -1, -1, -1, -1, -1, -1,-1 };
+                    ship.CurrentTurretControllerPlayerID = new int[7] { -1, -1, -1, -1, -1, -1, -1 };
                     GameObject clamps = null;
                     foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
                     {
@@ -526,27 +526,27 @@ namespace The_Flagship
                     {
                         teldoor = gameObject;
                     }
-                    else if(gameObject.name == "TheBarber")
+                    else if (gameObject.name == "TheBarber")
                     {
                         barber = gameObject;
                     }
-                    else if(gameObject.name == "NeuralRewriter") 
+                    else if (gameObject.name == "NeuralRewriter")
                     {
                         neural = gameObject;
                     }
-                    else if(gameObject.name == "LandDrone_Idle") 
+                    else if (gameObject.name == "LandDrone_Idle")
                     {
                         landdrone = gameObject;
                     }
-                    else if(gameObject.name == "Quad" && gameObject.scene == WDHub) 
+                    else if (gameObject.name == "Quad" && gameObject.scene == WDHub)
                     {
                         blackbox = gameObject;
                     }
-                    else if(gameObject.name == "Toy_Fox") 
+                    else if (gameObject.name == "Toy_Fox")
                     {
                         foxplush = gameObject;
                     }
-                    else if(gameObject.name == "Walkway") 
+                    else if (gameObject.name == "Walkway")
                     {
                         walkway = gameObject;
                     }
@@ -554,11 +554,11 @@ namespace The_Flagship
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
                         && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
                         && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
-                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox !=null && foxplush != null && walkway != null) break;
+                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox != null && foxplush != null && walkway != null) break;
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
-                    foreach(PLDoor door in ship.InteriorDynamic.GetComponentsInChildren<PLDoor>()) 
+                    foreach (PLDoor door in ship.InteriorDynamic.GetComponentsInChildren<PLDoor>())
                     {
                         door.gameObject.transform.position += new Vector3(0, 0, 1500);
                     }
@@ -582,11 +582,11 @@ namespace The_Flagship
                     GameObject newengineering = Object.Instantiate(engineering, engineering.transform.position + offset + new Vector3(0, 0, 2), new Quaternion(0, 0.0029f, 0, 1));
                     GameObject newreactor = Object.Instantiate(reactorroom, reactorroom.transform.position + offset, new Quaternion(0, 0.0029f, 0, 1));
                     newbridge.transform.localRotation = new Quaternion(0.2202f, 0.0157f, 0.0263f, -0.975f);
-                    GameObject newbarber = Object.Instantiate(barber, new Vector3(369f, - 443.3361f, 1497), new Quaternion(0, -0.0376f, 0, 0.9993f));
+                    GameObject newbarber = Object.Instantiate(barber, new Vector3(369f, -443.3361f, 1497), new Quaternion(0, -0.0376f, 0, 0.9993f));
                     Object.DontDestroyOnLoad(newbarber);
                     newbarber.transform.SetParent(newinterior.transform);
                     PLGameStatic.Instance.m_AppearanceStations.Add(newbarber.GetComponentInChildren<PLAppearanceStation>());
-                    GameObject newneural = Object.Instantiate(neural, new Vector3(370, - 443.3894f, 1551.893f), neural.transform.rotation);
+                    GameObject newneural = Object.Instantiate(neural, new Vector3(370, -443.3894f, 1551.893f), neural.transform.rotation);
                     Object.DontDestroyOnLoad(newneural);
                     newneural.transform.SetParent(newinterior.transform);
                     PLGameStatic.Instance.m_NeuralRewriters.Add(newneural.GetComponentInChildren<PLNeuralRewriter>());
@@ -597,7 +597,7 @@ namespace The_Flagship
                     newblackbox.transform.SetParent(newinterior.transform);
                     Object.DontDestroyOnLoad(newblackbox);
                     ship.InteriorRenderers.Add(newblackbox.GetComponent<MeshRenderer>());
-                    GameObject StarPlataform1 = Object.Instantiate(blackbox, new Vector3(274.9763f, -424.1945f, 1737.242f), new Quaternion(0.6533f,-0.2706f,-0.2706f,-0.6553f));
+                    GameObject StarPlataform1 = Object.Instantiate(blackbox, new Vector3(274.9763f, -424.1945f, 1737.242f), new Quaternion(0.6533f, -0.2706f, -0.2706f, -0.6553f));
                     StarPlataform1.transform.SetParent(newinterior.transform);
                     StarPlataform1.transform.localScale = new Vector3(15, 5, 1);
                     Object.DontDestroyOnLoad(StarPlataform1);
@@ -628,20 +628,20 @@ namespace The_Flagship
                     {
                         GameObject newEngineDoor = Object.Instantiate(copydoor, oldEngineDoor.transform.position, oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
-                        GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f,-428.5895f,1715.356f), new Quaternion(0,0.7071f,0,-0.7071f));
+                        GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f, -428.5895f, 1715.356f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newStarDoor.transform.SetParent(newinterior.transform);
                         oldEngineDoor.transform.position += new Vector3(0, 20, 0);
                         GameObject newCaptainDoor = Object.Instantiate(copydoor, new Vector3(372.6432f, -440.1014f, 1670.436f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newCaptainDoor.transform.SetParent(newinterior.transform);
 
                     }
-                    if(walkway != null) 
+                    if (walkway != null)
                     {
                         GameObject newwalkway = Object.Instantiate(walkway, new Vector3(396.2569f, -383.5245f, 1519.001f), walkway.transform.rotation);
                         Object.DontDestroyOnLoad(newwalkway);
                         newwalkway.GetComponentInChildren<PLPushVolume>().MyTLI = ship.MyTLI;
                         newwalkway.transform.SetParent(newinterior.transform);
-                        newwalkway = Object.Instantiate(walkway, new Vector3(320.078f, -383.5245f, 1519.001f), new Quaternion(0,1,0,0));
+                        newwalkway = Object.Instantiate(walkway, new Vector3(320.078f, -383.5245f, 1519.001f), new Quaternion(0, 1, 0, 0));
                         Object.DontDestroyOnLoad(newwalkway);
                         newwalkway.GetComponentInChildren<PLPushVolume>().MyTLI = ship.MyTLI;
                         newwalkway.GetComponentInChildren<PLPushVolume>().WindForceGlobal.z *= -1;
@@ -749,18 +749,18 @@ namespace The_Flagship
                             lockedoor.RequiredItem = "Hands";
                         }
                     }
-                    foreach(Transform transform in newinterior.transform.GetChild(5)) 
+                    foreach (Transform transform in newinterior.transform.GetChild(5))
                     {
-                        if (transform.gameObject.name.Contains("FS_Bar_Brig_Deco_02")) 
+                        if (transform.gameObject.name.Contains("FS_Bar_Brig_Deco_02"))
                         {
                             if (!transform.gameObject.name.Contains("("))
                             {
                                 prisionCells[0] = transform.gameObject;
                                 continue;
                             }
-                            for (int i = 1; i < 10; i++) 
+                            for (int i = 1; i < 10; i++)
                             {
-                                if(transform.gameObject.name.Contains("(" + i + ")")) 
+                                if (transform.gameObject.name.Contains("(" + i + ")"))
                                 {
                                     prisionCells[i] = transform.gameObject;
                                     break;
@@ -770,13 +770,13 @@ namespace The_Flagship
                     }
                     GameObject Abyssdeathobject = Object.Instantiate(blackbox);
                     PLKillVolume abyssdeath = Abyssdeathobject.AddComponent<PLKillVolume>();
-                    Abyssdeathobject.transform.position = new Vector3(447,-501,1514);
-                    abyssdeath.Dimensions = new Vector3(200,5,200);
+                    Abyssdeathobject.transform.position = new Vector3(447, -501, 1514);
+                    abyssdeath.Dimensions = new Vector3(200, 5, 200);
                     Object.DontDestroyOnLoad(Abyssdeathobject);
                     Abyssdeathobject.transform.SetParent(newinterior.transform);
-                    foreach(PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>()) 
+                    foreach (PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>())
                     {
-                        if(sfx.Event.ToLower().Contains("infected")) 
+                        if (sfx.Event.ToLower().Contains("infected"))
                         {
                             sfx.enabled = false;
                         }
@@ -804,7 +804,7 @@ namespace The_Flagship
                     {
                         CapitanToBridge.OptionalTLI = ship.MyTLI;
                         CapitanToBridge.TargetDoor = BridgeToCaptain;
-                        CapitanToBridge.transform.rotation = new Quaternion(0,0.7124f,0,-0.7018f);
+                        CapitanToBridge.transform.rotation = new Quaternion(0, 0.7124f, 0, -0.7018f);
                         BridgeToCaptain.TargetDoor = CapitanToBridge;
                         BridgeToCaptain.OptionalTLI = ship.MyTLI;
                         GameObject BridgeToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-0.6f, -261, -443.1f), new Quaternion(0, 0, 0, 1));
@@ -1120,21 +1120,21 @@ namespace The_Flagship
                         ejectswitch.transform.rotation = new Quaternion(-0.0003f, -0.5454f, 0.0002f, 0.8382f);
                         ejectswitch.transform.localScale = Vector3.one * 2.5f;
                     }
-                    if(teldoor != null) 
+                    if (teldoor != null)
                     {
                         GameObject newTelDoor = Object.Instantiate(teldoor, new Vector3(375.1424f, -385.9102f, 1387.404f), new Quaternion(0, 0.3806f, 0, -0.9248f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
-                        newTelDoor = Object.Instantiate(teldoor, new Vector3(369.0363f, - 443.5204f, 1404.2f), new Quaternion(0, 0.5421f, 0, -0.8403f));
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(369.0363f, -443.5204f, 1404.2f), new Quaternion(0, 0.5421f, 0, -0.8403f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
-                        newTelDoor = Object.Instantiate(teldoor, new Vector3(374.9182f, - 383.6057f, 1574.436f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(374.9182f, -383.6057f, 1574.436f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
-                        newTelDoor = Object.Instantiate(teldoor, new Vector3(468.4048f, - 400.4253f, 1486.02f), new Quaternion(0,1,0,0));
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(468.4048f, -400.4253f, 1486.02f), new Quaternion(0, 1, 0, 0));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
-                        newTelDoor = Object.Instantiate(teldoor, new Vector3(379.7382f, - 385.9098f, 1380.838f), new Quaternion(0, -0.2217f, 0, 0.9751f));
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(379.7382f, -385.9098f, 1380.838f), new Quaternion(0, -0.2217f, 0, 0.9751f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
                     }
@@ -1158,17 +1158,17 @@ namespace The_Flagship
                     ship.GetLockers()[3].transform.rotation = new Quaternion(0, 0, 0, 1);
                     ship.GetLockers()[4].transform.position = new Vector3(406.1302f, -430, 1753.819f);
                     ship.GetLockers()[4].transform.rotation = new Quaternion(0, 0, 0, 1);
-                    for(int i = 0; i < 14; i++) 
+                    for (int i = 0; i < 14; i++)
                     {
-                        ship.CargoBases[i].transform.position = new Vector3(281.2728f, -443.3417f, 1472.178f + (i* 2));
+                        ship.CargoBases[i].transform.position = new Vector3(281.2728f, -443.3417f, 1472.178f + (i * 2));
                         ship.CargoBases[i].transform.rotation = new Quaternion(0, 0.7082f, 0, 0.706f);
                     }
                     List<GameObject> cargo = new List<GameObject>();
                     cargo.AddRange(ship.CargoBases);
                     int index = 14;
-                    for(int i = 0; i < 3; i++) 
+                    for (int i = 0; i < 3; i++)
                     {
-                        for(int j = 0; j < 24; j++) 
+                        for (int j = 0; j < 24; j++)
                         {
                             if (i == 0 && j == 0) j = 14;
                             GameObject cargoslot = Object.Instantiate(ship.CargoBases[0], new Vector3(281.2728f + (i * 4), -443.3417f, 1472.178f + (j * 2)), new Quaternion(0, 0.7082f, 0, 0.706f));
@@ -1185,15 +1185,15 @@ namespace The_Flagship
                         }
                     }
                     ship.CargoBases = cargo.ToArray();
-                    ship.EngUpgradeUIRoot.transform.position = new Vector3(340.7982f, - 384.2946f, 1387.454f);
-                    ship.EngUpgradeUIRoot.transform.rotation = new Quaternion(0,0.3768f,0,-0.9263f);
+                    ship.EngUpgradeUIRoot.transform.position = new Vector3(340.7982f, -384.2946f, 1387.454f);
+                    ship.EngUpgradeUIRoot.transform.rotation = new Quaternion(0, 0.3768f, 0, -0.9263f);
                     ship.EngUpgradeUIWorldRoot.position = new Vector3(340.7982f, -384.2946f, 1387.454f);
                     ship.EngUpgradeUIWorldRoot.rotation = new Quaternion(0, 0.3768f, 0, -0.9263f);
                     ship.WeapUpgradeUIRoot.transform.position = new Vector3(358.1492f, -383.6829f, 1507.708f);
                     ship.WeapUpgradeUIRoot.transform.rotation = new Quaternion(0, 0, 0, 1);
                     ship.WeapUpgradeUIWorldRoot.transform.position = new Vector3(358.1492f, -383.6829f, 1507.708f);
                     ship.WeapUpgradeUIWorldRoot.transform.rotation = new Quaternion(0, 0, 0, 1);
-                    ship.SalvageUIRoot.transform.position = new Vector3(336.5367f, - 384.5613f, 1381.647f);
+                    ship.SalvageUIRoot.transform.position = new Vector3(336.5367f, -384.5613f, 1381.647f);
                     ship.SalvageUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
                     ship.SalvageShipUIRoot.transform.position = new Vector3(336.0931f, -384.0558f, 1380.696f);
                     ship.SalvageShipUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
@@ -1358,7 +1358,7 @@ namespace The_Flagship
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
                             teleport1.GetComponent<PLClonedScreen>().MyTargetScreen = reactorscreen;
-                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(357.9873f, - 416.4473f, 1386.166f), new Quaternion(0, 0f, 0, 1f));
+                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(357.9873f, -416.4473f, 1386.166f), new Quaternion(0, 0f, 0, 1f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1376,7 +1376,7 @@ namespace The_Flagship
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
                             teleport1.GetComponent<PLClonedScreen>().MyTargetScreen = warpscreen;
-                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(375.6855f, - 416.4473f, 1368.2f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(375.6855f, -416.4473f, 1368.2f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1387,11 +1387,11 @@ namespace The_Flagship
                     {
                         coolantscreen.transform.position = new Vector3(0.6817f, -260.276f, -326.9217f);
                         coolantscreen.transform.rotation = new Quaternion(0, 0.2374f, 0, -0.9714f);
-                        GameObject temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(379.5182f, - 399.564f, 1731.114f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        GameObject temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(379.5182f, -399.564f, 1731.114f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(temperature);
-                        foreach(Transform transform in temperature.transform) 
+                        foreach (Transform transform in temperature.transform)
                         {
-                           Object.DestroyImmediate(transform.gameObject);
+                            Object.DestroyImmediate(transform.gameObject);
                         }
                         Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
                         PLTemperatureScreen temperatureScreen = temperature.AddComponent<PLTemperatureScreen>();
@@ -1413,7 +1413,7 @@ namespace The_Flagship
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
                             teleport1.GetComponent<PLClonedScreen>().MyTargetScreen = coolantscreen;
-                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(339.9966f, - 416.4473f, 1368.19f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(339.9966f, -416.4473f, 1368.19f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1431,7 +1431,7 @@ namespace The_Flagship
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
                             teleport1.GetComponent<PLClonedScreen>().MyTargetScreen = auxscreen;
-                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(357.8f, - 416.4473f, 1350.418f), new Quaternion(0, 1f, 0, 0f));
+                            teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(357.8f, -416.4473f, 1350.418f), new Quaternion(0, 1f, 0, 0f));
                             Object.DontDestroyOnLoad(teleport1);
                             teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                             ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1446,19 +1446,19 @@ namespace The_Flagship
                     {
                         clonedScreen.transform.position = new Vector3(0.0273f, -260.6036f, -316.256f);
                         clonedScreen.transform.rotation = new Quaternion(0, 0.9239f, 0, -0.3827f);
-                        GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(354.2722f, - 383.2109f, 1373.794f), new Quaternion(0, 0.3755f, 0, -0.9268f));
+                        GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(354.2722f, -383.2109f, 1373.794f), new Quaternion(0, 0.3755f, 0, -0.9268f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(356.739f, - 382.3126f, 1572.901f), new Quaternion(0, 0.3f, 0, 0.954f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(356.739f, -382.3126f, 1572.901f), new Quaternion(0, 0.3f, 0, 0.954f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.1434f, - 383.88f, 1689.191f), new Quaternion(0, 1f, 0, 0));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.1434f, -383.88f, 1689.191f), new Quaternion(0, 1f, 0, 0));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(438.5164f, - 398.909f, 1702.425f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(438.5164f, -398.909f, 1702.425f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1466,14 +1466,14 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(256.0582f, - 430, 1701.648f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(256.0582f, -430, 1701.648f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(256.0582f, -430, 1575.247f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(459.8836f, - 430, 1701.74f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(459.8836f, -430, 1701.74f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1481,27 +1481,27 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(427.1271f, - 429.3854f, 1603.108f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(427.1271f, -429.3854f, 1603.108f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(289.654f, - 429.3854f, 1603.014f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(289.654f, -429.3854f, 1603.014f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(365.7347f, - 442, 1648.112f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(365.7347f, -442, 1648.112f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.1891f, - 442, 1517.672f), new Quaternion(0, 1f, 0, 0f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(358.1891f, -442, 1517.672f), new Quaternion(0, 1f, 0, 0f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(350.5453f, - 442, 1588.259f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(350.5453f, -442, 1588.259f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
-                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(294.8038f, - 442, 1471.506f), new Quaternion(0, 0, 0, 1f));
+                        teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(294.8038f, -442, 1471.506f), new Quaternion(0, 0, 0, 1f));
                         Object.DontDestroyOnLoad(teleport1);
                         teleport1.transform.SetParent(ship.InteriorDynamic.transform);
                         ship.MyScreenBase.AllScreens.Add(teleport1.GetComponent<PLClonedScreen>());
@@ -1563,21 +1563,21 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
                     //ship.InteriorStatic = interior;
-                    if(foxplush != null) 
+                    if (foxplush != null)
                     {
                         GameObject newfox = Object.Instantiate(foxplush, new Vector3(330.5399f, -443.1522f, 1735.403f), new Quaternion(0, 0.5688f, 0, -0.8225f));
                         Object.DontDestroyOnLoad(newfox);
                         newfox.transform.SetParent(newinterior.transform);
                         newfox.transform.localScale = Vector3.one;
-                        newfox = Object.Instantiate(foxplush, new Vector3(266.4287f, - 431.316f, 1672.744f), new Quaternion(0, 0.5688f, 0, -0.8225f));
+                        newfox = Object.Instantiate(foxplush, new Vector3(266.4287f, -431.316f, 1672.744f), new Quaternion(0, 0.5688f, 0, -0.8225f));
                         Object.DontDestroyOnLoad(newfox);
                         newfox.transform.SetParent(newinterior.transform);
                         newfox.transform.localScale = Vector3.one * 0.3f;
-                        newfox = Object.Instantiate(foxplush, new Vector3(449.5674f, - 430.5944f, 1666.002f), new Quaternion(0, 0.5688f, 0, -0.8225f));
+                        newfox = Object.Instantiate(foxplush, new Vector3(449.5674f, -430.5944f, 1666.002f), new Quaternion(0, 0.5688f, 0, -0.8225f));
                         Object.DontDestroyOnLoad(newfox);
                         newfox.transform.SetParent(newinterior.transform);
                         newfox.transform.localScale = Vector3.one * 0.3f;
-                        newfox = Object.Instantiate(foxplush, new Vector3(319.6508f, - 434.2854f, 1486.746f), new Quaternion(0, 0, 0, 1));
+                        newfox = Object.Instantiate(foxplush, new Vector3(319.6508f, -434.2854f, 1486.746f), new Quaternion(0, 0, 0, 1));
                         Object.DontDestroyOnLoad(newfox);
                         newfox.transform.SetParent(newinterior.transform);
                         newfox.transform.localScale = Vector3.one * 0.5f;
@@ -1615,16 +1615,16 @@ namespace The_Flagship
             powerPercent.AddRangeToArray(ship.m_SysIntConduit_LocalChangeValue);
             powerPercent[16] = 0;
             ship.m_SysIntConduit_LocalChangeValue = powerPercent;
-            if (ship.MyHull != null && ship.MyHull.Level < 9) 
+            if (ship.MyHull != null && ship.MyHull.Level < 9)
             {
                 ship.MyHull.Level = 9;
                 ship.MyHull.Current = 3920;
             }
-            if(ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2 && PhotonNetwork.isMasterClient) 
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2 && PhotonNetwork.isMasterClient)
             {
-                for(int i = 0; i < 7;i++)ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
+                for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
             }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count  == 1 && PhotonNetwork.isMasterClient)
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count == 1 && PhotonNetwork.isMasterClient)
             {
                 for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(25, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_INERTIA_THRUSTER);
             }
@@ -1642,6 +1642,7 @@ namespace The_Flagship
             {
                 await Task.Yield();
             }
+
             PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
             if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
             await Task.Delay(15 * 1000);
@@ -1656,16 +1657,80 @@ namespace The_Flagship
                     graph.forcedBoundsCenter += newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position - newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc;
                     graph.RelocateNodes(newMat * oldMat.inverse);
                 }
+
+            }
+            List<PLCombatTarget> drones = new List<PLCombatTarget>();
+            Vector3[] positions = new Vector3[]
+            {
+                new Vector3(0, -261, -411),
+                new Vector3(428, -430, 1751),
+                new Vector3(321, -382, 1453),
+                new Vector3(357, -442, 1541),
+                new Vector3(395, -382, 1588),
+                new Vector3(287, -430, 1732),
+                new Vector3(358, -382, 1370),
+                /*
+                
+                new Vector3(252, -430, 1630),
+                new Vector3(463, -430, 1630),
+                new Vector3(357, -442, 1746),
+                new Vector3(357, -442, 1624),
+                
+                new Vector3(357, -442, 1395),
+                new Vector3(470, -398, 1482),
+                new Vector3(358, -409, 1736),
+                new Vector3(357, -384, 1674),
+                new Vector3(358, -384, 1492),
+                
+                new Vector3(321, -382, 1533),
+                new Vector3(321, -382, 1588),
+                new Vector3(395, -382, 1453),
+                new Vector3(395, -382, 1533),
+                
+                
+                */
+            };
+            foreach (Vector3 vector in positions)
+            {
+                PLCombatTarget component = PhotonNetwork.Instantiate("NetworkPrefabs/BoardingBot", vector, Quaternion.identity, 0, null).GetComponent<PLCombatTarget>();
+                if (component != null)
+                {
+                    drones.Add(component);
+                }
+            }
+            await Task.Delay(100 * drones.Count);
+            foreach (PLCombatTarget target in drones)
+            {
+                if (target != null && target.gameObject != null)
+                {
+                    Object.DontDestroyOnLoad(target.gameObject);
+                    target.MyCurrentTLI = PLEncounterManager.Instance.PlayerShip.MyTLI;
+                    target.CurrentShip = PLEncounterManager.Instance.PlayerShip;
+                    target.name += " (frienddrone)";
+                    PLBoardingBot drone = (PLBoardingBot)target;
+                    if (drone != null)
+                    {
+                        target.StopAllCoroutines();
+                        target.StartCoroutine(PatrolBotUpdate.PathRoutine(drone));
+                        foreach (Light light in drone.MyLights)
+                        {
+                            if (light != null)
+                            {
+                                light.color = Color.green;
+                            }
+                        }
+                    }
+                }
             }
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
     }
     [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
-    class OnExit 
+    class OnExit
     {
-        static void Postfix() 
+        static void Postfix()
         {
-            foreach(GameObject gameObject in Mod.moddedScreens) 
+            foreach (GameObject gameObject in Mod.moddedScreens)
             {
                 Object.Destroy(gameObject);
             }
