@@ -25,7 +25,7 @@ namespace The_Flagship
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
-        public override string Version => "1.3";
+        public override string Version => "1.3.1";
 
         public override string Author => "pokegustavo";
 

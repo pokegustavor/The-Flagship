@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Diagnostics;
 using HarmonyLib;
 using UnityEngine;
 using PulsarModLoader;
@@ -96,8 +97,9 @@ namespace The_Flagship
         {
             if (Command.shipAssembled && __instance.ShipInfo != null && __instance.ShipInfo.GetIsPlayerShip() && __instance.ShipInfo.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                __instance.ShipInfo.ExteriorRigidbody.AddTorque(collision.impulse * -1, ForceMode.Force);
-                __instance.ShipInfo.ExteriorRigidbody.AddForce(collision.impulse * -1, ForceMode.Force);
+                __instance.ShipInfo.ExteriorRigidbody.angularVelocity = Vector3.zero;
+                __instance._rigidbody.AddTorque(__instance.InputTorque * __instance.rotationSpeed * (__instance.IsBoosting? 1.32f : 1f));
+                
             }
         }
     }
