@@ -245,7 +245,7 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
-    class OnJoin
+    public class OnJoin
     {
         static void Prefix()
         {
@@ -269,9 +269,19 @@ namespace The_Flagship
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
             }
         }
-        static async void AutoAssemble()
+        public static async void AutoAssemble()
         {
-            while (PLEncounterManager.Instance == null || PLEncounterManager.Instance.PlayerShip == null)
+            while (PLEncounterManager.Instance.PlayerShip == null) await Task.Yield();
+            PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, false);
+            while (PLEncounterManager.Instance == null || !PLLoader.Instance.IsLoaded)
             {
                 await Task.Yield();
             }
@@ -307,6 +317,22 @@ namespace The_Flagship
             if (sender.sender == PhotonNetwork.masterClient)
             {
                 Command.playersArrested = (int[])arguments[0];
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLServer), "NotifyPlayerStart")]
+    class MeshEnable 
+    {
+        static void Postfix() 
+        {
+            PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+            if(ship != null && ship.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+            {
+                foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    render.enabled = true;
+                    render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                }
             }
         }
     }
@@ -581,7 +607,7 @@ namespace The_Flagship
                 float num = float.MaxValue;
                 foreach (PLPawn plpawn in PLGameStatic.Instance.AllPawns)
                 {
-                    if (plpawn != null && !plpawn.Cloaked && !plpawn.PreviewPawn && !plpawn.IsDead && __instance.HadRecentLOSSuccessToTarget(plpawn) && plpawn.GetTeamID() != __instance.CurrentShip.TeamID)
+                    if (plpawn != null && !plpawn.Cloaked && !plpawn.PreviewPawn && !plpawn.IsDead && !Physics.Linecast(__instance.transform.position, plpawn.transform.position + Vector3.up * 1.5f, out _) && plpawn.GetTeamID() != __instance.CurrentShip.TeamID)
                     {
                         float magnitude = (plpawn.transform.position - __instance.transform.position).magnitude;
                         float num2 = Vector3.Dot((plpawn.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
@@ -595,7 +621,7 @@ namespace The_Flagship
                 }
                 foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets) 
                 {
-                    if(combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && __instance.HadRecentLOSSuccessToTarget(combatTarget) && !combatTarget.GetIsFriendly()) 
+                    if(combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && !Physics.Linecast(__instance.transform.position, combatTarget.transform.position + Vector3.up * 1.5f, out _) && !combatTarget.GetIsFriendly()) 
                     {
                         float magnitude = (combatTarget.transform.position - __instance.transform.position).magnitude;
                         float num2 = Vector3.Dot((combatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
@@ -639,11 +665,18 @@ namespace The_Flagship
         static bool Prefix(PLBoardingBot __instance) 
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
+            float expectedMaxH = 150 + Mod.PatrolBotsLevel * 25;
+            if(__instance.MaxHealth != expectedMaxH) 
+            {
+                float Percent = __instance.Health / __instance.MaxHealth;
+                __instance.MaxHealth = expectedMaxH;
+                __instance.Health = __instance.MaxHealth * Percent;
+            }
             PLCombatTarget lCombatTarget = null;
             float nums = float.MaxValue;
             foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets)
             {
-                if (combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && __instance.HadRecentLOSSuccessToTarget(combatTarget) && !combatTarget.GetIsFriendly())
+                if (combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && !Physics.Linecast(__instance.transform.position, combatTarget.transform.position + Vector3.up * 1.5f, out _) && !combatTarget.GetIsFriendly())
                 {
                     float magnitude = (combatTarget.transform.position - __instance.transform.position).magnitude;
                     float num2 = Vector3.Dot((combatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
@@ -721,7 +754,33 @@ namespace The_Flagship
                 __instance.CombatRoutine();
                 if (__instance.Health <= 0f)
                 {
-                    PhotonNetwork.Destroy(__instance.gameObject);
+                    if (!__instance.IsDead)
+                    {
+                        __instance.IsDead = true;
+                        __instance.LastHeadDamageTakenTime = Time.time;
+                        __instance.transform.Rotate(90, 0, 0);
+                        foreach (Light light in __instance.MyLights)
+                        {
+                            if (light != null)
+                            {
+                                light.enabled = false;
+                            }
+                        }
+                    }
+                    __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, Quaternion.Euler(new Vector3(90,0,0)), Mathf.Clamp01(Time.deltaTime));
+                    if (Time.time - __instance.LastHeadDamageTakenTime > 30) 
+                    {
+                        __instance.IsDead = false;
+                        __instance.Health = __instance.MaxHealth;
+                        foreach (Light light in __instance.MyLights)
+                        {
+                            if (light != null)
+                            {
+                                light.enabled = true;
+                            }
+                        }
+                    }
+                    else return false;
                 }
                 PLPathfinderGraphEntity pgeforTLIAndTransform = PLPathfinder.GetInstance().GetPGEforTLIAndTransform(__instance.MyCurrentTLI, __instance.transform);
                 if (pgeforTLIAndTransform != null)
@@ -787,7 +846,7 @@ namespace The_Flagship
                             __instance.currentPathIndex++;
                         }
                         vector = (__instance.targetPos - __instance.transform.position).normalized;
-                        __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.targetPos + new Vector3(0f, Mathf.Sin(Time.time) * 0.4f, 0f), Mathf.Clamp01(Time.deltaTime));
+                        __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.targetPos + new Vector3(0f, Mathf.Sin(Time.time) * 0.4f, 0f), Mathf.Clamp01(Time.deltaTime*2*(1f + 0.2f * Mod.PatrolBotsLevel)));
                     }
                     if (__instance.TargetPawn != null)
                     {
@@ -824,51 +883,55 @@ namespace The_Flagship
                     __instance.LastNetScanPos = Vector3.zero;
                 }
                 nums = float.MaxValue;
-                if (!__instance.pathRequestInProgress && __instance.CurrentShip != null && __instance.CurrentShip.IsAuxSystemActive(6))
+                try
                 {
-                    PLPathfinderGraphEntity myGraphEntity = PLPathfinder.GetInstance().GetPGEforTLIAndTransform(__instance.MyCurrentTLI, __instance.transform);
-                    PLCombatTarget combatTarget = null;
-                    foreach (PLCombatTarget pLCombatTarget in PLGameStatic.Instance.AllCombatTargets)
+                    if (!__instance.pathRequestInProgress && __instance.CurrentShip != null && __instance.CurrentShip.IsAuxSystemActive(6) && __instance.TargetPawn == null && lCombatTarget == null)
                     {
-                        if (pLCombatTarget.gameObject != null && pLCombatTarget.CurrentShip == __instance.CurrentShip && PLPathfinder.GetInstance().GetPGEforTLIAndTransform(pLCombatTarget.MyCurrentTLI, pLCombatTarget.transform) == myGraphEntity && !pLCombatTarget.IsDead && !pLCombatTarget.GetIsFriendly())
+                        PLPathfinderGraphEntity myGraphEntity = PLPathfinder.GetInstance().GetPGEforTLIAndTransform(__instance.MyCurrentTLI, __instance.transform);
+                        PLCombatTarget combatTarget = null;
+                        foreach (PLCombatTarget pLCombatTarget in PLGameStatic.Instance.AllCombatTargets)
                         {
-                            float magnitude = (pLCombatTarget.transform.position - __instance.transform.position).magnitude;
-                            float num2 = Vector3.Dot((pLCombatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
-                            float num3 = magnitude * (1f - num2);
-                            if (num3 < nums)
+                            if (pLCombatTarget.gameObject != null && pLCombatTarget.CurrentShip == __instance.CurrentShip && PLPathfinder.GetInstance().GetPGEforTLIAndTransform(pLCombatTarget.MyCurrentTLI, pLCombatTarget.transform) == myGraphEntity && !pLCombatTarget.IsDead && !pLCombatTarget.GetIsFriendly())
                             {
-                                nums = num3;
-                                combatTarget = pLCombatTarget;
+                                float magnitude = (pLCombatTarget.transform.position - __instance.transform.position).magnitude;
+                                float num2 = Vector3.Dot((pLCombatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
+                                float num3 = magnitude * (1f - num2);
+                                if (num3 < nums)
+                                {
+                                    nums = num3;
+                                    combatTarget = pLCombatTarget;
+                                }
                             }
                         }
+                        if (combatTarget != null && (__instance.currentPath == null || ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - combatTarget.transform.position).magnitude > 25))
+                        {
+                            __instance.seeker.StartPath(__instance.transform.position, combatTarget.transform.position, new OnPathDelegate(__instance.OnPathComplete));
+                            foreach (Light light in __instance.MyLights)
+                            {
+                                if (light != null)
+                                {
+                                    light.color = Color.magenta;
+                                }
+                            }
+                            __instance.pathRequestInProgress = true;
+                        }
                     }
-                    if (combatTarget != null && (__instance.currentPath == null || ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - combatTarget.transform.position).magnitude > 25))
+                    else if (__instance.currentPath == null)
                     {
-                        __instance.seeker.StartPath(__instance.transform.position, combatTarget.transform.position, new OnPathDelegate(__instance.OnPathComplete));
                         foreach (Light light in __instance.MyLights)
                         {
                             if (light != null)
                             {
-                                light.color = Color.magenta;
+                                light.color = Color.green;
                             }
                         }
-                        __instance.pathRequestInProgress = true;
                     }
                 }
-                else if(__instance.currentPath == null) 
-                {
-                    foreach (Light light in __instance.MyLights)
-                    {
-                        if (light != null)
-                        {
-                            light.color = Color.green;
-                        }
-                    }
-                }
+                catch{ }
             }
             else
             {
-                __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.LastNetPos, Mathf.Clamp01(Time.deltaTime * 5f));
+                __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.LastNetPos, Mathf.Clamp01(Time.deltaTime * 5f *2* (1f + 0.2f * Mod.PatrolBotsLevel)));
                 __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, __instance.LastNetRot, Mathf.Clamp01(Time.deltaTime * 8f));
             }
             if (PhotonNetwork.isMasterClient && Time.time - __instance.LastTimeSentNetUpdate > 0.1f)
@@ -907,6 +970,8 @@ namespace The_Flagship
                                 GraphNode nextMainPathPos = null;
                                 float num = float.MaxValue;
                                 Vector3 randomTarget = new Vector3(UnityEngine.Random.Range(249,480), UnityEngine.Random.Range(-426,-345), UnityEngine.Random.Range(1337, 1795));
+                                Vector3 randomTarget2 = new Vector3(UnityEngine.Random.Range(-33, 31), -256, UnityEngine.Random.Range(-447, -315));
+                                if ((__instance.transform.position - randomTarget).magnitude > (__instance.transform.position - randomTarget2).magnitude) randomTarget = randomTarget2;
                                 NNConstraint nnconstraint = new NNConstraint();
                                 nnconstraint.area = (int)__instance.AreaIndex;
                                 nnconstraint.constrainArea = true;
@@ -956,6 +1021,31 @@ namespace The_Flagship
             yield break;
         }
     }
+    [HarmonyPatch(typeof(PLBoardingBot), "FireShot")]
+    class PatrolBotShot 
+    {
+        static bool Prefix(PLBoardingBot __instance, Vector3 aimAtPoint, Vector3 destNormal, int newBoltID, Collider hitCollider) 
+        {
+            if (!__instance.name.Contains("(frienddrone)")) return true;
+            GameObject gameObject = __instance.CreateBoltGO();
+            PLBolt component = gameObject.GetComponent<PLBolt>();
+            component.DamageDone = 30f + Mod.PatrolBotsLevel *5;
+            if (PLServer.Instance != null)
+            {
+                component.DamageDone += PLServer.Instance.ChaosLevel * 6f;
+            }
+            component.ProjSpeed = 50f;
+            component.Setup(__instance.transform.position, aimAtPoint, destNormal, Vector3.zero, null, __instance, newBoltID, hitCollider);
+            Transform[] componentsInChildren = gameObject.GetComponentsInChildren<Transform>();
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                componentsInChildren[i].gameObject.layer = __instance.gameObject.layer;
+            }
+            PLMusic.PostEvent("play_sx_npc_investigator_shoot", __instance.gameObject);
+            __instance.LastShotFiredTime = Time.time;
+            return false;
+        }
+    }
     [HarmonyPatch(typeof(PLBot), "Update")]
     class GiveControllerBot
     {
@@ -968,15 +1058,14 @@ namespace The_Flagship
                 {
 
                     PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.MyBotController.Assigned_AI_TargetPos);
-                    PulsarModLoader.Utilities.Messaging.Notification("Current: " + __instance.PlayerOwner.MyPGE.ID + ", Target: " + targetInterior.ID);
-                    PulsarModLoader.Utilities.Messaging.Notification("Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
+                    //PulsarModLoader.Utilities.Messaging.Notification("Current: " + __instance.PlayerOwner.MyPGE.ID + ", Target: " + targetInterior.ID);
+                    //PulsarModLoader.Utilities.Messaging.Notification("Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
                     if (__instance.PlayerOwner.MyPGE != null && targetInterior.ID != __instance.PlayerOwner.MyPGE.ID)
                     {
-                        int doorID = 0;
-
                         if (targetInterior.ID < __instance.PlayerOwner.MyPGE.ID) //Bot is in brige but wants to go to main area 
                         {
                             float distance = (new Vector3(434.2143f, -430.2697f, 1730.034f) - __instance.AI_TargetPos).magnitude;
+                            int doorID = 0;
                             if ((new Vector3(378.7f, -384.8338f, 1366.8f) - __instance.AI_TargetPos).magnitude < distance)
                             {
                                 distance = (new Vector3(378.7f, -384.8338f, 1366.8f) - __instance.AI_TargetPos).magnitude;

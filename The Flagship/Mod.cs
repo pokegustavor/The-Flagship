@@ -9,6 +9,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using Pathfinding;
+using PulsarModLoader.MPModChecks;
+using PulsarModLoader.SaveData;
+using System.IO;
+using static UIPopupList;
+
 namespace The_Flagship
 {
     /*
@@ -19,6 +24,7 @@ namespace The_Flagship
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
+        public static int PatrolBotsLevel = 0;
         public override string Version => "1.3";
 
         public override string Author => "pokegustavo";
@@ -27,9 +33,45 @@ namespace The_Flagship
 
         public override string Name => "The Flagship";
 
+        public override int MPRequirements => (int)MPRequirement.All;
+
         public override string HarmonyIdentifier()
         {
             return "pokegustavo.theflagship";
+        }
+    }
+    class MySaveData : PMLSaveData
+    {
+
+        public override string Identifier()
+        {
+            return "pokegustavo.theflagship";
+        }
+
+        public override void LoadData(byte[] Data, uint VersionID)
+        {
+            using (MemoryStream dataStream = new MemoryStream(Data))
+            {
+                using (BinaryReader binaryReader = new BinaryReader(dataStream))
+                {
+                    bool assembled = binaryReader.ReadBoolean();
+                    if (assembled) OnJoin.AutoAssemble();
+                    Mod.PatrolBotsLevel = binaryReader.ReadInt32();
+                }
+            }
+        }
+
+        public override byte[] SaveData()
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter binaryWriter = new BinaryWriter(stream))
+                {
+                    binaryWriter.Write(Command.shipAssembled);
+                    binaryWriter.Write(Mod.PatrolBotsLevel);
+                }
+                return stream.ToArray();
+            }
         }
     }
     public class Command : ChatCommand
@@ -1562,6 +1604,11 @@ namespace The_Flagship
                     newatrium = Object.Instantiate(ship.MyAtrium.gameObject, new Vector3(380.1347f, -399.7f, 1742f), ship.MyAtrium.transform.rotation);
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
+                    GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 270, 0)));
+                    PLPatrolBotUpgradeScreen patrolUpgrade = droneUpgradeRoot.AddComponent<PLPatrolBotUpgradeScreen>();
+                    patrolUpgrade.setValues(droneUpgradeRoot.transform, ship.worldUiCanvas, ship);
+                    patrolUpgrade.Assemble();
+                    Object.DontDestroyOnLoad(droneUpgradeRoot);
                     //ship.InteriorStatic = interior;
                     if (foxplush != null)
                     {
@@ -1634,6 +1681,12 @@ namespace The_Flagship
             }
             PLServer.Instance.RepLevels[2] = 5;
             PLServer.Instance.CrewFactionID = 2;
+            foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                render.enabled = true;
+                render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+            }
+
             AsyncOperation des = SceneManager.UnloadSceneAsync(Estate);
             AsyncOperation des1 = SceneManager.UnloadSceneAsync(Flagship);
             AsyncOperation des2 = SceneManager.UnloadSceneAsync(WDHub);
