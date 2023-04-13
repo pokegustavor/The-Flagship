@@ -13,19 +13,20 @@ using PulsarModLoader.MPModChecks;
 using PulsarModLoader.SaveData;
 using System.IO;
 using static UIPopupList;
+using PulsarModLoader.Keybinds;
 
 namespace The_Flagship
 {
     /*
     TODO
      */
-    public class Mod : PulsarMod
+    public class Mod : PulsarMod , IKeybind
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
-        public override string Version => "1.3.1";
+        public override string Version => "1.4";
 
         public override string Author => "pokegustavo";
 
@@ -38,6 +39,10 @@ namespace The_Flagship
         public override string HarmonyIdentifier()
         {
             return "pokegustavo.theflagship";
+        }
+        public void RegisterBinds(KeybindManager manager)
+        {
+            manager.NewBind("MyKeybind", "mykeybind", "Basics", "F8");
         }
     }
     class MySaveData : PMLSaveData
@@ -1425,7 +1430,7 @@ namespace The_Flagship
                             teleport1.GetComponent<PLClonedScreen>().MyTargetScreen = warpscreen;
                         }
                     }
-                    if (coolantscreen != null)
+                    if (coolantscreen != null) //Also Adding modded screens here, because why not
                     {
                         coolantscreen.transform.position = new Vector3(0.6817f, -260.276f, -326.9217f);
                         coolantscreen.transform.rotation = new Quaternion(0, 0.2374f, 0, -0.9714f);
@@ -1438,6 +1443,17 @@ namespace The_Flagship
                         Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
                         PLTemperatureScreen temperatureScreen = temperature.AddComponent<PLTemperatureScreen>();
                         temperatureScreen.Engage();
+                        Mod.moddedScreens.Add(temperature);
+
+                        temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(353.223f, - 383.2109f, 1371.455f), new Quaternion(0, 0.5991f, 0, -0.8007f));
+                        Object.DontDestroyOnLoad(temperature);
+                        foreach (Transform transform in temperature.transform)
+                        {
+                            Object.DestroyImmediate(transform.gameObject);
+                        }
+                        Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
+                        PLArmorBonusScreen armorScreen = temperature.AddComponent<PLArmorBonusScreen>();
+                        armorScreen.Engage();
                         Mod.moddedScreens.Add(temperature);
                         //Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
                         /*
@@ -1712,9 +1728,11 @@ namespace The_Flagship
                 }
 
             }
-            List<PLCombatTarget> drones = new List<PLCombatTarget>();
-            Vector3[] positions = new Vector3[]
+            if (PhotonNetwork.isMasterClient)
             {
+                List<PLCombatTarget> drones = new List<PLCombatTarget>();
+                Vector3[] positions = new Vector3[]
+                {
                 new Vector3(0, -261, -411),
                 new Vector3(428, -430, 1751),
                 new Vector3(321, -382, 1453),
@@ -1722,54 +1740,55 @@ namespace The_Flagship
                 new Vector3(395, -382, 1588),
                 new Vector3(287, -430, 1732),
                 new Vector3(358, -382, 1370),
-                /*
-                
-                new Vector3(252, -430, 1630),
-                new Vector3(463, -430, 1630),
-                new Vector3(357, -442, 1746),
-                new Vector3(357, -442, 1624),
-                
-                new Vector3(357, -442, 1395),
-                new Vector3(470, -398, 1482),
-                new Vector3(358, -409, 1736),
-                new Vector3(357, -384, 1674),
-                new Vector3(358, -384, 1492),
-                
-                new Vector3(321, -382, 1533),
-                new Vector3(321, -382, 1588),
-                new Vector3(395, -382, 1453),
-                new Vector3(395, -382, 1533),
-                
-                
-                */
-            };
-            foreach (Vector3 vector in positions)
-            {
-                PLCombatTarget component = PhotonNetwork.Instantiate("NetworkPrefabs/BoardingBot", vector, Quaternion.identity, 0, null).GetComponent<PLCombatTarget>();
-                if (component != null)
+                    /*
+
+                    new Vector3(252, -430, 1630),
+                    new Vector3(463, -430, 1630),
+                    new Vector3(357, -442, 1746),
+                    new Vector3(357, -442, 1624),
+
+                    new Vector3(357, -442, 1395),
+                    new Vector3(470, -398, 1482),
+                    new Vector3(358, -409, 1736),
+                    new Vector3(357, -384, 1674),
+                    new Vector3(358, -384, 1492),
+
+                    new Vector3(321, -382, 1533),
+                    new Vector3(321, -382, 1588),
+                    new Vector3(395, -382, 1453),
+                    new Vector3(395, -382, 1533),
+
+
+                    */
+                };
+                foreach (Vector3 vector in positions)
                 {
-                    drones.Add(component);
-                }
-            }
-            await Task.Delay(100 * drones.Count);
-            foreach (PLCombatTarget target in drones)
-            {
-                if (target != null && target.gameObject != null)
-                {
-                    Object.DontDestroyOnLoad(target.gameObject);
-                    target.MyCurrentTLI = PLEncounterManager.Instance.PlayerShip.MyTLI;
-                    target.CurrentShip = PLEncounterManager.Instance.PlayerShip;
-                    target.name += " (frienddrone)";
-                    PLBoardingBot drone = (PLBoardingBot)target;
-                    if (drone != null)
+                    PLCombatTarget component = PhotonNetwork.Instantiate("NetworkPrefabs/BoardingBot", vector, Quaternion.identity, 0, null).GetComponent<PLCombatTarget>();
+                    if (component != null)
                     {
-                        target.StopAllCoroutines();
-                        target.StartCoroutine(PatrolBotUpdate.PathRoutine(drone));
-                        foreach (Light light in drone.MyLights)
+                        drones.Add(component);
+                    }
+                }
+                await Task.Delay(100 * drones.Count);
+                foreach (PLCombatTarget target in drones)
+                {
+                    if (target != null && target.gameObject != null)
+                    {
+                        Object.DontDestroyOnLoad(target.gameObject);
+                        target.MyCurrentTLI = PLEncounterManager.Instance.PlayerShip.MyTLI;
+                        target.CurrentShip = PLEncounterManager.Instance.PlayerShip;
+                        target.name += " (frienddrone)";
+                        PLBoardingBot drone = (PLBoardingBot)target;
+                        if (drone != null)
                         {
-                            if (light != null)
+                            target.StopAllCoroutines();
+                            target.StartCoroutine(PatrolBotUpdate.PathRoutine(drone));
+                            foreach (Light light in drone.MyLights)
                             {
-                                light.color = Color.green;
+                                if (light != null)
+                                {
+                                    light.color = Color.green;
+                                }
                             }
                         }
                     }

@@ -37,14 +37,16 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "ShipFinalCalculateStats")]
-    class ShipStats
+    public class ShipStats
     {
+        public static float armorModifier = 1f;
         static void Postfix(PLShipInfo __instance, ref PLShipStats inStats)
         {
             if (__instance.GetIsPlayerShip() && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
                 inStats.ReactorOutputFactor *= 2;
                 inStats.OxygenRefillRate *= 10;
+                inStats.HullArmor *= armorModifier;
             }
         }
     }
@@ -98,8 +100,8 @@ namespace The_Flagship
             if (Command.shipAssembled && __instance.ShipInfo != null && __instance.ShipInfo.GetIsPlayerShip() && __instance.ShipInfo.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
                 __instance.ShipInfo.ExteriorRigidbody.angularVelocity = Vector3.zero;
-                __instance._rigidbody.AddTorque(__instance.InputTorque * __instance.rotationSpeed * (__instance.IsBoosting? 1.32f : 1f));
-                
+                __instance._rigidbody.AddTorque(__instance.InputTorque * __instance.rotationSpeed * (__instance.IsBoosting ? 1.32f : 1f));
+
             }
         }
     }
@@ -275,7 +277,7 @@ namespace The_Flagship
         {
             while (PLEncounterManager.Instance.PlayerShip == null) await Task.Yield();
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 52);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
@@ -323,12 +325,12 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLServer), "NotifyPlayerStart")]
-    class MeshEnable 
+    class MeshEnable
     {
-        static void Postfix() 
+        static void Postfix()
         {
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-            if(ship != null && ship.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+            if (ship != null && ship.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
                 foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
                 {
@@ -404,7 +406,7 @@ namespace The_Flagship
                 }
                 if (PhotonNetwork.isMasterClient) ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.Others, new object[] { Command.playersArrested });
             }
-        }        
+        }
     }
     [HarmonyPatch(typeof(PLPlayer), "Update")]
     class PlayerUpdate
@@ -586,20 +588,20 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLCombatTarget), "GetIsFriendly")]
-    class PatrolBotsFriend 
+    class PatrolBotsFriend
     {
-        static void Postfix(PLCombatTarget __instance,ref bool __result) 
+        static void Postfix(PLCombatTarget __instance, ref bool __result)
         {
-            if(__instance is PLBoardingBot && __instance.name.Contains("(frienddrone)")) 
+            if (__instance is PLBoardingBot && __instance.name.Contains("(frienddrone)"))
             {
                 __result = true;
             }
         }
     }
     [HarmonyPatch(typeof(PLBoardingBot), "CombatRoutine")]
-    class PatrolBotsCombat 
+    class PatrolBotsCombat
     {
-        static bool Prefix(PLBoardingBot __instance) 
+        static bool Prefix(PLBoardingBot __instance)
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
             PLCombatTarget lCombatTarget = null;
@@ -621,9 +623,9 @@ namespace The_Flagship
                         }
                     }
                 }
-                foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets) 
+                foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets)
                 {
-                    if(combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && !Physics.Linecast(__instance.transform.position, combatTarget.transform.position + Vector3.up * 1.5f, out _) && !combatTarget.GetIsFriendly()) 
+                    if (combatTarget != null && !(combatTarget is PLPawn) && !combatTarget.IsDead && !Physics.Linecast(__instance.transform.position, combatTarget.transform.position + Vector3.up * 1.5f, out _) && !combatTarget.GetIsFriendly())
                     {
                         float magnitude = (combatTarget.transform.position - __instance.transform.position).magnitude;
                         float num2 = Vector3.Dot((combatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward);
@@ -649,7 +651,7 @@ namespace The_Flagship
                             __instance.Server_FireShot();
                         }
                     }
-                    else if(lCombatTarget != null) 
+                    else if (lCombatTarget != null)
                     {
                         if (Vector3.Dot((lCombatTarget.transform.position - __instance.transform.position).normalized, __instance.transform.forward) > 0.9f && UnityEngine.Random.Range(0, 25) < 9)
                         {
@@ -661,14 +663,61 @@ namespace The_Flagship
             return false;
         }
     }
-    [HarmonyPatch(typeof(PLBoardingBot),"Update")]
-    class PatrolBotUpdate 
+    class DroneReciever : ModMessage
     {
-        static bool Prefix(PLBoardingBot __instance) 
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            foreach (PLBoardingBot bot in UnityEngine.Object.FindObjectsOfType<PLBoardingBot>(true))
+            {
+                if (bot.photonView.instantiationId == (int)arguments[0])
+                {
+                    if(!bot.name.Contains("(frienddrone)")) bot.name += " (frienddrone)";
+                    foreach (Light light in bot.MyLights)
+                    {
+                        if (light != null)
+                        {
+                            light.color = new Color((float)arguments[1], (float)arguments[2], (float)arguments[3], (float)arguments[4]);
+                            light.enabled = (bool)arguments[5];
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLBoardingBot), "Update")]
+    class PatrolBotUpdate
+    {
+        static float LastSync = 0;
+        static void RequestSync() 
+        {
+            foreach (PLBoardingBot bot in UnityEngine.Object.FindObjectsOfType<PLBoardingBot>(true))
+            {
+                if (bot.name.Contains("(frienddrone)"))
+                {
+                    if (PhotonNetwork.isMasterClient) ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.DroneReciever", PhotonTargets.Others, new object[]
+                    {
+                    bot.photonView.instantiationId,
+                    bot.MyLights[0].color.r,
+                    bot.MyLights[0].color.g,
+                    bot.MyLights[0].color.b,
+                    bot.MyLights[0].color.a,
+                    bot.MyLights[0].enabled
+                    });
+                }
+            }
+            
+        }
+        static bool Prefix(PLBoardingBot __instance)
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
-            float expectedMaxH = 150 + Mod.PatrolBotsLevel * 25;
-            if(__instance.MaxHealth != expectedMaxH) 
+            float expectedMaxH = 155 + Mod.PatrolBotsLevel * 25;
+            if(PhotonNetwork.isMasterClient && Time.time - LastSync > 10) 
+            {
+                LastSync = Time.time;
+                RequestSync();
+            }
+            if (__instance.MaxHealth != expectedMaxH)
             {
                 float Percent = __instance.Health / __instance.MaxHealth;
                 __instance.MaxHealth = expectedMaxH;
@@ -769,8 +818,8 @@ namespace The_Flagship
                             }
                         }
                     }
-                    __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, Quaternion.Euler(new Vector3(90,0,0)), Mathf.Clamp01(Time.deltaTime));
-                    if (Time.time - __instance.LastHeadDamageTakenTime > 30) 
+                    __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, Quaternion.Euler(new Vector3(90, 0, 0)), Mathf.Clamp01(Time.deltaTime));
+                    if (Time.time - __instance.LastHeadDamageTakenTime > 30)
                     {
                         __instance.IsDead = false;
                         __instance.Health = __instance.MaxHealth;
@@ -848,7 +897,7 @@ namespace The_Flagship
                             __instance.currentPathIndex++;
                         }
                         vector = (__instance.targetPos - __instance.transform.position).normalized;
-                        __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.targetPos + new Vector3(0f, Mathf.Sin(Time.time) * 0.4f, 0f), Mathf.Clamp01(Time.deltaTime*2*(1f + 0.2f * Mod.PatrolBotsLevel)));
+                        __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.targetPos + new Vector3(0f, Mathf.Sin(Time.time) * 0.4f, 0f), Mathf.Clamp01(Time.deltaTime * 2 * (1f + 0.2f * Mod.PatrolBotsLevel)));
                     }
                     if (__instance.TargetPawn != null)
                     {
@@ -929,11 +978,11 @@ namespace The_Flagship
                         }
                     }
                 }
-                catch{ }
+                catch { }
             }
             else
             {
-                __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.LastNetPos, Mathf.Clamp01(Time.deltaTime * 5f *2* (1f + 0.2f * Mod.PatrolBotsLevel)));
+                __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.LastNetPos, Mathf.Clamp01(Time.deltaTime * 5f * 2 * (1f + 0.2f * Mod.PatrolBotsLevel)));
                 __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, __instance.LastNetRot, Mathf.Clamp01(Time.deltaTime * 8f));
             }
             if (PhotonNetwork.isMasterClient && Time.time - __instance.LastTimeSentNetUpdate > 0.1f)
@@ -943,7 +992,7 @@ namespace The_Flagship
             }
             return false;
         }
-        public static IEnumerator PathRoutine(PLBoardingBot __instance) 
+        public static IEnumerator PathRoutine(PLBoardingBot __instance)
         {
             bool setupAreaIndex = false;
             int endOfFrame = 0;
@@ -971,7 +1020,7 @@ namespace The_Flagship
                             {
                                 GraphNode nextMainPathPos = null;
                                 float num = float.MaxValue;
-                                Vector3 randomTarget = new Vector3(UnityEngine.Random.Range(249,480), UnityEngine.Random.Range(-426,-345), UnityEngine.Random.Range(1337, 1795));
+                                Vector3 randomTarget = new Vector3(UnityEngine.Random.Range(249, 480), UnityEngine.Random.Range(-426, -345), UnityEngine.Random.Range(1337, 1795));
                                 Vector3 randomTarget2 = new Vector3(UnityEngine.Random.Range(-33, 31), -256, UnityEngine.Random.Range(-447, -315));
                                 if ((__instance.transform.position - randomTarget).magnitude > (__instance.transform.position - randomTarget2).magnitude) randomTarget = randomTarget2;
                                 NNConstraint nnconstraint = new NNConstraint();
@@ -1024,14 +1073,14 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLBoardingBot), "FireShot")]
-    class PatrolBotShot 
+    class PatrolBotShot
     {
-        static bool Prefix(PLBoardingBot __instance, Vector3 aimAtPoint, Vector3 destNormal, int newBoltID, Collider hitCollider) 
+        static bool Prefix(PLBoardingBot __instance, Vector3 aimAtPoint, Vector3 destNormal, int newBoltID, Collider hitCollider)
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
             GameObject gameObject = __instance.CreateBoltGO();
             PLBolt component = gameObject.GetComponent<PLBolt>();
-            component.DamageDone = 30f + Mod.PatrolBotsLevel *5;
+            component.DamageDone = 30f + Mod.PatrolBotsLevel * 5;
             if (PLServer.Instance != null)
             {
                 component.DamageDone += PLServer.Instance.ChaosLevel * 6f;
