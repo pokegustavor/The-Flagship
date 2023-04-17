@@ -47,6 +47,7 @@ namespace The_Flagship
                 inStats.ReactorOutputFactor *= 2;
                 inStats.OxygenRefillRate *= 10;
                 inStats.HullArmor *= armorModifier;
+                inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
             }
         }
     }
@@ -322,6 +323,14 @@ namespace The_Flagship
             {
                 Command.playersArrested = (int[])arguments[0];
             }
+        }
+    }
+    public class AutoRepairReciever : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            PLAutoRepairScreen.Online = (bool)arguments[0];
+            PLAutoRepairScreen.CurrentMultiplier = (float)arguments[1];
         }
     }
     [HarmonyPatch(typeof(PLServer), "NotifyPlayerStart")]
@@ -671,7 +680,7 @@ namespace The_Flagship
             {
                 if (bot.photonView.instantiationId == (int)arguments[0])
                 {
-                    if(!bot.name.Contains("(frienddrone)")) bot.name += " (frienddrone)";
+                    if (!bot.name.Contains("(frienddrone)")) bot.name += " (frienddrone)";
                     foreach (Light light in bot.MyLights)
                     {
                         if (light != null)
@@ -689,7 +698,7 @@ namespace The_Flagship
     class PatrolBotUpdate
     {
         static float LastSync = 0;
-        static void RequestSync() 
+        static void RequestSync()
         {
             foreach (PLBoardingBot bot in UnityEngine.Object.FindObjectsOfType<PLBoardingBot>(true))
             {
@@ -706,13 +715,13 @@ namespace The_Flagship
                     });
                 }
             }
-            
+
         }
         static bool Prefix(PLBoardingBot __instance)
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
             float expectedMaxH = 155 + Mod.PatrolBotsLevel * 25;
-            if(PhotonNetwork.isMasterClient && Time.time - LastSync > 10) 
+            if (PhotonNetwork.isMasterClient && Time.time - LastSync > 10)
             {
                 LastSync = Time.time;
                 RequestSync();
@@ -739,6 +748,7 @@ namespace The_Flagship
                     }
                 }
             }
+            //PLCombatTarget Update
             if (Time.time - __instance.LastDamageTakenTime > 0.6f)
             {
                 __instance.SlowHealth = Mathf.Lerp(__instance.SlowHealth, __instance.Health, Mathf.Clamp01(Time.deltaTime * 8f));
@@ -771,6 +781,7 @@ namespace The_Flagship
                 }
                 __instance.SetupCombatTargetID = true;
             }
+            //Over
             __instance.currentVel = (__instance.transform.position - __instance.prevSpd).magnitude / Time.unscaledDeltaTime;
             __instance.prevSpd = __instance.transform.position;
             PLMusic.SetRTPCValue("investigator_speed", __instance.currentVel);
@@ -819,7 +830,7 @@ namespace The_Flagship
                         }
                     }
                     __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, Quaternion.Euler(new Vector3(90, 0, 0)), Mathf.Clamp01(Time.deltaTime));
-                    if (Time.time - __instance.LastHeadDamageTakenTime > 30)
+                    if (Time.time - __instance.LastHeadDamageTakenTime > 30 && __instance.IsDead)
                     {
                         __instance.IsDead = false;
                         __instance.Health = __instance.MaxHealth;
@@ -954,7 +965,7 @@ namespace The_Flagship
                                 }
                             }
                         }
-                        if (combatTarget != null && (__instance.currentPath == null || ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - combatTarget.transform.position).magnitude > 25))
+                        if (combatTarget != null && (__instance.currentPath == null || ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - combatTarget.transform.position).magnitude > 16))
                         {
                             __instance.seeker.StartPath(__instance.transform.position, combatTarget.transform.position, new OnPathDelegate(__instance.OnPathComplete));
                             foreach (Light light in __instance.MyLights)
@@ -967,23 +978,87 @@ namespace The_Flagship
                             __instance.pathRequestInProgress = true;
                         }
                     }
-                    else if (__instance.currentPath == null)
+                }
+                catch { }
+                List<PLMainSystem> damagedStuff = new List<PLMainSystem>();
+                float distanceToSystem = float.MaxValue;
+                Transform targetSystem = null;
+                if (__instance.CurrentShip.EngineeringSystem.Health < __instance.CurrentShip.EngineeringSystem.MaxHealth)
+                {
+                    damagedStuff.Add(__instance.CurrentShip.EngineeringSystem);
+                }
+                if (__instance.CurrentShip.ComputerSystem.Health < __instance.CurrentShip.ComputerSystem.MaxHealth)
+                {
+                    damagedStuff.Add(__instance.CurrentShip.ComputerSystem);
+                }
+                if (__instance.CurrentShip.WeaponsSystem.Health < __instance.CurrentShip.WeaponsSystem.MaxHealth)
+                {
+                    damagedStuff.Add(__instance.CurrentShip.WeaponsSystem);
+                }
+                if (__instance.CurrentShip.LifeSupportSystem.Health < __instance.CurrentShip.LifeSupportSystem.MaxHealth)
+                {
+                    damagedStuff.Add(__instance.CurrentShip.LifeSupportSystem);
+                }
+                if ((__instance.MyLights[0].color == Color.green || __instance.MyLights[0].color == Color.white) && __instance.pathRequestInProgress == false && damagedStuff.Count > 0)
+                {
+                    foreach (PLMainSystem system in damagedStuff)
                     {
+                        if ((system.MyInstance.transform.position - __instance.transform.position).magnitude < distanceToSystem)
+                        {
+                            distanceToSystem = (system.MyInstance.transform.position - __instance.transform.position).magnitude;
+                            targetSystem = system.MyInstance.transform;
+                        }
+                    }
+                    if (targetSystem != null && (__instance.MyLights[0].color == Color.green || (__instance.MyLights[0].color == Color.white && ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - targetSystem.position).magnitude > 16)))
+                    {
+                        NNConstraint nnconstraint = new NNConstraint();
+                        nnconstraint.area = (int)__instance.AreaIndex;
+                        nnconstraint.constrainArea = true;
+                        nnconstraint.constrainWalkability = true;
+                        Vector3 targetPos = (Vector3)pgeforTLIAndTransform.Graph.GetNearest(targetSystem.position, nnconstraint).node.position;
+                        //PulsarModLoader.Utilities.Messaging.Notification("Target pos: " + targetPos);
+                        __instance.seeker.StartPath(__instance.transform.position, targetPos, new OnPathDelegate(__instance.OnPathComplete));
                         foreach (Light light in __instance.MyLights)
                         {
                             if (light != null)
                             {
-                                light.color = Color.green;
+                                light.color = Color.white;
                             }
+                        }
+                        __instance.pathRequestInProgress = true;
+                    }
+                }
+                foreach (PLMainSystem system in damagedStuff)
+                {
+                    if ((system.MyInstance.transform.position - __instance.transform.position).magnitude < 8)
+                    {
+                        system.Health += (30 + 5 * Mod.PatrolBotsLevel) * Time.deltaTime;
+                        system.MyInstance.LastRepairActiveTime = Time.time;
+                        break;
+                    }
+                }
+                if (__instance.currentPath == null)
+                {
+                    foreach (Light light in __instance.MyLights)
+                    {
+                        if (light != null)
+                        {
+                            light.color = Color.green;
                         }
                     }
                 }
-                catch { }
             }
             else
             {
                 __instance.transform.position = Vector3.Lerp(__instance.transform.position, __instance.LastNetPos, Mathf.Clamp01(Time.deltaTime * 5f * 2 * (1f + 0.2f * Mod.PatrolBotsLevel)));
                 __instance.transform.rotation = Quaternion.Lerp(__instance.transform.rotation, __instance.LastNetRot, Mathf.Clamp01(Time.deltaTime * 8f));
+            }
+            foreach (PLFire fire in __instance.CurrentShip.AllFires.Values)
+            {
+                if ((fire.transform.position - __instance.transform.position).magnitude < 8)
+                {
+                    fire.Intensity -= Time.deltaTime * 2;
+                }
             }
             if (PhotonNetwork.isMasterClient && Time.time - __instance.LastTimeSentNetUpdate > 0.1f)
             {
@@ -1213,6 +1288,318 @@ namespace The_Flagship
                     //PulsarModLoader.Utilities.Messaging.Notification("New Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
                 }
             }
+        }
+    }
+    [HarmonyPatch(typeof(PLReactor), "ShipUpdate")]
+    class PowerUsage
+    {
+        static bool Prefix(PLShipInfoBase inShipInfo, PLReactor shipReactor)
+        {
+            if (inShipInfo != null && inShipInfo.ShipTypeID == EShipType.OLDWARS_HUMAN && inShipInfo == PLEncounterManager.Instance.PlayerShip && Command.shipAssembled)
+            {
+                PLPlayer cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(4, inShipInfo);
+                if (cachedFriendlyPlayerOfClass == null || inShipInfo.GetIsPlayerShip())
+                {
+                    cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(4);
+                }
+                float num = 0f;
+                if (inShipInfo.ReactorCoolantLevelPercent > 0f)
+                {
+                    num = Mathf.Pow((float)inShipInfo.ReactorCoolingPumpState, 2f) * 0.2f;
+                    float num2 = 1f;
+                    if (cachedFriendlyPlayerOfClass != null)
+                    {
+                        num2 = 1f - (float)cachedFriendlyPlayerOfClass.Talents[20] * 0.08f;
+                    }
+                    if (inShipInfo == PLAbyssShipInfo.Instance)
+                    {
+                        num2 *= 0.5f;
+                    }
+                    inShipInfo.ReactorCoolantLevelPercent -= num * 0.0075f * Time.deltaTime * num2;
+                }
+                float num3 = 1f;
+                if (cachedFriendlyPlayerOfClass != null)
+                {
+                    num3 *= 1f - (float)cachedFriendlyPlayerOfClass.Talents[46] * 0.02f;
+                }
+                float num4 = 0.55f;
+                if (inShipInfo.Reactor_OCActive)
+                {
+                    num4 *= 0.1f;
+                    num3 *= 1.2f;
+                }
+                float num5;
+                if (inShipInfo.MyStats.ReactorBoostedOutputMax > 250f && shipReactor != null)
+                {
+                    num5 = (Mathf.Clamp01(inShipInfo.MyStats.ReactorTotalUsagePercent) * shipReactor.HeatOutput * inShipInfo.MyStats.ReactorHeatOutputFactor * num3 - (num4 + num * 1.5f)) * 135f;
+                }
+                else
+                {
+                    num5 = -15f;
+                }
+                inShipInfo.MyStats.ReactorTempVel = Mathf.Clamp(inShipInfo.MyStats.ReactorTempVel, -30f, 75f);
+                inShipInfo.MyStats.ReactorTempVel = Mathf.Lerp(inShipInfo.MyStats.ReactorTempVel, num5, Time.deltaTime * 0.2f);
+                inShipInfo.MyStats.ReactorTempCurrent += (num5 + inShipInfo.MyStats.ReactorTempVel * 0.1f) * Time.deltaTime;
+                inShipInfo.MyStats.ReactorTempCurrent = Mathf.Clamp(inShipInfo.MyStats.ReactorTempCurrent, inShipInfo.MyStats.ReactorTempMax * 0.07f, inShipInfo.MyStats.ReactorTempMax * 1.025f);
+                if (inShipInfo.MyStats.ReactorTempCurrent >= inShipInfo.MyStats.ReactorTempMax && inShipInfo.CoreInstability > 0.05f && shipReactor != null && inShipInfo.ReactorCoolingEnabled && !inShipInfo.IsReactorOverheated() && PhotonNetwork.isMasterClient)
+                {
+                    PLServer.Instance.ServerShipOverheat(inShipInfo.ShipID);
+                }
+                int num6 = 0;
+                List<PLPoweredShipComponent> allPoweredComponents = PLReactor.GetAllPoweredComponents(inShipInfo.MyStats);
+                float num7 = inShipInfo.AuxOutputPowerAmount;
+                if (shipReactor != null)
+                {
+                    num7 += shipReactor.CalcEnergyOutputMax();
+                }
+                if (cachedFriendlyPlayerOfClass != null)
+                {
+                    num7 *= 1f + (float)cachedFriendlyPlayerOfClass.Talents[45] * 0.02f;
+                }
+                num7 += Mathf.Pow(inShipInfo.DischargeAmount, 1.35f) * 40000f;
+                inShipInfo.MyStats.ReactorBoostedOutputMax = (0.01f + num7) * inShipInfo.MyStats.ReactorOutputFactor;
+                if (inShipInfo.Reactor_OCActive)
+                {
+                    if (inShipInfo.MyReactor != null)
+                    {
+                        inShipInfo.MyStats.ReactorBoostedOutputMax *= 1.5f;
+                    }
+                    else
+                    {
+                        inShipInfo.MyStats.ReactorBoostedOutputMax *= 1.2f;
+                    }
+                }
+                foreach (PLPoweredShipComponent plpoweredShipComponent in allPoweredComponents)
+                {
+                    if (plpoweredShipComponent != null && plpoweredShipComponent.IsEquipped && plpoweredShipComponent.ActualSlotType == ESlotType.E_COMP_CPU && plpoweredShipComponent.SubType == 25)
+                    {
+                        inShipInfo.MyStats.ReactorBoostedOutputMax *= 1f + 0.03f * plpoweredShipComponent.LevelMultiplier(0.25f, 1f);
+                    }
+                }
+                if (Time.time - inShipInfo.MyStats.LastReactorSetPowerLevelsTime > 0.5f)
+                {
+                    inShipInfo.MyStats.LastReactorSetPowerLevelsTime = Time.time;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (i != 4)
+                        {
+                            PLReactor.SetPowerLevels(inShipInfo.MyStats, i, inShipInfo.SystemPowerLevels[i]);
+                        }
+                        else
+                        {
+                            PLReactor.SetPowerLevels(inShipInfo.MyStats, 4, inShipInfo.ReactorTotalPowerLimitPercent);
+                        }
+                    }
+                }
+                PLShipInfo plshipInfo = inShipInfo as PLShipInfo;
+                if (inShipInfo.IsReactorOverheated())
+                {
+                    inShipInfo.IsEmergencyCooling = true;
+                    inShipInfo.MyStats.ReactorTotalUsagePercent = 0f;
+                    inShipInfo.MyStats.ReactorTotalOutput = 0f;
+                    using (List<PLPoweredShipComponent>.Enumerator enumerator = allPoweredComponents.GetEnumerator())
+                    {
+                        while (enumerator.MoveNext())
+                        {
+                            PLPoweredShipComponent plpoweredShipComponent2 = enumerator.Current;
+                            plpoweredShipComponent2.InputPower_Watts = 0f;
+                            plpoweredShipComponent2.RequestPowerUsage_Limit = 0f;
+                        }
+                        return false;
+                    }
+                }
+                if (plshipInfo != null && plshipInfo.StartupStepIndex < 1)
+                {
+                    inShipInfo.MyStats.ReactorTotalUsagePercent = 0f;
+                    inShipInfo.MyStats.ReactorTotalOutput = 0f;
+                    using (List<PLPoweredShipComponent>.Enumerator enumerator = allPoweredComponents.GetEnumerator())
+                    {
+                        while (enumerator.MoveNext())
+                        {
+                            PLPoweredShipComponent plpoweredShipComponent3 = enumerator.Current;
+                            plpoweredShipComponent3.InputPower_Watts = 0f;
+                            plpoweredShipComponent3.RequestPowerUsage_Limit = 0f;
+                        }
+                        return false;
+                    }
+                }
+                if (plshipInfo != null && plshipInfo.StartupSwitchBoard != null && !plshipInfo.StartupSwitchBoard.GetLateStatus(0))
+                {
+                    inShipInfo.MyStats.ReactorTotalUsagePercent = 0f;
+                    inShipInfo.MyStats.ReactorTotalOutput = 0f;
+                    using (List<PLPoweredShipComponent>.Enumerator enumerator = allPoweredComponents.GetEnumerator())
+                    {
+                        while (enumerator.MoveNext())
+                        {
+                            PLPoweredShipComponent plpoweredShipComponent4 = enumerator.Current;
+                            plpoweredShipComponent4.InputPower_Watts = 0f;
+                            plpoweredShipComponent4.RequestPowerUsage_Limit = 0f;
+                        }
+                        return false;
+                    }
+                }
+                inShipInfo.MyStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
+                inShipInfo.IsEmergencyCooling = false;
+                if (inShipInfo.MyStats.ReactorBoostedOutputMax > 0.01f)
+                {
+                    inShipInfo.MyStats.ReactorTotalUsagePercent = inShipInfo.MyStats.ReactorTotalOutput / inShipInfo.MyStats.ReactorBoostedOutputMax;
+                }
+                else
+                {
+                    inShipInfo.MyStats.ReactorTotalUsagePercent = 0f;
+                }
+                foreach (PLShipComponent plshipComponent in inShipInfo.MyStats.GetComponentsOfType(ESlotType.E_COMP_REACTOR, false))
+                {
+                    if (typeof(PLReactor).IsAssignableFrom(plshipComponent.GetType()))
+                    {
+                        PLReactor plreactor = (PLReactor)plshipComponent;
+                        if (plreactor != null && plreactor.isActive)
+                        {
+                            num6++;
+                        }
+                    }
+                }
+                float num8 = 0f;
+                foreach (PLPoweredShipComponent plpoweredShipComponent5 in allPoweredComponents)
+                {
+                    if (plpoweredShipComponent5 != null && !plpoweredShipComponent5.InCargoSlot())
+                    {
+                        plpoweredShipComponent5.InternalSysInst_PowerLimitPercent = PLReactor.GetInternalSysInstPowerUsagePercentForComponent(plpoweredShipComponent5);
+                    }
+                }
+                foreach (PLPoweredShipComponent plpoweredShipComponent6 in allPoweredComponents)
+                {
+                    if (plpoweredShipComponent6.IsPowerActive && !plpoweredShipComponent6.InCargoSlot())
+                    {
+                        float num9 = plpoweredShipComponent6.CalculatedMaxPowerUsage_Watts * Mathf.Min(new float[]
+                        {
+                    plpoweredShipComponent6.RequestPowerUsage_Limit,
+                    plpoweredShipComponent6.RequestPowerUsage_Percent,
+                    plpoweredShipComponent6.InternalSysInst_PowerLimitPercent
+                        });
+                        num8 += num9;
+                    }
+                }
+                num8 += PLAutoRepairScreen.powerusage;
+                float num10 = 1f;
+                if (num8 > num7 * inShipInfo.ReactorTotalPowerLimitPercent)
+                {
+                    num10 = Mathf.Clamp01(inShipInfo.MyStats.ReactorBoostedOutputMax * inShipInfo.ReactorTotalPowerLimitPercent / num8);
+                }
+                inShipInfo.MyStats.ReactorTotalOutput = 0f;
+                foreach (PLPoweredShipComponent plpoweredShipComponent7 in allPoweredComponents)
+                {
+                    if (plpoweredShipComponent7.IsPowerActive && !plpoweredShipComponent7.InCargoSlot())
+                    {
+                        float num11 = plpoweredShipComponent7.CalculatedMaxPowerUsage_Watts * Mathf.Min(new float[]
+                        {
+                    plpoweredShipComponent7.RequestPowerUsage_Limit,
+                    plpoweredShipComponent7.RequestPowerUsage_Percent,
+                    plpoweredShipComponent7.InternalSysInst_PowerLimitPercent
+                        }) * num10;
+                        plpoweredShipComponent7.InputPower_Watts = num11;
+                        inShipInfo.MyStats.ReactorTotalOutput += num11;
+                    }
+                    else
+                    {
+                        plpoweredShipComponent7.InputPower_Watts = 0f;
+                    }
+                }
+                inShipInfo.MyStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
+                inShipInfo.MyStats.ReactorTotalOutput = Mathf.Clamp(inShipInfo.MyStats.ReactorTotalOutput, 0f, inShipInfo.MyStats.ReactorBoostedOutputMax);
+            }
+            return true;
+        }
+    }
+    [HarmonyPatch(typeof(PLBot), "GetNearestEnemyTargetTransform")]
+    class BotTarget
+    {
+        static void Postfix(PLBot __instance, ref PLCombatTarget outTarget, ref Transform __result, float rangeMultiplier = 1f)
+        {
+            float num = Mathf.Pow(140f * rangeMultiplier, 2f);
+            Transform transform = null;
+            foreach (PLCombatTarget plcombatTarget in PLGameStatic.Instance.AllCombatTargets)
+            {
+                if (plcombatTarget != null && __instance.PlayerOwner != null && __instance.PlayerOwner.GetPawn() != null && !plcombatTarget.IsDead && plcombatTarget.ShouldShowInHUD() && plcombatTarget.gameObject.activeInHierarchy)
+                {
+                    PLPawn plpawn = plcombatTarget as PLPawn;
+                    UnityEngine.Object x = plcombatTarget as PLGroundTurret;
+                    bool flag = false;
+                    if (x != null)
+                    {
+                        flag = false;
+                    }
+                    else if (plpawn == null || (!plpawn.PreviewPawn && !plpawn.Cloaked))
+                    {
+                        flag = true;
+                    }
+                    if (flag && plcombatTarget.CurrentShip == __instance.PlayerOwner.GetPawn().CurrentShip && plcombatTarget.MyInterior == __instance.PlayerOwner.GetPawn().MyInterior && plcombatTarget.MyCurrentTLI == __instance.PlayerOwner.MyCurrentTLI && ((plcombatTarget.GetPlayer() == null && __instance.PlayerOwner.GetClassID() != -1 && __instance.PlayerOwner.TeamID == 0 && !plcombatTarget.GetIsFriendly()) || ((__instance.PlayerOwner.TeamID != 0 && plcombatTarget.GetIsFriendly()) || (plcombatTarget.GetPlayer() != null && plcombatTarget.GetPlayer() != __instance.PlayerOwner && plcombatTarget.GetPlayer().TeamID != __instance.PlayerOwner.TeamID))))
+                    {
+                        float num2 = (plcombatTarget.transform.position - __instance.PlayerOwner.GetPawn().transform.position).sqrMagnitude;
+                        if (plcombatTarget == __instance.HighPriorityTarget)
+                        {
+                            num2 *= 0.2f;
+                        }
+                        if (num2 < num && (plcombatTarget == __instance.HighPriorityTarget || __instance.PlayerOwner.GetPawn().HadRecentLOSSuccessToTarget(plcombatTarget)))
+                        {
+                            num = num2;
+                            transform = plcombatTarget.transform;
+                            outTarget = plcombatTarget;
+                        }
+                    }
+                }
+            }
+            if (__instance.PlayerOwner.TeamID == 0)
+            {
+                foreach (PLGroundTurret plgroundTurret in PLGameStatic.Instance.AllGroundTurrets)
+                {
+                    if (plgroundTurret != null && __instance.PlayerOwner != null && __instance.PlayerOwner.GetPawn() != null && !plgroundTurret.IsDead && plgroundTurret.ShouldShowInHUD() && plgroundTurret.Target != null && plgroundTurret.Target.GetIsFriendly() && ((plgroundTurret.GetPlayer() == null && plgroundTurret.CurrentShip == __instance.PlayerOwner.GetPawn().CurrentShip && plgroundTurret.MyInterior == __instance.PlayerOwner.GetPawn().MyInterior) || (plgroundTurret.GetPlayer() != null && plgroundTurret.GetPlayer() != __instance.PlayerOwner && plgroundTurret.GetPlayer().TeamID != __instance.PlayerOwner.TeamID && plgroundTurret.GetPlayer().SubHubID == __instance.PlayerOwner.SubHubID)))
+                    {
+                        float sqrMagnitude = (plgroundTurret.transform.position - __instance.PlayerOwner.GetPawn().transform.position).sqrMagnitude;
+                        if (sqrMagnitude < num && sqrMagnitude > 1f && __instance.PlayerOwner.GetPawn().HadRecentLOSSuccessToTarget(plgroundTurret))
+                        {
+                            num = sqrMagnitude;
+                            transform = plgroundTurret.transform;
+                            outTarget = plgroundTurret;
+                        }
+                    }
+                }
+                foreach (PLFBVent plfbvent in PLGameStatic.Instance.AllFBVents)
+                {
+                    if (plfbvent != null && __instance.PlayerOwner != null && __instance.PlayerOwner.GetPawn() != null && !plfbvent.IsDead && plfbvent.ShouldTakeDamage() && ((plfbvent.GetPlayer() == null && plfbvent.CurrentShip == __instance.PlayerOwner.GetPawn().CurrentShip && plfbvent.MyInterior == __instance.PlayerOwner.GetPawn().MyInterior) || (plfbvent.GetPlayer() != null && plfbvent.GetPlayer() != __instance.PlayerOwner && plfbvent.GetPlayer().TeamID != __instance.PlayerOwner.TeamID && plfbvent.GetPlayer().SubHubID == __instance.PlayerOwner.SubHubID)))
+                    {
+                        float sqrMagnitude2 = (plfbvent.transform.position - __instance.PlayerOwner.GetPawn().transform.position).sqrMagnitude;
+                        if (sqrMagnitude2 < num && sqrMagnitude2 > 1f && __instance.PlayerOwner.GetPawn().HadRecentLOSSuccessToTarget(plfbvent))
+                        {
+                            num = sqrMagnitude2;
+                            transform = plfbvent.transform;
+                            outTarget = plfbvent;
+                        }
+                    }
+                }
+            }
+            if (transform == null && __instance.MyBotController != null && __instance.MyBotController.MyPawn != null && __instance.PlayerOwner != null && __instance.MyBotController.MyPawn.CurrentShip != null && __instance.MyBotController.MyPawn.CurrentShip.TeamID != __instance.PlayerOwner.TeamID)
+            {
+                foreach (PLSystemInstance plsystemInstance in __instance.MyBotController.MyPawn.CurrentShip.RepairableSystemInstances)
+                {
+                    if (plsystemInstance != null)
+                    {
+                        float sqrMagnitude3 = (plsystemInstance.transform.position - __instance.MyBotController.MyPawn.transform.position).sqrMagnitude;
+                        if (sqrMagnitude3 < num)
+                        {
+                            num = sqrMagnitude3;
+                            transform = plsystemInstance.transform;
+                            outTarget = null;
+                        }
+                    }
+                }
+            }
+            if (transform == null && __instance.HighPriorityTarget != null)
+            {
+                transform = __instance.HighPriorityTarget.transform;
+                outTarget = __instance.HighPriorityTarget;
+            }
+            __result = transform;
         }
     }
 }

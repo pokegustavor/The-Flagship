@@ -232,7 +232,7 @@ namespace The_Flagship
             Descriptions[0].resizeTextForBestFit = true;
             Descriptions[0].alignment = TextAnchor.UpperLeft;
             Descriptions[0].raycastTarget = false;
-            Descriptions[0].text = "-\r\nHealth\r\n\r\nDamage\r\n\r\nSpeed";
+            Descriptions[0].text = "-\r\nHealth\r\n\r\nDamage/Repair\r\n\r\nSpeed";
             Descriptions[0].color = Color.gray;
             Descriptions[0].transform.localPosition -= new Vector3(0, 700, 0);
             GameObject gameObject7 = new GameObject("SHIPCOMP_STATLEFT", new Type[]
@@ -428,8 +428,8 @@ namespace The_Flagship
             if (Assembled)
             {
                 CurrentScrap.text = PLServer.Instance.CurrentUpgradeMats.ToString();
-                Descriptions[1].text = $"Level {Mod.PatrolBotsLevel + 1}\r\n{150 + 25 * Mod.PatrolBotsLevel}\r\n\r\n{30 + 5 * Mod.PatrolBotsLevel}\r\n\r\n{1f + 0.2f * Mod.PatrolBotsLevel}";
-                if (Mod.PatrolBotsLevel < 9) Descriptions[2].text = $"Level {Mod.PatrolBotsLevel + 2}\r\n{150 + 25 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{30 + 5 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{1f + 0.2f * (Mod.PatrolBotsLevel + 1)}";
+                Descriptions[1].text = $"Level {Mod.PatrolBotsLevel + 1}\r\n{155 + 25 * Mod.PatrolBotsLevel}\r\n\r\n{30 + 5 * Mod.PatrolBotsLevel}\r\n\r\n{1f + 0.2f * Mod.PatrolBotsLevel}";
+                if (Mod.PatrolBotsLevel < 9) Descriptions[2].text = $"Level {Mod.PatrolBotsLevel + 2}\r\n{155 + 25 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{30 + 5 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{1f + 0.2f * (Mod.PatrolBotsLevel + 1)}";
                 else Descriptions[2].text = string.Empty;
                 NextUpgradePrice = Mathf.FloorToInt(30 + 30 * 0.1f * Mod.PatrolBotsLevel);
                 CostLabel.text = NextUpgradePrice.ToString();
@@ -442,6 +442,221 @@ namespace The_Flagship
         Text CurrentScrap;
         float LastUpgradeAttempt = Time.time;
         Text[] Descriptions = new Text[3];
+        Transform UIWorldRoot;
+        GameObject UIRoot;
+        Canvas worldUiCanvas;
+        PLShipInfo myShip;
+        RawImage IconImage;
+    }
+    public class PLAutoRepairScreen : MonoBehaviour
+    {
+        public void setValues(Transform root, Canvas canvas, PLShipInfo ship)
+        {
+            UIWorldRoot = root;
+            worldUiCanvas = canvas;
+            myShip = ship;
+        }
+        public void Assemble()
+        {
+            if (UIWorldRoot == null) return;
+            GameObject gameObject = new GameObject("PatrolUpgradeUI", new Type[]
+            {
+            typeof(Image)
+            });
+            gameObject.transform.SetParent(this.worldUiCanvas.transform);
+            gameObject.transform.position = UIWorldRoot.transform.position;
+            gameObject.transform.localRotation = this.UIWorldRoot.localRotation;
+            gameObject.transform.localScale = this.UIWorldRoot.localScale * 50f;
+            gameObject.layer = 3;
+            this.UIRoot = gameObject;
+            gameObject.GetComponent<Image>().color = Color.white * 0.4f;
+            gameObject.GetComponent<RectTransform>().anchoredPosition3D = gameObject.transform.localPosition;
+            gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
+            gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 600f);
+            GameObject gameObject2 = new GameObject("bg", new Type[]
+            {
+            typeof(Image)
+            });
+            gameObject2.transform.SetParent(gameObject.transform);
+            gameObject2.transform.localPosition = new Vector3(0f, 120f, 0f);
+            gameObject2.transform.localRotation = Quaternion.identity;
+            gameObject2.transform.localScale = Vector3.one;
+            gameObject2.layer = 3;
+            gameObject2.GetComponent<Image>().color = Color.black * 0.4f;
+            gameObject2.GetComponent<RectTransform>().anchoredPosition3D = gameObject2.transform.localPosition;
+            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
+            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 180f);
+            GameObject gameObject3 = new GameObject("compicon", new Type[]
+            {
+            typeof(RawImage)
+            });
+            this.IconImage = gameObject3.GetComponent<RawImage>();
+            this.IconImage.transform.SetParent(gameObject.transform);
+            this.IconImage.transform.localPosition = new Vector3(0f, 140f, 0f);
+            this.IconImage.transform.localRotation = Quaternion.identity;
+            this.IconImage.transform.localScale = Vector3.one;
+            this.IconImage.gameObject.layer = 3;
+            IconImage.texture = (Texture2D)Resources.Load("Icons/89");
+            this.IconImage.GetComponent<RectTransform>().anchoredPosition3D = this.IconImage.transform.localPosition;
+            this.IconImage.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 64f);
+            this.IconImage.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 64f);
+            GameObject gameObject4 = new GameObject("DroneText", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject4.transform.SetParent(gameObject.transform);
+            gameObject4.transform.localPosition = new Vector3(0f, -20f, 0f);
+            gameObject4.transform.localRotation = Quaternion.identity;
+            gameObject4.transform.localScale = Vector3.one * 0.25f;
+            gameObject4.GetComponent<RectTransform>().anchoredPosition3D = gameObject4.transform.localPosition;
+            gameObject4.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1300f);
+            gameObject4.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 800f);
+            Text UpgradeName = gameObject4.GetComponent<Text>();
+            UpgradeName.font = PLGlobal.Instance.MainFont;
+            UpgradeName.resizeTextMaxSize = 85;
+            UpgradeName.resizeTextMinSize = 10;
+            UpgradeName.resizeTextForBestFit = true;
+            UpgradeName.alignment = TextAnchor.UpperCenter;
+            UpgradeName.raycastTarget = false;
+            UpgradeName.text = "Hull Auto Repair";
+            UpgradeName.color = Color.white;
+            GameObject gameObject5 = new GameObject("Title", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject5.transform.SetParent(gameObject.transform);
+            gameObject5.transform.localPosition = new Vector3(0f, 175f, 0f);
+            gameObject5.transform.localRotation = Quaternion.identity;
+            gameObject5.transform.localScale = Vector3.one * 0.25f;
+            gameObject5.GetComponent<RectTransform>().anchoredPosition3D = gameObject5.transform.localPosition;
+            gameObject5.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1450f);
+            gameObject5.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 800f);
+            Text ScreenTitle = gameObject5.GetComponent<Text>();
+            ScreenTitle.font = PLGlobal.Instance.MainFont;
+            ScreenTitle.resizeTextMaxSize = 85;
+            ScreenTitle.resizeTextMinSize = 10;
+            ScreenTitle.resizeTextForBestFit = true;
+            ScreenTitle.alignment = TextAnchor.UpperLeft;
+            ScreenTitle.raycastTarget = false;
+            ScreenTitle.text = PLLocalize.Localize("Auto Repair System Control", false);
+            ScreenTitle.color = Color.white;
+            GameObject gameObject8 = new GameObject("SHIPCOMP_STATRIGHT", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject8.transform.SetParent(gameObject.transform);
+            gameObject8.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
+            gameObject8.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
+            gameObject8.transform.localRotation = Quaternion.identity;
+            gameObject8.transform.localScale = Vector3.one;
+            gameObject8.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(155f, 0f, 0f);
+            gameObject8.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1300f);
+            gameObject8.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 800f);
+            PowerUsageLabel = gameObject8.GetComponent<Text>();
+            PowerUsageLabel.font = PLGlobal.Instance.MainFont;
+            PowerUsageLabel.resizeTextMaxSize = 18;
+            PowerUsageLabel.resizeTextMinSize = 8;
+            PowerUsageLabel.resizeTextForBestFit = true;
+            PowerUsageLabel.alignment = TextAnchor.UpperLeft;
+            PowerUsageLabel.raycastTarget = false;
+            PowerUsageLabel.text = "Current Power Usage: \r\n\r\nCurrent Repair Power: ";
+            PowerUsageLabel.color = new Color(0.75f, 0.75f, 0.75f, 1f);
+            PowerUsageLabel.transform.localPosition = new Vector3(524f, -451f, 0f);
+            GameObject gameObject9 = new GameObject("EXTRACT_BTN", new Type[]
+        {
+            typeof(Image),
+            typeof(Button)
+        });
+            Button UpgradeBtn = gameObject9.GetComponent<Button>();
+            Image BtnImage = gameObject9.GetComponent<Image>();
+            BtnImage.sprite = PLGlobal.Instance.TabFillSprite;
+            BtnImage.type = Image.Type.Sliced;
+            BtnImage.transform.SetParent(gameObject.transform);
+            UpgradeBtn.transform.localPosition = new Vector3(-5f, -250f, 0f);
+            UpgradeBtn.transform.localRotation = Quaternion.identity;
+            UpgradeBtn.GetComponent<Image>().SetNativeSize();
+            UpgradeBtn.transform.localScale = new Vector3(1.9f, 2, 1);
+            UpgradeBtn.gameObject.layer = 3;
+            UpgradeBtn.GetComponent<RectTransform>().anchoredPosition3D = UpgradeBtn.transform.localPosition;
+            UpgradeBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 250f);
+            UpgradeBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+            ColorBlock colors = UpgradeBtn.colors;
+            colors.normalColor = Color.gray;
+            UpgradeBtn.colors = colors;
+            UpgradeBtn.onClick.AddListener(delegate ()
+            {
+                UpgradeClick();
+            });
+            GameObject gameObject10 = new GameObject("ExtractBtnLabel", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject10.transform.SetParent(gameObject9.transform);
+            gameObject10.transform.localPosition = new Vector3(0f, 0f, 0f);
+            gameObject10.transform.localRotation = Quaternion.identity;
+            gameObject10.transform.localScale = Vector3.one;
+            Text component = gameObject10.GetComponent<Text>();
+            component.alignment = TextAnchor.MiddleCenter;
+            component.resizeTextForBestFit = true;
+            component.resizeTextMinSize = 8;
+            component.resizeTextMaxSize = 18;
+            component.color = Color.black;
+            component.raycastTarget = false;
+            component.text = PLLocalize.Localize("Activate Auto Repair", false);
+            component.font = PLGlobal.Instance.MainFont;
+            component.GetComponent<RectTransform>().anchoredPosition3D = component.transform.localPosition;
+            component.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+            component.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+            ButtonLabel = component;
+            Assembled = true;
+        }
+        void UpgradeClick()
+        {
+            Online = !Online;
+            ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.AutoRepairReciever", PhotonTargets.Others, new object[] { Online, CurrentMultiplier });
+            PLMusic.PostEvent("play_sx_ui_ship_upgradecomponent", base.gameObject);
+        }
+        void Update()
+        {
+            if (myShip == null)
+            {
+                Destroy(this); return;
+            }
+            if (Assembled)
+            {
+                ButtonLabel.text = (Online ? "Deactivate" : "Activate") + " Auto Repair";
+                CurrentMultiplier = Mathf.Clamp(CurrentMultiplier + Time.deltaTime * (Online ? 1 : -1),0.1f,70);
+                float valueMultier = Mathf.Log(15 * CurrentMultiplier, 2);
+                powerusage = 4000 * valueMultier;
+                float repairvalue = 5 * valueMultier;
+                PowerUsageLabel.text = $"Current Power Usage: {Mathf.FloorToInt(powerusage)}MW\r\n\r\nCurrent Repair Power: {repairvalue.ToString("0")}/s";
+                if (Online && myShip.MyHull != null && !myShip.IsReactorOverheated() && myShip.StartupStepIndex >= 1 && myShip.StartupSwitchBoard != null && myShip.StartupSwitchBoard.GetLateStatus(0)) 
+                {
+                    if(myShip.MyHull != null) 
+                    {
+                        myShip.MyHull.Current += repairvalue * Time.deltaTime;
+                        myShip.MyHull.Current = Mathf.Clamp(myShip.MyHull.Current, 0, myShip.MyStats.HullMax);
+                    }
+
+                }
+                else 
+                {
+                    powerusage = 0f;
+                }
+                if(PhotonNetwork.isMasterClient && Time.time - lastSync > 5) 
+                {
+                    lastSync = Time.time;
+                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.AutoRepairReciever", PhotonTargets.Others, new object[] { Online, CurrentMultiplier });
+                }
+            }
+        }
+        float lastSync = Time.time;
+        public static float powerusage = 0f;
+        Text ButtonLabel;
+        public static bool Online = false;
+        bool Assembled = false;
+        public static float CurrentMultiplier = 1;
+        Text PowerUsageLabel;
         Transform UIWorldRoot;
         GameObject UIRoot;
         Canvas worldUiCanvas;

@@ -26,7 +26,7 @@ namespace The_Flagship
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
-        public override string Version => "1.4";
+        public override string Version => "1.5";
 
         public override string Author => "pokegustavo";
 
@@ -195,6 +195,19 @@ namespace The_Flagship
                         {
                             PulsarModLoader.Utilities.Messaging.Notification("Player not found!");
                         }
+                    }
+                }
+                if (separatedArguments[0] == "tome") 
+                {
+                    foreach(PLBoardingBot __instance in Object.FindObjectsOfType<PLBoardingBot>()) 
+                    {
+                        NNConstraint nnconstraint = new NNConstraint();
+                        nnconstraint.area = (int)__instance.AreaIndex;
+                        nnconstraint.constrainArea = true;
+                        nnconstraint.constrainWalkability = true;
+                        PLPathfinderGraphEntity pgeforTLIAndTransform = PLPathfinder.GetInstance().GetPGEforTLIAndTransform(__instance.MyCurrentTLI, __instance.transform);
+                        Vector3 targetPos = (Vector3)pgeforTLIAndTransform.Graph.GetNearest(PLNetworkManager.Instance.MyLocalPawn.transform.position, nnconstraint).node.position;
+                        __instance.seeker.StartPath(__instance.transform.position, targetPos, new OnPathDelegate(__instance.OnPathComplete));
                     }
                 }
             }
@@ -870,7 +883,7 @@ namespace The_Flagship
                         GameObject BridgeToScienceOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(27.6f, -261, -395.3f), new Quaternion(0, -0.8471f, 0, 0.5314f));
                         Object.DontDestroyOnLoad(BridgeToScienceOjb);
                         PLInteriorDoor BridgeToScience = BridgeToScienceOjb.GetComponent<PLInteriorDoor>();
-                        GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(380.3f, -399.7f, 1723.8f), new Quaternion(0, 0.7158f, 0, 0.6983f));
+                        GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(393.8795f, -399.9159f, 1705.848f), Quaternion.Euler(0,0,0));
                         Object.DontDestroyOnLoad(ScienceToBridgeOjb);
                         PLInteriorDoor ScienceToBridge = ScienceToBridgeOjb.GetComponent<PLInteriorDoor>();
                         if (BridgeToScience != null && ScienceToBridge != null)
@@ -1182,6 +1195,9 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(379.7382f, -385.9098f, 1380.838f), new Quaternion(0, -0.2217f, 0, 0.9751f));
+                        Object.DontDestroyOnLoad(newTelDoor);
+                        ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(394.0073f, - 400.8728f, 1704.814f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
                     }
@@ -1620,10 +1636,17 @@ namespace The_Flagship
                     newatrium = Object.Instantiate(ship.MyAtrium.gameObject, new Vector3(380.1347f, -399.7f, 1742f), ship.MyAtrium.transform.rotation);
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
-                    GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 270, 0)));
+
+                    GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 0, 0)));
                     PLPatrolBotUpgradeScreen patrolUpgrade = droneUpgradeRoot.AddComponent<PLPatrolBotUpgradeScreen>();
                     patrolUpgrade.setValues(droneUpgradeRoot.transform, ship.worldUiCanvas, ship);
                     patrolUpgrade.Assemble();
+                    Object.DontDestroyOnLoad(droneUpgradeRoot);
+
+                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(358.9247f, -436.23f, 1622.292f), Quaternion.Euler(new Vector3(0, 180, 0)));
+                    PLAutoRepairScreen repairUpgrade = droneUpgradeRoot.AddComponent<PLAutoRepairScreen>();
+                    repairUpgrade.setValues(repairUpgrade.transform, ship.worldUiCanvas, ship);
+                    repairUpgrade.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
                     //ship.InteriorStatic = interior;
                     if (foxplush != null)
@@ -1695,8 +1718,26 @@ namespace The_Flagship
             {
                 for (int i = 0; i < 5; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(26, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_MANEUVER_THRUSTER);
             }
-            PLServer.Instance.RepLevels[2] = 5;
-            PLServer.Instance.CrewFactionID = 2;
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count == 2 && PhotonNetwork.isMasterClient)
+            {
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 9, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 11, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 13, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+            }
+            if (PLServer.Instance.CrewFactionID == -1)
+            {
+                PLServer.Instance.RepLevels[2] = 5;
+                PLServer.Instance.CrewFactionID = 2;
+            }
+            ship.EngineeringSystem.MaxHealth = 100;
+            ship.EngineeringSystem.Health = 100;
+            ship.WeaponsSystem.MaxHealth = 100;
+            ship.WeaponsSystem.Health = 100;
+            ship.ComputerSystem.MaxHealth = 100;
+            ship.ComputerSystem.Health = 100;
+            ship.LifeSupportSystem.MaxHealth = 100;
+            ship.LifeSupportSystem.Health = 100;
             foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
             {
                 render.enabled = true;
@@ -1739,7 +1780,7 @@ namespace The_Flagship
                 new Vector3(357, -442, 1541),
                 new Vector3(395, -382, 1588),
                 new Vector3(287, -430, 1732),
-                new Vector3(358, -382, 1370),
+                new Vector3(357, -384, 1355),
                     /*
 
                     new Vector3(252, -430, 1630),
@@ -1791,6 +1832,7 @@ namespace The_Flagship
                                 }
                             }
                         }
+                        drone.Heal(-500);
                     }
                 }
             }
