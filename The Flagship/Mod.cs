@@ -26,7 +26,7 @@ namespace The_Flagship
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
-        public override string Version => "1.5";
+        public override string Version => "1.5.1";
 
         public override string Author => "pokegustavo";
 
@@ -1637,7 +1637,7 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
 
-                    GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 0, 0)));
+                    GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 270, 0)));
                     PLPatrolBotUpgradeScreen patrolUpgrade = droneUpgradeRoot.AddComponent<PLPatrolBotUpgradeScreen>();
                     patrolUpgrade.setValues(droneUpgradeRoot.transform, ship.worldUiCanvas, ship);
                     patrolUpgrade.Assemble();
