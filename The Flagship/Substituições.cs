@@ -9,9 +9,37 @@ using PulsarModLoader;
 using System.Threading.Tasks;
 using static PLBurrowArena;
 using Pathfinding;
+using UnityEngine.UI;
+using System.Linq;
+using PulsarModLoader.Utilities;
 
 namespace The_Flagship
 {
+    /*
+    public class PLFlagship : PLOldWarsShip_Human
+    {
+        public override string GetShipTypeName()
+        {
+            return "Flagship";
+        }
+        public override string GetShipShortDesc()
+        {
+            return "Restored Capital Class Vessel";
+        }
+        public override string GetShipAttributes()
+        {
+            return "Nnockback Resistance\n+100% Reactor Output\n+10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>";
+        }
+        public override void ShipFinalCalculateStats(ref PLShipStats inStats)
+        {
+            base.ShipFinalCalculateStats(ref inStats);
+            inStats.ReactorOutputFactor *= 2;
+            inStats.OxygenRefillRate *= 10;
+            inStats.HullArmor *= ShipStats.armorModifier;
+            inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
+        }
+    }
+    */
     [HarmonyPatch(typeof(PLOldWarsShip_Human), "GetShipTypeName")]
     class ShipType
     {
@@ -352,6 +380,13 @@ namespace The_Flagship
     [HarmonyPatch(typeof(PLShipInfo), "Update")]
     public class Update
     {
+        static void Prefix(PLShipInfo __instance) 
+        {
+            if (__instance.EndGameSequenceActive)
+            {
+                __instance.InteriorShipLights.RemoveAll((Light light) => light == null);
+            }
+        }
         static void Postfix(PLShipInfo __instance, Color ___WarpObjectCurColor)
         {
             if (__instance.WarpBlocker != null)
@@ -360,7 +395,6 @@ namespace The_Flagship
             }
             if (!__instance.ShowingExterior && __instance.GetIsPlayerShip() && (PLNetworkManager.Instance.MyLocalPawn == null || PLNetworkManager.Instance.MyLocalPawn.CurrentShip == __instance) && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                __instance.InteriorRenderers.RemoveAll((MeshRenderer render) => render == null);
                 __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                 if (PLNetworkManager.Instance.LocalPlayer.GetPlayerID() == __instance.SensorDishControllerPlayerID) __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
                 foreach (MeshRenderer render in __instance.InteriorRenderers)
@@ -417,6 +451,18 @@ namespace The_Flagship
             }
         }
     }
+    /*
+    [HarmonyPatch(typeof(PLShipInfo), "OnSysInstValueChanged")]
+    class SystemBar 
+    {
+        static void Postfix(int inID, PLSysIntUISlider slider, float value) 
+        {
+            Text description = slider.gameObject.GetComponent<Text>();
+            if (description.text.Contains("\n")) description.text = description.text.Remove(description.text.IndexOf("\n"));
+            description.text += $"\n({Mathf.FloorToInt(value * 100)}%)";
+        }
+    }
+    */
     [HarmonyPatch(typeof(PLPlayer), "Update")]
     class PlayerUpdate
     {
@@ -613,6 +659,11 @@ namespace The_Flagship
         static bool Prefix(PLBoardingBot __instance)
         {
             if (!__instance.name.Contains("(frienddrone)")) return true;
+            if(__instance.CurrentShip == null) 
+            {
+                PhotonNetwork.Destroy(__instance.gameObject);
+                return false;
+            }
             PLCombatTarget lCombatTarget = null;
             if (UnityEngine.Random.Range(0, 20) < 2)
             {
@@ -1182,7 +1233,6 @@ namespace The_Flagship
                 __instance.MyBotController.MyBot = __instance;
                 if (PLEncounterManager.Instance.PlayerShip != null && __instance.AI_TargetTLI == PLEncounterManager.Instance.PlayerShip.MyTLI && Command.shipAssembled)
                 {
-
                     PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.MyBotController.Assigned_AI_TargetPos);
                     //PulsarModLoader.Utilities.Messaging.Notification("Current: " + __instance.PlayerOwner.MyPGE.ID + ", Target: " + targetInterior.ID);
                     //PulsarModLoader.Utilities.Messaging.Notification("Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
@@ -1600,6 +1650,197 @@ namespace The_Flagship
                 outTarget = __instance.HighPriorityTarget;
             }
             __result = transform;
+        }
+    }
+    [HarmonyPatch(typeof(PLShipInfoBase),"Update")]
+    internal class FighterAggro 
+    {
+        static List<PLShipInfoBase> warpingShips = new List<PLShipInfoBase>();
+        static void Postfix(PLShipInfoBase __instance) 
+        {
+            if (__instance.name.Contains("(frighterBot)") && PLEncounterManager.Instance.PlayerShip != null) 
+            {
+                if(__instance.GetLifetime() <= 1f && !warpingShips.Contains(__instance)) 
+                {
+                    PhaseAway(__instance);
+                }
+                if (__instance.HostileShips.Contains(PLEncounterManager.Instance.PlayerShip.ShipID)) 
+                {
+                    __instance.HostileShips.Remove(PLEncounterManager.Instance.PlayerShip.ShipID);
+                }
+                if(__instance.TargetShip == null)__instance.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
+                if (__instance.TargetShip == PLEncounterManager.Instance.PlayerShip) __instance.TargetShip = null;
+            }
+        }
+        public static async void PhaseAway(PLShipInfoBase ship)
+        {
+            if (ship != null)
+            {
+                warpingShips.Add(ship);
+                float StartedPhasing = Time.time;
+                //GameObject.Instantiate(PLGlobal.Instance.PhasePS, ship.Exterior.transform.position, Quaternion.identity);
+                GameObject gameObject = GameObject.Instantiate(PLGlobal.Instance.PhaseTrailPS, ship.Exterior.transform.position, Quaternion.identity);
+                if (gameObject != null)
+                {
+                    PLPhaseTrail component = gameObject.GetComponent<PLPhaseTrail>();
+                    if (component != null)
+                    {
+                        component.StartPos = PLEncounterManager.Instance.PlayerShip.Exterior.transform.position;
+                        component.End = ship.Exterior.transform;
+                    }
+                }
+                foreach (PLShipInfoBase plshipInfoBase in PLEncounterManager.Instance.AllShips.Values)
+                {
+                    if (plshipInfoBase != null && plshipInfoBase.MySensorObjectShip != null)
+                    {
+                        PLSensorObjectCacheData plsensorObjectCacheData = plshipInfoBase.MySensorObjectShip.IsDetectedBy_CachedInfo(ship, true);
+                        if (plsensorObjectCacheData != null)
+                        {
+                            plsensorObjectCacheData.LastDetectedCheckTime = 0f;
+                            plsensorObjectCacheData.IsDetected = false;
+                        }
+                    }
+                }
+                DelayedEndPhasePS(ship);
+                MeshRenderer[] hullplanting = ship.HullPlatingRenderers;
+                List<PLShipComponent> componentsOfType = ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET, false);
+                componentsOfType.AddRange(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false));
+                componentsOfType.AddRange(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_AUTO_TURRET, false));
+                PLMusic.PostEvent("play_sx_ship_enemy_phasedrone_warp", ship.Exterior);
+                while (Time.time - StartedPhasing < 1f)
+                {
+                    ship.MyStats.EMSignature = 0f;
+                    ship.MyStats.CanBeDetected = false;
+                    ship.Exterior.GetComponent<MeshRenderer>().enabled = false;
+                    foreach (Renderer rend in hullplanting)
+                    {
+                        if (rend != null)
+                        {
+                            rend.enabled = false;
+                        }
+                    }
+                    foreach (PLShipComponent comp in componentsOfType)
+                    {
+                        PLTurret turret = comp as PLTurret;
+                        if (turret != null && turret.TurretInstance != null)
+                        {
+                            foreach (Renderer rend in turret.TurretInstance.MyMainRenderers)
+                            {
+                                rend.enabled = false;
+                            }
+                        }
+                    }
+                    if (ship is PLFluffyShipInfo || ship is PLFluffyShipInfo2)
+                    {
+                        if ((ship as PLFluffyShipInfo).MyVisibleBomb != null)
+                        {
+                            (ship as PLFluffyShipInfo).MyVisibleBomb.gameObject.SetActive(false);
+                        }
+                    }
+                    ship.MyStats.ThrustOutputCurrent = 0f;
+                    ship.MyStats.ManeuverThrustOutputCurrent = 0f;
+                    ship.MyStats.InertiaThrustOutputCurrent = 0f;
+                    if (ship.ExteriorMeshCollider != null)
+                    {
+                        ship.ExteriorMeshCollider.enabled = false;
+                    }
+                    await Task.Yield();
+                }
+                warpingShips.Remove(ship);
+                ship.Exterior.GetComponent<MeshRenderer>().enabled = true;
+                foreach (Renderer rend in hullplanting)
+                {
+                    if (rend != null)
+                    {
+                        rend.enabled = true;
+                    }
+                }
+                componentsOfType = ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET, false);
+                componentsOfType.AddRange(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false));
+                componentsOfType.AddRange(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_AUTO_TURRET, false));
+                foreach (PLShipComponent comp in componentsOfType)
+                {
+                    PLTurret turret = comp as PLTurret;
+                    if (turret != null && turret.TurretInstance != null)
+                    {
+                        foreach (Renderer rend in turret.TurretInstance.MyMainRenderers)
+                        {
+                            rend.enabled = true;
+                        }
+                    }
+                }
+                if (ship is PLFluffyShipInfo || ship is PLFluffyShipInfo2)
+                {
+                    if ((ship as PLFluffyShipInfo).MyVisibleBomb != null)
+                    {
+                        (ship as PLFluffyShipInfo).MyVisibleBomb.gameObject.SetActive(true);
+                    }
+                }
+                if (ship.ExteriorMeshCollider != null)
+                {
+                    ship.ExteriorMeshCollider.enabled = true;
+                }
+                ship.MyStats.CanBeDetected = true;
+                PLMusic.PostEvent("stop_sx_ship_enemy_phasedrone_warp", ship.Exterior);
+            }
+        }
+        private static async void DelayedEndPhasePS(PLShipInfoBase ship)
+        {
+            await Task.Delay(1000);
+            GameObject.Instantiate(PLGlobal.Instance.PhasePS, ship.Exterior.transform.position, Quaternion.identity);
+        }
+    }
+    [HarmonyPatch(typeof(PLInGameUI), "SetShipAsTarget")]
+    class SetFighterTarget 
+    {
+        static void Postfix(PLSpaceTarget target)
+        {
+            foreach(PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values) 
+            {
+                if(ship != null && ship.GetCurrentShipControllerPlayerID() == PLNetworkManager.Instance.LocalPlayerID) 
+                {
+                    ship.photonView.RPC("Captain_SetTargetShip", PhotonTargets.MasterClient, new object[]
+                    {
+                    target.SpaceTargetID
+                    });
+                    break;
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLServer), "ClientGetUpdatedComponent")]
+    class ClientInventorySize 
+    {
+        static void Prefix(int inShipID) 
+        {
+            PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(inShipID);
+            if(ship != null && ship == PLEncounterManager.Instance.PlayerShip && ship.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+            {
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 52);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLShipInfoBase),"OnWarp")]
+    class OnWarp 
+    {
+        static void Postfix(PLShipInfoBase __instance) 
+        {
+            if (__instance.GetIsPlayerShip()) 
+            {
+                foreach(PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values) 
+                {
+                    if (ship != null && ship.name.Contains("(frighterBot)") && ship.MyStats != null) 
+                    {
+                        PLServer.Instance.CurrentUpgradeMats += Mathf.CeilToInt(20 * (ship.MyStats.HullCurrent / ship.MyStats.HullMax));
+                    }
+                }
+            }
         }
     }
 }

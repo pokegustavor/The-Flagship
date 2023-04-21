@@ -13,20 +13,20 @@ using PulsarModLoader.MPModChecks;
 using PulsarModLoader.SaveData;
 using System.IO;
 using static UIPopupList;
-using PulsarModLoader.Keybinds;
 
 namespace The_Flagship
 {
     /*
     TODO
      */
-    public class Mod : PulsarMod , IKeybind
+    public class Mod : PulsarMod 
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
-        public override string Version => "1.5.1";
+        public static int FighterCount = 10;
+        public override string Version => "1.6";
 
         public override string Author => "pokegustavo";
 
@@ -40,10 +40,6 @@ namespace The_Flagship
         {
             return "pokegustavo.theflagship";
         }
-        public void RegisterBinds(KeybindManager manager)
-        {
-            manager.NewBind("MyKeybind", "mykeybind", "Basics", "F8");
-        }
     }
     class MySaveData : PMLSaveData
     {
@@ -55,6 +51,7 @@ namespace The_Flagship
 
         public override void LoadData(byte[] Data, uint VersionID)
         {
+            OnExit.Postfix();
             using (MemoryStream dataStream = new MemoryStream(Data))
             {
                 using (BinaryReader binaryReader = new BinaryReader(dataStream))
@@ -62,6 +59,7 @@ namespace The_Flagship
                     bool assembled = binaryReader.ReadBoolean();
                     if (assembled) OnJoin.AutoAssemble();
                     Mod.PatrolBotsLevel = binaryReader.ReadInt32();
+                    Mod.FighterCount = binaryReader.ReadInt32();
                 }
             }
         }
@@ -74,6 +72,7 @@ namespace The_Flagship
                 {
                     binaryWriter.Write(Command.shipAssembled);
                     binaryWriter.Write(Mod.PatrolBotsLevel);
+                    binaryWriter.Write(Mod.FighterCount);
                 }
                 return stream.ToArray();
             }
@@ -197,19 +196,6 @@ namespace The_Flagship
                         }
                     }
                 }
-                if (separatedArguments[0] == "tome") 
-                {
-                    foreach(PLBoardingBot __instance in Object.FindObjectsOfType<PLBoardingBot>()) 
-                    {
-                        NNConstraint nnconstraint = new NNConstraint();
-                        nnconstraint.area = (int)__instance.AreaIndex;
-                        nnconstraint.constrainArea = true;
-                        nnconstraint.constrainWalkability = true;
-                        PLPathfinderGraphEntity pgeforTLIAndTransform = PLPathfinder.GetInstance().GetPGEforTLIAndTransform(__instance.MyCurrentTLI, __instance.transform);
-                        Vector3 targetPos = (Vector3)pgeforTLIAndTransform.Graph.GetNearest(PLNetworkManager.Instance.MyLocalPawn.transform.position, nnconstraint).node.position;
-                        __instance.seeker.StartPath(__instance.transform.position, targetPos, new OnPathDelegate(__instance.OnPathComplete));
-                    }
-                }
             }
         }
 
@@ -227,7 +213,7 @@ namespace The_Flagship
                 || transform.gameObject.name.ToLower().Contains("spawns") || transform.gameObject.name.ToLower().Contains("snowps") || transform.gameObject.name.ToLower().Contains("particle system") || transform.gameObject.name.Split(' ')[0] == "Plane" || transform.gameObject.name.ToLower().Contains("rot_")
                 || transform.gameObject.name.ToLower().Contains("humanoid_drone") || transform.gameObject.name.ToLower().Contains("generic_civ") || transform.gameObject.name.ToLower().Contains("deadbody") || transform.gameObject.name.ToLower().Contains("veins_") || transform.gameObject.name.ToLower().Contains("estate_4")
                 || transform.gameObject.name.ToLower().Contains("exosuitasset") || transform.gameObject.name.ToLower().Contains("computer_good") || transform.gameObject.name.ToLower().Contains("forsakenflagship_shakingvolume") || transform.gameObject.name.ToLower().Contains("market_deco_02") || transform.gameObject.name.ToLower().Contains("aog_crate_01")
-                || transform.gameObject.name.ToLower().Contains("cargocrate_02-2"))
+                || transform.gameObject.name.ToLower().Contains("cargocrate_02-2") || transform.gameObject.name.ToLower().Contains("cargo_048") || transform.gameObject.name.ToLower().Contains("cargo_base_01 (2)"))
             {
                 transform.gameObject.tag = "Projectile";
             }
@@ -285,7 +271,7 @@ namespace The_Flagship
                     ship.MyShipControl = newexterior.GetComponent<PLShipControl>();
                     newexterior.AddComponent<Rigidbody>();
                     newexterior.GetComponent<Rigidbody>().useGravity = false;
-                    newexterior.GetComponent<Rigidbody>().angularDrag = 1.1f;
+                    newexterior.GetComponent<Rigidbody>().angularDrag = 1.3f;
                     newexterior.GetComponent<Rigidbody>().drag = 0.37f;
                     newexterior.GetComponent<Rigidbody>().inertiaTensor = new Vector3(14139.08f, 22628.87f, 13388.7f);
                     newexterior.GetComponent<Rigidbody>().inertiaTensorRotation = new Quaternion(359.9627f, -0.0003f, -0.0001f, 0);
@@ -442,6 +428,8 @@ namespace The_Flagship
                 GameObject blackbox = null;
                 GameObject foxplush = null;
                 GameObject walkway = null;
+                GameObject fighterCargo = null;
+                GameObject fighterCargoBase = null;
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
                 {
                     if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 105)
@@ -610,11 +598,19 @@ namespace The_Flagship
                     {
                         walkway = gameObject;
                     }
+                    else if(gameObject.name == "Cargo_048") 
+                    {
+                        fighterCargo = gameObject;
+                    }
+                    else if (gameObject.name == "Cargo_Base_01 (2)")
+                    {
+                        fighterCargoBase = gameObject;
+                    }
                     if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null && reactorroom != null && copydoor != null
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
                         && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
                         && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
-                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox != null && foxplush != null && walkway != null) break;
+                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox != null && foxplush != null && walkway != null && fighterCargo != null && fighterCargoBase != null) break;
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
@@ -686,7 +682,7 @@ namespace The_Flagship
                     }
                     if (oldEngineDoor != null)
                     {
-                        GameObject newEngineDoor = Object.Instantiate(copydoor, oldEngineDoor.transform.position, oldEngineDoor.transform.rotation);
+                        GameObject newEngineDoor = Object.Instantiate(copydoor, new Vector3(358.07f, - 383.02f, 1445.427f), oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
                         GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f, -428.5895f, 1715.356f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newStarDoor.transform.SetParent(newinterior.transform);
@@ -980,6 +976,8 @@ namespace The_Flagship
                     }
                     //How me changing the starting position of the contraband station broke this part of the code???????
                     //PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
+                    PLPathfinderGraphEntity oldPath = PLPathfinder.GetInstance().GetPGEforShip(ship);
+                    if(oldPath != null) oldPath.TLI = null;
                     ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
                     Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
@@ -1006,6 +1004,25 @@ namespace The_Flagship
                     //areas.Add(newbridge.GetComponent<PLRoomArea>());
                     //PLEncounterManager.Instance.PlayerShip.AllRoomAreas = areas.ToArray();
                     //newbridge.GetComponent<PLRoomArea>().Show();
+                    fighterCargo.transform.SetParent(fighterCargoBase.transform);
+                    int Fightercounter = 0;
+                    for(int i = 0; i < 5; i++) 
+                    {
+                        for(int j = 0; j < 2; j++) 
+                        {
+                            float Z = i * 7.32f;
+                            if (i == 4) Z = 42.84f;
+                            GameObject fighterCargoClone = Object.Instantiate(fighterCargoBase, new Vector3(307.4266f + (j * 7.7149f), -443.78f, 1518.769f - Z), fighterCargoBase.transform.rotation);
+                            Object.DontDestroyOnLoad(fighterCargoClone);
+                            fighterCargoClone.transform.SetParent(newinterior.transform);
+                            fighterCargoClone.layer = newinterior.gameObject.layer;
+                            fighterCargoClone.transform.GetChild(0).gameObject.layer = newinterior.gameObject.layer;
+                            fighterCargoClone.name = $"FighterCargoBase ({i})";
+                            fighterCargoClone.transform.GetChild(0).name = $"FighterCargo ({i})";
+                            PLFighterScreen.fighterCargo[Fightercounter] = fighterCargoClone;
+                            Fightercounter++;
+                        }
+                    }
                     List<Transform> allturrets = new List<Transform>();
                     if (smallturret1 != null)
                     {
@@ -1648,6 +1665,12 @@ namespace The_Flagship
                     repairUpgrade.setValues(repairUpgrade.transform, ship.worldUiCanvas, ship);
                     repairUpgrade.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
+
+                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(-12.7774f, - 259.9289f, - 337.9999f), Quaternion.Euler(new Vector3(0, 180, 0)));
+                    PLFighterScreen fighterControl = droneUpgradeRoot.AddComponent<PLFighterScreen>();
+                    fighterControl.setValues(fighterControl.transform, ship.worldUiCanvas, ship);
+                    fighterControl.Assemble();
+                    Object.DontDestroyOnLoad(droneUpgradeRoot);
                     //ship.InteriorStatic = interior;
                     if (foxplush != null)
                     {
@@ -1685,6 +1708,7 @@ namespace The_Flagship
             ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, false);
             ship.FactionID = 2;
             ship.SensorDishCollectingScrapRange = 1800;
+            ship.InteriorShipLights.RemoveAll((Light light) => light == null);
             float[] powerPercent = new float[17];
             powerPercent.AddRangeToArray(ship.PowerPercent_SysIntConduits);
             powerPercent[16] = 0;
@@ -1836,19 +1860,23 @@ namespace The_Flagship
                     }
                 }
             }
+            ship.InteriorRenderers.RemoveAll((MeshRenderer render) => render == null);
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
     }
     [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
-    class OnExit
+    internal class OnExit
     {
-        static void Postfix()
+        internal static void Postfix()
         {
             foreach (GameObject gameObject in Mod.moddedScreens)
             {
                 Object.Destroy(gameObject);
             }
             Mod.moddedScreens.Clear();
+            Mod.FighterCount = 10;
+            Mod.PatrolBotsLevel = 0;
+            PLAutoRepairScreen.CurrentMultiplier = 1f;
         }
     }
 }
