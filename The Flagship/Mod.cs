@@ -26,7 +26,7 @@ namespace The_Flagship
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
-        public override string Version => "1.6";
+        public override string Version => "1.6.1";
 
         public override string Author => "pokegustavo";
 

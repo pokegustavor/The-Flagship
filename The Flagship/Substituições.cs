@@ -1670,6 +1670,8 @@ namespace The_Flagship
                 }
                 if(__instance.TargetShip == null)__instance.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
                 if (__instance.TargetShip == PLEncounterManager.Instance.PlayerShip) __instance.TargetShip = null;
+                if (__instance.SpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.SpaceTargetID = -1;
+                if (__instance.CaptainTargetedSpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.CaptainTargetedSpaceTargetID = -1;
             }
         }
         public static async void PhaseAway(PLShipInfoBase ship)

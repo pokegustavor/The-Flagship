@@ -1833,6 +1833,14 @@ namespace The_Flagship
             }
             else if(Persistantshipdata.ShipInstance != null && Persistantshipdata.ShipInstance.GetCurrentShipControllerPlayerID() == -1) 
             {
+                if (sender != null)
+                {
+                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PilotFighter", sender, new object[]
+                    {
+                        Persistantshipdata.ShipInstance.ShipID
+                    });
+                    return;
+                }
                 Persistantshipdata.ShipInstance.photonView.RPC("NewShipController", PhotonTargets.All, new object[]
                     {
                         controller
