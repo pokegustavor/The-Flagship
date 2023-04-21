@@ -1731,53 +1731,6 @@ namespace The_Flagship
                     droneType = EShipType.E_WDDRONE3;
                 }
                 PLPersistantShipInfo shipdata = new PLPersistantShipInfo(droneType, -1, PLServer.GetCurrentSector());
-                List<ComponentOverrideData> overrides = new List<ComponentOverrideData>();
-                PLRand shipDeterministicRand = PLShipInfoBase.GetShipDeterministicRand(shipdata, 300);
-                switch (type)
-                {
-                    case 0:
-                        shipdata.ShipName = "Light Fighter";
-                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 12, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
-                        shipdata.CompOverrides.AddRange(overrides);
-                        break;
-                    case 1:
-                        shipdata.ShipName = "Heavy Fighter";
-                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 5, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 10, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 6, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 11, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 11, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
-                        shipdata.CompOverrides.AddRange(overrides);
-                        break;
-                    case 2:
-                        shipdata.ShipName = "Support Fighter";
-                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 6, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 9, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 13, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
-                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(shipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
-                        shipdata.CompOverrides.AddRange(overrides);
-                        break;
-                }
-                shipdata.HullPercent = 1f;
-                shipdata.ShldPercent = 1f;
                 figtherData[type] = shipdata;
             }
             PLPersistantShipInfo Persistantshipdata = figtherData[type];
@@ -1787,11 +1740,57 @@ namespace The_Flagship
             //If ship doesn't exist create
             if (Persistantshipdata.ShipInstance == null && Mod.FighterCount > 0) 
             {
+                Persistantshipdata.CompOverrides.Clear();
+                List<ComponentOverrideData> overrides = new List<ComponentOverrideData>();
+                PLRand shipDeterministicRand = PLShipInfoBase.GetShipDeterministicRand(Persistantshipdata, 300);
+                switch (type)
+                {
+                    case 0:
+                        Persistantshipdata.ShipName = "Light Fighter";
+                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 3, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 12, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
+                        Persistantshipdata.CompOverrides.AddRange(overrides);
+                        break;
+                    case 1:
+                        Persistantshipdata.ShipName = "Heavy Fighter";
+                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 5, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 10, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 2, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 6, ReplaceExistingComp = true, CompLevel = 3 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 11, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 11, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
+                        Persistantshipdata.CompOverrides.AddRange(overrides);
+                        break;
+                    case 2:
+                        Persistantshipdata.ShipName = "Support Fighter";
+                        overrides.Add(new ComponentOverrideData() { CompType = 1, CompSubType = 4, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 1, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 3, CompSubType = 6, ReplaceExistingComp = true, CompLevel = 4 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 3, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 6, CompSubType = 1, ReplaceExistingComp = true, CompLevel = 2 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 6, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 9, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 9, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 9, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 10, CompSubType = 13, ReplaceExistingComp = true, CompLevel = 1 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 10, SlotNumberToReplace = 1 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 25, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 25, SlotNumberToReplace = 0 });
+                        overrides.Add(new ComponentOverrideData() { CompType = 26, CompSubType = 0, ReplaceExistingComp = true, CompLevel = 0 - PLShipInfoBase.GetChaosBoost(Persistantshipdata, shipDeterministicRand.Next() % 50), IsCargo = false, CompTypeToReplace = 26, SlotNumberToReplace = 0 });
+                        Persistantshipdata.CompOverrides.AddRange(overrides);
+                        break;
+                }
                 Persistantshipdata.MyCurrentSector = PLServer.GetCurrentSector();
                 PLShipInfoBase shipInstance = PLEncounterManager.Instance.GetCPEI().SpawnEnemyShip(Persistantshipdata.Type, Persistantshipdata, PLEncounterManager.Instance.PlayerShip.Exterior.transform.position + new Vector3(UnityEngine.Random.Range(100,300) , UnityEngine.Random.Range(100, 300), UnityEngine.Random.Range(100, 300)), PLEncounterManager.Instance.PlayerShip.Exterior.transform.rotation);
                 shipInstance.NoRepLossOnKilled = true;
                 shipInstance.DropScrap = false;
-                shipInstance.name += " (frighterBot)";
+                shipInstance.name += " (fighterBot)";
                 fighterInstances[type] = shipInstance;
                 switch (type) 
                 {
@@ -1837,7 +1836,7 @@ namespace The_Flagship
                 {
                     ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PilotFighter", sender, new object[]
                     {
-                        Persistantshipdata.ShipInstance.ShipID
+                        Persistantshipdata.ShipInstance.ShipID,
                     });
                     return;
                 }
@@ -2096,7 +2095,7 @@ namespace The_Flagship
                 {
                         (int)PLNetworkManager.Instance.LocalPlayerID
                 });
-            FighterAggro.PhaseAway(ship);
+            if(ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggro.PhaseAway(ship);
         }
     }
 }

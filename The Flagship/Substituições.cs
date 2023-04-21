@@ -277,14 +277,11 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
-    public class OnJoin
+    [HarmonyPatch(typeof(PLNetworkManager), "OnServerCreatedRoom")]
+    class OnCreateGame 
     {
-        static void Prefix()
+        static void Postfix() 
         {
-            Command.shipAssembled = false;
-            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-            Command.prisionCells = new GameObject[10];
             if (PhotonNetwork.isMasterClient)
             {
                 string savedoptions = PLXMLOptionsIO.Instance.CurrentOptions.GetStringValue("flagship");
@@ -294,19 +291,27 @@ namespace The_Flagship
                 }
                 if (Mod.AutoAssemble)
                 {
-                    AutoAssemble();
+                    OnJoin.AutoAssemble();
                 }
             }
-            else
+        }
+    }
+    [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
+    public class OnJoin
+    {
+        static void Prefix()
+        {
+            if(!PhotonNetwork.isMasterClient)
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
             }
         }
-        public static async void AutoAssemble()
+        public static async void AutoAssemble(bool fromFile = false)
         {
             while (PLEncounterManager.Instance.PlayerShip == null) await Task.Yield();
+            //if (PLServer.GetCurrentSector() != null && (!fromFile && (PLServer.GetCurrentSector().VisualIndication != ESectorVisualIndication.COLONIAL_HUB || PLServer.Instance.CurrentCrewLevel > 1))) return;
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 52);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
@@ -320,7 +325,6 @@ namespace The_Flagship
             }
             if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.OLDWARS_HUMAN && !Command.shipAssembled)
             {
-                Command.shipAssembled = true;
                 Command.FabricateFlagship();
             }
         }
@@ -338,7 +342,6 @@ namespace The_Flagship
         {
             if (sender.sender == PhotonNetwork.masterClient)
             {
-                Command.shipAssembled = true;
                 Command.FabricateFlagship();
             }
         }
@@ -380,6 +383,7 @@ namespace The_Flagship
     [HarmonyPatch(typeof(PLShipInfo), "Update")]
     public class Update
     {
+        static float lastPrisionSync = Time.time;
         static void Prefix(PLShipInfo __instance) 
         {
             if (__instance.EndGameSequenceActive)
@@ -447,7 +451,11 @@ namespace The_Flagship
                         Command.prisionCells[i].SetActive(Command.playersArrested[i] != -1);
                     }
                 }
-                if (PhotonNetwork.isMasterClient) ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.Others, new object[] { Command.playersArrested });
+                if (PhotonNetwork.isMasterClient && Time.time - lastPrisionSync > 2)
+                {
+                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.Others, new object[] { Command.playersArrested });
+                    lastPrisionSync = Time.time;
+                }
             }
         }
     }
@@ -1084,6 +1092,7 @@ namespace The_Flagship
                     if ((system.MyInstance.transform.position - __instance.transform.position).magnitude < 8)
                     {
                         system.Health += (30 + 5 * Mod.PatrolBotsLevel) * Time.deltaTime;
+                        system.Health = Mathf.Clamp(system.Health, 0, system.MaxHealth);
                         system.MyInstance.LastRepairActiveTime = Time.time;
                         break;
                     }
@@ -1656,20 +1665,36 @@ namespace The_Flagship
     internal class FighterAggro 
     {
         static List<PLShipInfoBase> warpingShips = new List<PLShipInfoBase>();
+        static void Prefix(PLShipInfoBase __instance) 
+        {
+            if (__instance.name.Contains("(fighterBot)") && PLEncounterManager.Instance.PlayerShip != null)
+            {
+                if (__instance.HostileShips != null && __instance.HostileShips.Contains(PLEncounterManager.Instance.PlayerShip.ShipID))
+                {
+                    __instance.HostileShips.Remove(PLEncounterManager.Instance.PlayerShip.ShipID);
+                }
+                if (__instance.TargetShip == null) __instance.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
+                if (__instance.TargetShip == PLEncounterManager.Instance.PlayerShip || (__instance.TargetShip != null && __instance.TargetShip.name.Contains("(fighterBot)"))) __instance.TargetShip = null;
+                if (__instance.TargetSpaceTarget == PLEncounterManager.Instance.PlayerShip || (__instance.TargetSpaceTarget != null && __instance.TargetSpaceTarget.name.Contains("(fighterBot)"))) __instance.TargetSpaceTarget = null;
+                if (__instance.SpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.SpaceTargetID = -1;
+                if (__instance.CaptainTargetedSpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.CaptainTargetedSpaceTargetID = -1;
+            }
+        }
         static void Postfix(PLShipInfoBase __instance) 
         {
-            if (__instance.name.Contains("(frighterBot)") && PLEncounterManager.Instance.PlayerShip != null) 
+            if (__instance.name.Contains("(fighterBot)") && PLEncounterManager.Instance.PlayerShip != null) 
             {
                 if(__instance.GetLifetime() <= 1f && !warpingShips.Contains(__instance)) 
                 {
                     PhaseAway(__instance);
                 }
-                if (__instance.HostileShips.Contains(PLEncounterManager.Instance.PlayerShip.ShipID)) 
+                if (__instance.HostileShips != null && __instance.HostileShips.Contains(PLEncounterManager.Instance.PlayerShip.ShipID))
                 {
                     __instance.HostileShips.Remove(PLEncounterManager.Instance.PlayerShip.ShipID);
                 }
-                if(__instance.TargetShip == null)__instance.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
-                if (__instance.TargetShip == PLEncounterManager.Instance.PlayerShip) __instance.TargetShip = null;
+                if (__instance.TargetShip == null) __instance.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
+                if (__instance.TargetShip == PLEncounterManager.Instance.PlayerShip || (__instance.TargetShip != null && __instance.TargetShip.name.Contains("(fighterBot)"))) __instance.TargetShip = null;
+                if (__instance.TargetSpaceTarget == PLEncounterManager.Instance.PlayerShip || (__instance.TargetSpaceTarget != null && __instance.TargetSpaceTarget.name.Contains("(fighterBot)"))) __instance.TargetSpaceTarget = null;
                 if (__instance.SpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.SpaceTargetID = -1;
                 if (__instance.CaptainTargetedSpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.CaptainTargetedSpaceTargetID = -1;
             }
@@ -1797,15 +1822,54 @@ namespace The_Flagship
     {
         static void Postfix(PLSpaceTarget target)
         {
-            foreach(PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values) 
+            foreach(PLShipInfoBase ship in PLFighterScreen.fighterInstances) 
             {
                 if(ship != null && ship.GetCurrentShipControllerPlayerID() == PLNetworkManager.Instance.LocalPlayerID) 
                 {
-                    ship.photonView.RPC("Captain_SetTargetShip", PhotonTargets.MasterClient, new object[]
+                    ship.photonView.RPC("Captain_SetTargetShip", PhotonTargets.All, new object[]
                     {
                     target.SpaceTargetID
                     });
                     break;
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLShipInfoBase), "Captain_SetTargetShip")]
+    class ConfirmFighterTarget 
+    {
+        static void Postfix(PLShipInfoBase __instance, int inShipID) 
+        {
+            if (__instance.name.Contains("(fighterBot)")) 
+            {
+                __instance.HostileShips.Add(inShipID);
+                __instance.TargetShip = PLEncounterManager.Instance.GetShipFromID(inShipID);
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLTurret),"Tick")]
+    class FighterTurretTarget 
+    {
+        static void Prefix(PLTurret __instance) 
+        {
+            if (__instance.ShipStats != null && __instance.ShipStats.Ship != null && __instance.ShipStats.Ship.name.Contains("(fighterBot)"))
+            {
+                if (__instance.ShipStats.Ship.HostileShips != null && __instance.ShipStats.Ship.HostileShips.Contains(PLEncounterManager.Instance.PlayerShip.ShipID))
+                {
+                    __instance.ShipStats.Ship.HostileShips.Remove(PLEncounterManager.Instance.PlayerShip.ShipID);
+                }
+                if (__instance.ShipStats.Ship.TargetShip == null) __instance.ShipStats.Ship.TargetShip = PLEncounterManager.Instance.PlayerShip.TargetShip;
+                if (__instance.ShipStats.Ship.TargetShip == PLEncounterManager.Instance.PlayerShip || (__instance.ShipStats.Ship.TargetShip != null && __instance.ShipStats.Ship.TargetShip.name.Contains("(fighterBot)"))) __instance.ShipStats.Ship.TargetShip = null;
+                if (__instance.ShipStats.Ship.SpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.ShipStats.Ship.SpaceTargetID = -1;
+                if (__instance.ShipStats.Ship.CaptainTargetedSpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.ShipStats.Ship.CaptainTargetedSpaceTargetID = -1;
+                if (__instance.ShipStats.Ship.TargetSpaceTarget == PLEncounterManager.Instance.PlayerShip || (__instance.ShipStats.Ship.TargetSpaceTarget != null && __instance.ShipStats.Ship.TargetSpaceTarget.name.Contains("(fighterBot)"))) __instance.ShipStats.Ship.TargetSpaceTarget = null;
+                if (__instance.Targeted_SpaceTarget != null && (__instance.Targeted_SpaceTarget == PLEncounterManager.Instance.PlayerShip || __instance.Targeted_SpaceTarget.name.Contains("(fighterBot)")))
+                {
+                    int ID = __instance.Targeted_SpaceTarget.SpaceTargetID;
+                    if (__instance.SpaceTargetIDsTargeted.Contains(ID))
+                    {
+                        __instance.SpaceTargetIDsTargeted.Remove(ID);
+                    }
                 }
             }
         }
@@ -1818,7 +1882,7 @@ namespace The_Flagship
             PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(inShipID);
             if(ship != null && ship == PLEncounterManager.Instance.PlayerShip && ship.ShipTypeID == EShipType.OLDWARS_HUMAN) 
             {
-                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 52);
+                PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
@@ -1828,21 +1892,37 @@ namespace The_Flagship
             }
         }
     }
+    [HarmonyPatch(typeof(PLOldWarsShip_Human), "SetupShipStats")]
+    class InitialSpaceOnLoad 
+    {
+        static void Postfix(PLOldWarsShip_Human __instance) 
+        {
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
+            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+        }
+    }
     [HarmonyPatch(typeof(PLShipInfoBase),"OnWarp")]
     class OnWarp 
     {
         static void Postfix(PLShipInfoBase __instance) 
         {
-            if (__instance.GetIsPlayerShip()) 
+            if (__instance.GetIsPlayerShip() && PhotonNetwork.isMasterClient) 
             {
                 foreach(PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values) 
                 {
-                    if (ship != null && ship.name.Contains("(frighterBot)") && ship.MyStats != null) 
+                    if (ship != null && ship.name.Contains("(fighterBot)") && ship.MyStats != null) 
                     {
                         PLServer.Instance.CurrentUpgradeMats += Mathf.CeilToInt(20 * (ship.MyStats.HullCurrent / ship.MyStats.HullMax));
+                        ship.PersistantShipInfo.IsShipDestroyed = true;
                     }
                 }
             }
         }
     }
+
 }

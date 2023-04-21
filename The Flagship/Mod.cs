@@ -18,6 +18,8 @@ namespace The_Flagship
 {
     /*
     TODO
+    Fix fighter attacking ship
+    Fix fighter pilot not been able to select targets
      */
     public class Mod : PulsarMod 
     {
@@ -26,7 +28,7 @@ namespace The_Flagship
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
-        public override string Version => "1.6.1";
+        public override string Version => "1.6.2";
 
         public override string Author => "pokegustavo";
 
@@ -115,7 +117,6 @@ namespace The_Flagship
                     if (!shipAssembled)
                     {
                         FabricateFlagship();
-                        shipAssembled = true;
                         ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
                     }
                     else
@@ -153,40 +154,50 @@ namespace The_Flagship
                                 PulsarModLoader.Utilities.Messaging.Notification("Player is not part of your crew!");
                                 return;
                             }
-                            for (int i = 0; i < 10; i++)
+                            if (!playersArrested.Contains(targetPlayer.GetPlayerID()))
                             {
-                                if (playersArrested[i] == -1)
+
+                                for (int i = 0; i < 10; i++)
                                 {
-                                    playersArrested[i] = targetPlayer.GetPlayerID();
-                                    PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-                                    if (ship != null)
+                                    if (playersArrested[i] == -1)
                                     {
-                                        if (ship.GetCurrentShipControllerPlayerID() == targetPlayer.GetPlayerID())
+                                        playersArrested[i] = targetPlayer.GetPlayerID();
+                                        PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+                                        if (ship != null)
                                         {
-                                            ship.photonView.RPC("NewShipController", PhotonTargets.All, new object[] { -1 });
-                                        }
-                                        for (int j = 0; j < ship.GetCurrentTurretControllerMaxTurretIndex(); j++)
-                                        {
-                                            if (ship.GetCurrentTurretControllerPlayerID(j) == targetPlayer.GetPlayerID())
+                                            if (ship.GetCurrentShipControllerPlayerID() == targetPlayer.GetPlayerID())
                                             {
-                                                ship.photonView.RPC("NewTurretController", PhotonTargets.All, new object[] { j, -1 });
+                                                ship.photonView.RPC("NewShipController", PhotonTargets.All, new object[] { -1 });
+                                            }
+                                            for (int j = 0; j < ship.GetCurrentTurretControllerMaxTurretIndex(); j++)
+                                            {
+                                                if (ship.GetCurrentTurretControllerPlayerID(j) == targetPlayer.GetPlayerID())
+                                                {
+                                                    ship.photonView.RPC("NewTurretController", PhotonTargets.All, new object[] { j, -1 });
+                                                }
+                                            }
+                                            if (ship.SensorDishControllerPlayerID == targetPlayer.GetPlayerID())
+                                            {
+                                                ship.photonView.RPC("RequestSensorDishController", PhotonTargets.All, new object[] { -1 });
+                                            }
+                                            if (ship.CaptainsChairPlayerID == targetPlayer.GetPlayerID())
+                                            {
+                                                ship.photonView.RPC("AttemptToSitInCaptainsChair", PhotonTargets.All, new object[] { -1 });
                                             }
                                         }
-                                        if (ship.SensorDishControllerPlayerID == targetPlayer.GetPlayerID())
-                                        {
-                                            ship.photonView.RPC("RequestSensorDishController", PhotonTargets.All, new object[] { -1 });
-                                        }
-                                        if (ship.CaptainsChairPlayerID == targetPlayer.GetPlayerID())
-                                        {
-                                            ship.photonView.RPC("AttemptToSitInCaptainsChair", PhotonTargets.All, new object[] { -1 });
-                                        }
+                                        break;
                                     }
-                                    break;
                                 }
-                                else if (playersArrested[i] == targetPlayer.GetPlayerID())
+                            }
+                            else 
+                            {
+                                for (int i = 0; i < 10; i++)
                                 {
-                                    playersArrested[i] = -1;
-                                    break;
+                                    if (playersArrested[i] == targetPlayer.GetPlayerID())
+                                    {
+                                        playersArrested[i] = -1;
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -224,6 +235,8 @@ namespace The_Flagship
         }
         public static async void FabricateFlagship()
         {
+            if (shipAssembled) return;
+            shipAssembled = true;
             PulsarModLoader.Utilities.Messaging.Notification("Assembling the flagship, please stand by...", PLNetworkManager.Instance.LocalPlayer, default, 10000);
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
             ship.IsGodModeActive = true;
@@ -1762,6 +1775,8 @@ namespace The_Flagship
             ship.ComputerSystem.Health = 100;
             ship.LifeSupportSystem.MaxHealth = 100;
             ship.LifeSupportSystem.Health = 100;
+            ship.BridgeCameraTransform.position = new Vector3(-6.5955f, -258.5034f, -328.7074f);
+            ship.BridgeCameraTransform.rotation = Quaternion.Euler(new Vector3(22.026f, 34.7839f, -0.0017f));
             foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
             {
                 render.enabled = true;
@@ -1861,6 +1876,17 @@ namespace The_Flagship
                 }
             }
             ship.InteriorRenderers.RemoveAll((MeshRenderer render) => render == null);
+            foreach (Light light in ship.InteriorShipLights)
+            {
+                try
+                {
+                    if (light.gameObject != null)
+                    {
+                        light.gameObject.SetActive(true);
+                    }
+                }
+                catch { }
+            }
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
     }
@@ -1873,10 +1899,13 @@ namespace The_Flagship
             {
                 Object.Destroy(gameObject);
             }
+            Command.shipAssembled = false;
             Mod.moddedScreens.Clear();
             Mod.FighterCount = 10;
             Mod.PatrolBotsLevel = 0;
             PLAutoRepairScreen.CurrentMultiplier = 1f;
+            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+            Command.prisionCells = new GameObject[10];
         }
     }
 }
