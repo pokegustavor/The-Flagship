@@ -61,7 +61,7 @@ namespace The_Flagship
     {
         static void Postfix(PLOldWarsShip_Human __instance, ref string __result)
         {
-            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+100% Reactor Output\n+10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>Impossible to hide</color>";
+            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+100% Reactor Output\n10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>100x EM Signature</color>";
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "ShipFinalCalculateStats")]

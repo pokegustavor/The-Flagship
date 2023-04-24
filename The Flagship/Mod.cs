@@ -19,7 +19,6 @@ namespace The_Flagship
 {
     /*
     TODO
-    Fix fighter attacking ship
     Fix fighter pilot not been able to select targets
      */
     public class Mod : PulsarMod 
@@ -29,7 +28,7 @@ namespace The_Flagship
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
-        public override string Version => "1.6.2";
+        public override string Version => "1.6.3";
 
         public override string Author => "pokegustavo";
 
