@@ -61,7 +61,7 @@ namespace The_Flagship
     {
         static void Postfix(PLOldWarsShip_Human __instance, ref string __result)
         {
-            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+100% Reactor Output\n+10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>";
+            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+100% Reactor Output\n+10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>Impossible to hide</color>";
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "ShipFinalCalculateStats")]
@@ -76,6 +76,7 @@ namespace The_Flagship
                 inStats.OxygenRefillRate *= 10;
                 inStats.HullArmor *= armorModifier;
                 inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
+                inStats.EMSignature *= 100;
             }
         }
     }
@@ -333,7 +334,11 @@ namespace The_Flagship
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
-            if (Command.shipAssembled) SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", sender.sender, new object[0]);
+            if (Command.shipAssembled)
+            {
+                SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", sender.sender, new object[0]);
+                SendRPC("pokegustavo.theflagship", "The_Flagship.UpgradePatrolCurrentReciever", sender.sender, new object[] { Mod.PatrolBotsLevel});
+            }
         }
     }
     public class RPCReciever : ModMessage
@@ -535,6 +540,86 @@ namespace The_Flagship
                         break;
                     }
                 }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLInfectedSporeProj), "Explode")]
+    class InfectedSporeRework 
+    {
+        static void Postfix(PLInfectedSporeProj __instance) 
+        {
+            if(__instance.ShipAttachedTo == PLEncounterManager.Instance.PlayerShip && Command.shipAssembled) 
+            {
+                __instance.Speed = 0;
+                __instance.MyRigidbody.velocity = Vector3.zero;
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLInfectedSporeProj),"FixedUpdate")]
+    class SporeSpawnBuff 
+    {
+        static void Prefix(PLInfectedSporeProj __instance) 
+        {
+            if (Command.shipAssembled && __instance.ShipAttachedTo == PLEncounterManager.Instance.PlayerShip) 
+            {
+                if (__instance.ShipAttachedTo != null && __instance.Attached && UnityEngine.Random.Range(0, 100) == 0 && PhotonNetwork.isMasterClient && __instance.SpawnedSpiders < 30 && __instance.ShipAttachedTo.MyTLI != null)
+                {
+                    PLPathfinderGraphEntity pgeforShip = PLPathfinder.GetInstance().GetPGEforShip(__instance.ShipAttachedTo);
+                    if (pgeforShip != null)
+                    {
+                        NNConstraint nnconstraint = new NNConstraint();
+                        nnconstraint.constrainWalkability = true;
+                        nnconstraint.walkable = true;
+                        nnconstraint.graphMask = PLBot.GetContraintForPGE(ref nnconstraint, pgeforShip).graphMask;
+                        nnconstraint.area = (int)pgeforShip.LargestAreaIndex;
+                        nnconstraint.constrainArea = true;
+                        Vector3 position = new Vector3(UnityEngine.Random.Range(pgeforShip.Graph.forcedBounds.min.x, pgeforShip.Graph.forcedBounds.max.x), UnityEngine.Random.Range(pgeforShip.Graph.forcedBounds.min.y, pgeforShip.Graph.forcedBounds.max.y), UnityEngine.Random.Range(pgeforShip.Graph.forcedBounds.min.z, pgeforShip.Graph.forcedBounds.max.z));
+                        NNInfoInternal nearest = pgeforShip.Graph.GetNearest(position, nnconstraint);
+                        if (nearest.node != null && nearest.node.Area == pgeforShip.LargestAreaIndex)
+                        {
+                            Ray ray = new Ray((Vector3)nearest.node.position, Vector3.up);
+                            RaycastHit raycastHit = default(RaycastHit);
+                            if (Physics.Raycast(ray, out raycastHit, 15f, 2048) && Vector3.Dot(raycastHit.normal, Vector3.up) < 0f)
+                            {
+                                string type = "NetworkPrefabs/Infected_Spider_01";
+                                if (UnityEngine.Random.Range(0, 10) == 0) type = "NetworkPrefabs/Infected_Spider_02";
+                                PLInfectedSpider component = PhotonNetwork.Instantiate(type, raycastHit.point + Vector3.up, Quaternion.identity, 0, null).GetComponent<PLInfectedSpider>();
+                                PLInfectedSpider_Medium component2 = PhotonNetwork.Instantiate(type, raycastHit.point + Vector3.up, Quaternion.identity, 0, null).GetComponent<PLInfectedSpider_Medium>();
+                                if (component != null)
+                                {
+                                    component.MyCurrentTLI = __instance.ShipAttachedTo.MyTLI;
+                                }
+                                if(component2 != null) 
+                                {
+                                    component2.MyCurrentTLI = __instance.ShipAttachedTo.MyTLI;
+                                }
+                                __instance.SpawnedSpiders++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLInfectedSpider),"Update")]
+    class CrawlerOutOfBounds 
+    {
+        static void Postfix(PLInfectedSpider __instance) 
+        {
+            if(__instance.transform.position.y < -5000 && !__instance.IsDead) 
+            {
+                __instance.OnDeath();
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLInfectedSpider_Medium), "Update")]
+    class BigCrawlerOutOfBounds
+    {
+        static void Postfix(PLInfectedSpider __instance)
+        {
+            if (__instance.transform.position.y < -5000 && !__instance.IsDead)
+            {
+                __instance.OnDeath();
             }
         }
     }

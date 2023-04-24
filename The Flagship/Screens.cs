@@ -1992,7 +1992,7 @@ namespace The_Flagship
                 Mod.PatrolBotsLevel = Mathf.Clamp(Mod.PatrolBotsLevel + 1, 0, 9);
                 if (PhotonNetwork.isMasterClient)
                 {
-                    SendRPC("pokegustavo.theflagship", "The_Flagship.UpgradePatrolReciever", PhotonTargets.Others, new object[] { 0 });
+                    SendRPC("pokegustavo.theflagship", "The_Flagship.UpgradePatrolCurrentReciever", PhotonTargets.Others, new object[] { Mod.PatrolBotsLevel });
                     PLServer.Instance.photonView.RPC("AddCrewWarning_OneString_Localized", PhotonTargets.All, new object[]
                     {
                         "[STR0] UPGRADED!",
@@ -2003,6 +2003,16 @@ namespace The_Flagship
                     });
                     PLServer.Instance.CurrentUpgradeMats -= (int)arguments[0];
                 }
+            }
+        }
+    }
+    class UpgradePatrolCurrentReciever : ModMessage 
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (sender.sender == PhotonNetwork.masterClient) 
+            {
+                Mod.PatrolBotsLevel = (int)arguments[0];
             }
         }
     }

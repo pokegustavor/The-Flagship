@@ -13,6 +13,7 @@ using PulsarModLoader.MPModChecks;
 using PulsarModLoader.SaveData;
 using System.IO;
 using static UIPopupList;
+using System.Reflection.Emit;
 
 namespace The_Flagship
 {
@@ -875,6 +876,7 @@ namespace The_Flagship
                         CapitanToBridge.TargetDoor = BridgeToCaptain;
                         CapitanToBridge.transform.rotation = new Quaternion(0, 0.7124f, 0, -0.7018f);
                         BridgeToCaptain.TargetDoor = CapitanToBridge;
+                        BridgeToCaptain.OptionalTLI.SubHubID = -69;
                         BridgeToCaptain.OptionalTLI = ship.MyTLI;
                         GameObject BridgeToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-0.6f, -261, -443.1f), new Quaternion(0, 0, 0, 1));
                         Object.DontDestroyOnLoad(BridgeToEngineOjb);
@@ -989,8 +991,6 @@ namespace The_Flagship
                     }
                     //How me changing the starting position of the contraband station broke this part of the code???????
                     //PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
-                    PLPathfinderGraphEntity oldPath = PLPathfinder.GetInstance().GetPGEforShip(ship);
-                    if(oldPath != null) oldPath.TLI = null;
                     ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
                     Object.Destroy(ship.InteriorStatic.transform.GetChild(1));
                     ship.InteriorStatic.transform.position = new Vector3(367.3f, -382.3f, 1548);
@@ -1887,7 +1887,26 @@ namespace The_Flagship
                 }
                 catch { }
             }
+            PLPathfinderGraphEntity oldPath = PLPathfinder.GetInstance().GetPGEforShip(ship);
+            if (oldPath != null) oldPath.TLI = null;
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
+        }
+    }
+    [HarmonyPatch(typeof(PLWarpGuardian),"Update")]
+    class GuardianBeamFix 
+    {
+        public static float BeamMultiplier = 8f;
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)
+        {
+            List<CodeInstruction> instructionsList = Instructions.ToList();
+            instructionsList[1038].operand = AccessTools.Field(typeof(GuardianBeamFix), "BeamMultiplier");
+            instructionsList[1038].opcode = OpCodes.Ldsfld;
+            return instructionsList.AsEnumerable();
+        }
+
+        static void Postfix() 
+        {
+            BeamMultiplier = (Command.shipAssembled ? 0f : 8f);
         }
     }
     [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
