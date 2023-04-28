@@ -12,6 +12,7 @@ using Pathfinding;
 using UnityEngine.UI;
 using System.Linq;
 using PulsarModLoader.Utilities;
+using ExitGames.Demos.DemoAnimator;
 
 namespace The_Flagship
 {
@@ -459,8 +460,48 @@ namespace The_Flagship
                 if (PhotonNetwork.isMasterClient && Time.time - lastPrisionSync > 2)
                 {
                     ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.Others, new object[] { Command.playersArrested });
+                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.ResearchRPC", PhotonTargets.Others, new object[] { OnWarpBase.PickupResearchItems });
                     lastPrisionSync = Time.time;
                 }
+                for(int i = 0; i < OnWarpBase.PickupResearchItems.Length; i++) 
+                {
+                    if (!PLGameStatic.Instance.m_AllPickupObjects.Contains(OnWarpBase.ResearchItemPickups[i]))
+                    {
+                        PLGameStatic.Instance.m_AllPickupObjects.Add(OnWarpBase.ResearchItemPickups[i]);
+                    }
+                    if (OnWarpBase.PickupResearchItems[i] != -1) 
+                    {
+                        if (OnWarpBase.ResearchItemGameObjects[i] == null)
+                        {
+                            GameObject gameObject = UnityEngine.Object.Instantiate(PLGlobal.Instance.ResearchMaterialsVisualPrefabs[OnWarpBase.ResearchTypeItemSubtypes[OnWarpBase.PickupResearchItems[i]]], OnWarpBase.ResearchItemPickups[i].transform.position, OnWarpBase.ResearchItemPickups[i].transform.rotation);
+                            gameObject.layer = 11;
+                            gameObject.transform.SetParent(OnWarpBase.ResearchItemPickups[i].transform, true);
+                            gameObject.transform.localScale = Vector3.one * 0.4f;
+                            OnWarpBase.ResearchItemPickups[i].VisibleObject = gameObject;
+                            OnWarpBase.ResearchItemPickups[i].Collider = gameObject.GetComponentInChildren<Collider>();
+                            OnWarpBase.ResearchItemPickups[i].ItemType = EPawnItemType.E_RESEARCH_MAT;
+                            OnWarpBase.ResearchItemPickups[i].SubItemType = OnWarpBase.ResearchTypeItemSubtypes[OnWarpBase.PickupResearchItems[i]];
+                            OnWarpBase.ResearchItemPickups[i].PickedUp = false;
+                            OnWarpBase.ResearchItemPickups[i].ResetInternalItem();
+                            OnWarpBase.ResearchItemGameObjects[i] = gameObject;
+                        }
+                        if (!OnWarpBase.ResearchItemGameObjects[i].activeSelf)
+                        {
+                            OnWarpBase.PickupResearchItems[i] = -1;
+                            UnityEngine.Object.Destroy(OnWarpBase.ResearchItemGameObjects[i]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public class ResearchRPC : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (sender.sender == PhotonNetwork.masterClient)
+            {
+                OnWarpBase.PickupResearchItems = (int[])arguments[0];
             }
         }
     }
@@ -1322,17 +1363,38 @@ namespace The_Flagship
     {
         static void Postfix(PLBot __instance)
         {
+            if(Mod.BridgePathID != 0 && PLEncounterManager.Instance.PlayerShip != null && __instance.PlayerOwner != null && __instance.PlayerOwner.MyCurrentTLI == PLEncounterManager.Instance.PlayerShip.MyTLI && Command.shipAssembled) 
+            {
+                PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.AI_TargetPos_Raw);
+                if(targetInterior.ID == Mod.BridgePathID && __instance.AI_TargetInterior == null) 
+                {
+                    foreach (PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
+                    {
+                        if (interior.InteriorID == -69)
+                        {
+                            __instance.AI_TargetInterior = interior;
+                            break;
+                        }
+                    }
+                }
+                else if(targetInterior.ID != Mod.BridgePathID)
+                {
+                    __instance.AI_TargetInterior = null;
+                }
+            }
+            /*
             if (__instance.MyBotController != null)
             {
                 __instance.MyBotController.MyBot = __instance;
                 if (PLEncounterManager.Instance.PlayerShip != null && __instance.AI_TargetTLI == PLEncounterManager.Instance.PlayerShip.MyTLI && Command.shipAssembled)
                 {
-                    PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.MyBotController.Assigned_AI_TargetPos);
+                    PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.AI_TargetPos);
+                    PLPathfinderGraphEntity currentInterior = PLPathfinder.GetInstance().GetPGEforPlayer(__instance.PlayerOwner);
                     //PulsarModLoader.Utilities.Messaging.Notification("Current: " + __instance.PlayerOwner.MyPGE.ID + ", Target: " + targetInterior.ID);
                     //PulsarModLoader.Utilities.Messaging.Notification("Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
-                    if (__instance.PlayerOwner.MyPGE != null && targetInterior.ID != __instance.PlayerOwner.MyPGE.ID)
+                    if (currentInterior != null && targetInterior.ID != currentInterior.ID)
                     {
-                        if (targetInterior.ID < __instance.PlayerOwner.MyPGE.ID) //Bot is in brige but wants to go to main area 
+                        if (targetInterior.ID < currentInterior.ID) //Bot is in brige but wants to go to main area 
                         {
                             float distance = (new Vector3(434.2143f, -430.2697f, 1730.034f) - __instance.AI_TargetPos).magnitude;
                             int doorID = 0;
@@ -1358,9 +1420,12 @@ namespace The_Flagship
                                     __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
                                     if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
                                     {
+                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(434.2143f, -430.2697f, 1730.034f));
+                                        
                                         __instance.MyBotController.Path = null;
                                         __instance.PlayerOwner.GetPawn().transform.position = new Vector3(434.2143f, -430.2697f, 1730.034f);
                                         __instance.PlayerOwner.GetPawn().OnTeleport();
+                                        
                                         Physics.SyncTransforms();
                                         if (__instance.PlayerOwner.GetPawn() != null)
                                         {
@@ -1368,58 +1433,64 @@ namespace The_Flagship
                                             __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
                                             __instance.ResetTLI();
                                         }
+                                        
                                     }
                                     break;
                                 case 1:
                                     __instance.AI_TargetPos = new Vector3(-0.6f, -261, -443.1f);
                                     __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
                                     if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
                                     {
+                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(378.7f, -384.8338f, 1366.8f));
+                                        
                                         __instance.MyBotController.Path = null;
                                         __instance.PlayerOwner.GetPawn().transform.position = new Vector3(378.7f, -384.8338f, 1366.8f);
                                         __instance.PlayerOwner.GetPawn().OnTeleport();
+                                        
                                         Physics.SyncTransforms();
                                         if (__instance.PlayerOwner.GetPawn() != null)
                                         {
                                             __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
                                             __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                            __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
                                             __instance.ResetTLI();
                                         }
+                                        
                                     }
                                     break;
                                 case 2:
                                     __instance.AI_TargetPos = new Vector3(27.6f, -261f, -395.3f);
                                     __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
                                     if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
                                     {
+                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(380.3f, -399.7f, 1723.8f));
+                                        
                                         __instance.MyBotController.Path = null;
                                         __instance.PlayerOwner.GetPawn().transform.position = new Vector3(380.3f, -399.7f, 1723.8f);
                                         __instance.PlayerOwner.GetPawn().OnTeleport();
+                                        
                                         Physics.SyncTransforms();
                                         if (__instance.PlayerOwner.GetPawn() != null)
                                         {
                                             __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
                                             __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                            __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
                                             __instance.ResetTLI();
                                         }
+                                        
                                     }
                                     break;
                                 case 3:
                                     __instance.AI_TargetPos = new Vector3(-13.4f, -261, -364.3f);
                                     __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
                                     if (__instance.PlayerOwner.GetPawn() != null && (__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
                                     {
+                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(375.4f, -382.7f, 1575.7f));
+                                        
                                         __instance.PlayerOwner.GetPawn().transform.position = new Vector3(375.4f, -382.7f, 1575.7f);
                                         __instance.PlayerOwner.GetPawn().OnTeleport();
                                         Physics.SyncTransforms();
                                         __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
                                         __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                        __instance.MyBotController.Assigned_AI_TargetPos = __instance.AI_TargetPos;
+                                        
                                     }
                                     break;
                             }
@@ -1432,6 +1503,7 @@ namespace The_Flagship
                     //PulsarModLoader.Utilities.Messaging.Notification("New Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
                 }
             }
+            */
         }
     }
     [HarmonyPatch(typeof(PLReactor), "ShipUpdate")]
@@ -1992,8 +2064,24 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLShipInfoBase),"OnWarp")]
-    class OnWarp 
+    public class OnWarpBase 
     {
+        public static int[] PickupResearchItems = new int[5] {-1,-1,-1,-1,-1 };
+        public static PLPickupObject[] ResearchItemPickups = new PLPickupObject[5];
+        public static GameObject[] ResearchItemGameObjects = new GameObject[5] { null,null,null,null,null};
+        public readonly static int[] ResearchTypeItemSubtypes = new int[]
+        {
+        0,
+        3,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+        };
         static void Postfix(PLShipInfoBase __instance) 
         {
             if (__instance.GetIsPlayerShip() && PhotonNetwork.isMasterClient) 
@@ -2006,8 +2094,51 @@ namespace The_Flagship
                         ship.PersistantShipInfo.IsShipDestroyed = true;
                     }
                 }
+                int pos = UnityEngine.Random.Range(0, 5);
+                if (PickupResearchItems[pos] == -1)PickupResearchItems[pos] = UnityEngine.Random.Range(0, ResearchTypeItemSubtypes.Length);
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.ResearchRPC", PhotonTargets.Others, new object[] { OnWarpBase.PickupResearchItems });
             }
         }
     }
-
+    [HarmonyPatch(typeof(PLServer), "ServerAddCrewBotPlayer")]
+    class SetInterior 
+    {
+        static void Postfix(int inClass) 
+        {
+            foreach(PLPlayer player in PLServer.Instance.AllPlayers) 
+            {
+                PLPawn pawn = player.GetPawn();
+                if(pawn != null) 
+                {
+                    PLPathfinderGraphEntity path = PLPathfinder.GetInstance().GetPGEforPlayer(player);
+                    if(path != null && (path.GraphBounds.center - new Vector3(-43.8945f, - 48.2f, 602.4f)).magnitude < 1) 
+                    {
+                        foreach (PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
+                        {
+                            if (interior.InteriorID == -69)
+                            {
+                                player.CurrentInterior = interior;
+                                player.GetPawn().MyInterior = interior;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            /*
+            PLPlayer player = PLServer.Instance.GetCachedFriendlyPlayerOfClass(inClass);
+            if(player != null && Command.shipAssembled) 
+            {
+                foreach(PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
+                {
+                    if(interior.InteriorID == -69) 
+                    {
+                        player.CurrentInterior = interior;
+                        break;
+                    }
+                }
+            }
+            */
+        }
+    }
 }
