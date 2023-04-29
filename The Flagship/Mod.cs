@@ -1508,7 +1508,7 @@ namespace The_Flagship
                         temperatureScreen.Engage();
                         Mod.moddedScreens.Add(temperature);
 
-                        temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(353.223f, - 383.2109f, 1371.455f), new Quaternion(0, 0.5991f, 0, -0.8007f));
+                        temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(-6f, -261, -324), Quaternion.Euler(new Vector3(0.12f, 106.0651f, 0)));
                         Object.DontDestroyOnLoad(temperature);
                         foreach (Transform transform in temperature.transform)
                         {
