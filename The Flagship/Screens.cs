@@ -1945,25 +1945,12 @@ namespace The_Flagship
             gameObject.GetComponent<RectTransform>().anchoredPosition3D = gameObject.transform.localPosition;
             gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
             gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 600f);
-            GameObject gameObject2 = new GameObject("bg", new Type[]
-            {
-            typeof(Image)
-            });
-            gameObject2.transform.SetParent(gameObject.transform);
-            gameObject2.transform.localPosition = new Vector3(0f, 120f, 0f);
-            gameObject2.transform.localRotation = Quaternion.identity;
-            gameObject2.transform.localScale = Vector3.one;
-            gameObject2.layer = 3;
-            gameObject2.GetComponent<Image>().color = Color.black * 0.4f;
-            gameObject2.GetComponent<RectTransform>().anchoredPosition3D = gameObject2.transform.localPosition;
-            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
-            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 180f);
             GameObject gameObject4 = new GameObject("DroneText", new Type[]
             {
             typeof(Text)
             });
             gameObject4.transform.SetParent(gameObject.transform);
-            gameObject4.transform.localPosition = new Vector3(0f, -20f, 0f);
+            gameObject4.transform.localPosition = new Vector3(0f, -5f, 0f);
             gameObject4.transform.localRotation = Quaternion.identity;
             gameObject4.transform.localScale = Vector3.one * 0.25f;
             gameObject4.GetComponent<RectTransform>().anchoredPosition3D = gameObject4.transform.localPosition;
