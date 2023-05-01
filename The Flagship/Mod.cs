@@ -1719,7 +1719,7 @@ namespace The_Flagship
                             OnWarpBase.ResearchItemPickups[i].name = "Flagship Research " + i;
                         }
                     }
-
+                    //Special manual screens
                     GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 270, 0)));
                     PLPatrolBotUpgradeScreen patrolUpgrade = droneUpgradeRoot.AddComponent<PLPatrolBotUpgradeScreen>();
                     patrolUpgrade.setValues(droneUpgradeRoot.transform, ship.worldUiCanvas, ship);
@@ -1736,6 +1736,12 @@ namespace The_Flagship
                     PLFighterScreen fighterControl = droneUpgradeRoot.AddComponent<PLFighterScreen>();
                     fighterControl.setValues(fighterControl.transform, ship.worldUiCanvas, ship);
                     fighterControl.Assemble();
+                    Object.DontDestroyOnLoad(droneUpgradeRoot);
+
+                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(0.7774f, -259.9289f, -337.9999f), Quaternion.Euler(new Vector3(0, 180, 0)));
+                    PLCyberAttackScreen cyberScreen = droneUpgradeRoot.AddComponent<PLCyberAttackScreen>();
+                    cyberScreen.setValues(cyberScreen.transform, ship.worldUiCanvas, ship);
+                    cyberScreen.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
                     //ship.InteriorStatic = interior;
                     if (foxplush != null)

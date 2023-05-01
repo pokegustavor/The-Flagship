@@ -1926,6 +1926,80 @@ namespace The_Flagship
         public static PLShipInfoBase[] fighterInstances = new PLShipInfoBase[3];
         public static GameObject[] fighterCargo = new GameObject[10];
     }
+    public class PLCyberAttackScreen : PLModdedSpecialScreen
+    {
+        public override void Assemble()
+        {
+            if (UIWorldRoot == null) return;
+            GameObject gameObject = new GameObject("PatrolUpgradeUI", new Type[]
+            {
+            typeof(Image)
+            });
+            gameObject.transform.SetParent(this.worldUiCanvas.transform);
+            gameObject.transform.position = UIWorldRoot.transform.position;
+            gameObject.transform.localRotation = this.UIWorldRoot.localRotation;
+            gameObject.transform.localScale = this.UIWorldRoot.localScale * 50f;
+            gameObject.layer = 3;
+            this.UIRoot = gameObject;
+            gameObject.GetComponent<Image>().color = Color.white * 0.4f;
+            gameObject.GetComponent<RectTransform>().anchoredPosition3D = gameObject.transform.localPosition;
+            gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
+            gameObject.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 600f);
+            GameObject gameObject2 = new GameObject("bg", new Type[]
+            {
+            typeof(Image)
+            });
+            gameObject2.transform.SetParent(gameObject.transform);
+            gameObject2.transform.localPosition = new Vector3(0f, 120f, 0f);
+            gameObject2.transform.localRotation = Quaternion.identity;
+            gameObject2.transform.localScale = Vector3.one;
+            gameObject2.layer = 3;
+            gameObject2.GetComponent<Image>().color = Color.black * 0.4f;
+            gameObject2.GetComponent<RectTransform>().anchoredPosition3D = gameObject2.transform.localPosition;
+            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 450f);
+            gameObject2.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 180f);
+            GameObject gameObject4 = new GameObject("DroneText", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject4.transform.SetParent(gameObject.transform);
+            gameObject4.transform.localPosition = new Vector3(0f, -20f, 0f);
+            gameObject4.transform.localRotation = Quaternion.identity;
+            gameObject4.transform.localScale = Vector3.one * 0.25f;
+            gameObject4.GetComponent<RectTransform>().anchoredPosition3D = gameObject4.transform.localPosition;
+            gameObject4.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1300f);
+            gameObject4.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 800f);
+            Text UpgradeName = gameObject4.GetComponent<Text>();
+            UpgradeName.font = PLGlobal.Instance.MainFont;
+            UpgradeName.resizeTextMaxSize = 85;
+            UpgradeName.resizeTextMinSize = 10;
+            UpgradeName.resizeTextForBestFit = true;
+            UpgradeName.alignment = TextAnchor.UpperCenter;
+            UpgradeName.raycastTarget = false;
+            UpgradeName.text = "Select your target";
+            UpgradeName.color = Color.white;
+            GameObject gameObject5 = new GameObject("Title", new Type[]
+            {
+            typeof(Text)
+            });
+            gameObject5.transform.SetParent(gameObject.transform);
+            gameObject5.transform.localPosition = new Vector3(-20f, 175f, 0f);
+            gameObject5.transform.localRotation = Quaternion.identity;
+            gameObject5.transform.localScale = Vector3.one * 0.25f;
+            gameObject5.GetComponent<RectTransform>().anchoredPosition3D = gameObject5.transform.localPosition;
+            gameObject5.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1450f);
+            gameObject5.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 800f);
+            Text ScreenTitle = gameObject5.GetComponent<Text>();
+            ScreenTitle.font = PLGlobal.Instance.MainFont;
+            ScreenTitle.resizeTextMaxSize = 70;
+            ScreenTitle.resizeTextMinSize = 10;
+            ScreenTitle.resizeTextForBestFit = true;
+            ScreenTitle.alignment = TextAnchor.UpperLeft;
+            ScreenTitle.raycastTarget = false;
+            ScreenTitle.text = PLLocalize.Localize("VIRTUAL CYBERATTACK", false);
+            ScreenTitle.color = Color.white;
+        }
+    }
     class ArmorCompletionReciever : ModMessage
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
