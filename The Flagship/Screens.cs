@@ -1950,7 +1950,7 @@ namespace The_Flagship
             typeof(Text)
             });
             gameObject4.transform.SetParent(gameObject.transform);
-            gameObject4.transform.localPosition = new Vector3(0f, -5f, 0f);
+            gameObject4.transform.localPosition = new Vector3(0f, 140f, 0f);
             gameObject4.transform.localRotation = Quaternion.identity;
             gameObject4.transform.localScale = Vector3.one * 0.25f;
             gameObject4.GetComponent<RectTransform>().anchoredPosition3D = gameObject4.transform.localPosition;
@@ -1985,6 +1985,86 @@ namespace The_Flagship
             ScreenTitle.raycastTarget = false;
             ScreenTitle.text = PLLocalize.Localize("VIRTUAL CYBERATTACK", false);
             ScreenTitle.color = Color.white;
+
+            foreach (PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values)
+            {
+                if (ship.IsShipInfoBase || ship.GetIsPlayerShip()) continue;
+                ShipListSelector selector = new ShipListSelector();
+                GameObject fighterButton = new GameObject("EXTRACT_BTN", new Type[]
+                {
+                typeof(Image),
+                typeof(Button)
+                });
+                Button fighterButtonBtn = fighterButton.GetComponent<Button>();
+                Image fighterButtonImage = fighterButton.GetComponent<Image>();
+                fighterButtonImage.sprite = PLGlobal.Instance.TabFillSprite;
+                fighterButtonImage.type = Image.Type.Sliced;
+                fighterButtonImage.transform.SetParent(gameObject.transform);
+                fighterButtonBtn.transform.localPosition = new Vector3(70f, -25f, 0f);
+                fighterButtonBtn.transform.localRotation = Quaternion.identity;
+                fighterButtonBtn.transform.localScale = Vector3.one;
+                fighterButtonBtn.gameObject.layer = 3;
+                fighterButtonBtn.GetComponent<RectTransform>().anchoredPosition3D = fighterButtonBtn.transform.localPosition;
+                fighterButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 250f);
+                fighterButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                ColorBlock colors1 = fighterButtonBtn.colors;
+                colors1.normalColor = Color.gray;
+                fighterButtonBtn.colors = colors1;
+                fighterButtonBtn.onClick.AddListener(delegate ()
+                {
+                    //SpawnFighter(valueofI);
+                });
+                GameObject fighterButton10 = new GameObject("ExtractBtnLabel", new Type[]
+                {
+                typeof(Text)
+                });
+                fighterButton10.transform.SetParent(fighterButton.transform);
+                fighterButton10.transform.localPosition = new Vector3(0f, 0f, 0f);
+                fighterButton10.transform.localRotation = Quaternion.identity;
+                fighterButton10.transform.localScale = Vector3.one;
+                Text fighterButtoncomponent = fighterButton10.GetComponent<Text>();
+                fighterButtoncomponent.alignment = TextAnchor.MiddleCenter;
+                fighterButtoncomponent.resizeTextForBestFit = true;
+                fighterButtoncomponent.resizeTextMinSize = 8;
+                fighterButtoncomponent.resizeTextMaxSize = 18;
+                fighterButtoncomponent.color = Color.black;
+                fighterButtoncomponent.raycastTarget = false;
+                fighterButtoncomponent.text = PLLocalize.Localize("SPAWN FIGHTER", false);
+                fighterButtoncomponent.font = PLGlobal.Instance.MainFont;
+                fighterButtoncomponent.GetComponent<RectTransform>().anchoredPosition3D = fighterButtoncomponent.transform.localPosition;
+                fighterButtoncomponent.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                fighterButtoncomponent.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                selector.DifficultyText = fighterButtoncomponent;
+            }
+        }
+        List<ShipListSelector> ShipsList = new List<ShipListSelector>();
+        class ShipListSelector 
+        {
+            public void UpdateValues() 
+            {
+                if(MyShip != null && MyShip.MyStats != null) 
+                {
+                    if(MyShip.MyStats.CyberDefenseRating <= 1) 
+                    {
+                        DifficultyText.text = "Easy";
+                        DifficultyText.color = Color.green;
+                    }
+                    else if(MyShip.MyStats.CyberDefenseRating <= 2) 
+                    {
+                        DifficultyText.text = "Medium";
+                        DifficultyText.color = Color.yellow;
+                    }
+                    else 
+                    {
+                        DifficultyText.text = "Hard";
+                        DifficultyText.color = Color.red;
+                    }
+                }
+            }
+            public GameObject MyLabel;
+            public PLShipInfo MyShip;
+            public Text DifficultyText;
+            public Text ShipName;
         }
     }
     class ArmorCompletionReciever : ModMessage
