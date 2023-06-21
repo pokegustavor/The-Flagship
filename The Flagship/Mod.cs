@@ -1767,6 +1767,166 @@ namespace The_Flagship
                     if (PLNetworkManager.Instance.MyLocalPawn != null) PLNetworkManager.Instance.MyLocalPawn.transform.position = (ship.Spawners[PLNetworkManager.Instance.LocalPlayer.GetClassID()] as GameObject).transform.position;
                     ship.ReactorInstance.transform.position = new Vector3(357.8f, -425.7683f, 1368.4f);
                     ship.ReactorInstance.LightMeltdownEnd = new Vector3(0, -12, 0);
+                    //Create camera system
+                    //Bridge teleporters
+                    GameObject cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(-8.6182f, -255.2728f, - 437);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(40.1343f, 38.2f, 18.2477f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    Camera cam = cameraObj.AddComponent<Camera>();
+                    GameObject cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(13.3449f, - 260.1196f, - 337.991f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    RenderTexture texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        cam.fieldOfView = 120;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
+                    //Captain teleporter
+                    cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(422.1003f, - 424.9404f, 1743.08f);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.1234f, 159.8055f, 12.9391f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    cam = cameraObj.AddComponent<Camera>();
+                    cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(13.3449f, -259.1556f, -337.991f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
+                    //Bridge weapons shotcut
+                    cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(-12.5099f, - 258.7097f, - 349.2461f);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(344.4979f, 195.2908f, 352.6114f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    cam = cameraObj.AddComponent<Camera>();
+                    cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(12.2467f, -260.1196f, -338.0208f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
+                    //Prision
+                    cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(332, - 440.9998f, 1745);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.5706f, 150.6783f, 7.1573f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    cam = cameraObj.AddComponent<Camera>();
+                    cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(12.2466f, -259.1556f, -337.991f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
+                    //Engineering Room
+                    cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(370, - 368, 1396);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.6799f, 202.9273f, 347.157f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    cam = cameraObj.AddComponent<Camera>();
+                    cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(13.3449f, - 258.2174f, - 337.991f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        cam.fieldOfView = 90;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
+                    //Reactor room
+                    cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraObj.name = "cameraObj";
+                    cameraObj.transform.SetParent(newbridge.transform);
+                    cameraObj.transform.position = new Vector3(384, - 414.9999f, 1397);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.68f, 217.4727f, 342.0661f));
+                    cameraObj.layer = newbridge.layer;
+                    cameraObj.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                    cameraObj.GetComponent<BoxCollider>().enabled = false;
+                    cam = cameraObj.AddComponent<Camera>();
+                    cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cameraView.name = "cameraView";
+                    cameraView.transform.SetParent(newbridge.transform);
+                    cameraView.transform.position = new Vector3(12.2798f, - 258.2174f, - 337.991f);
+                    cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
+                    cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.601f, 271.39f, 332.9403f));
+                    cameraView.layer = newbridge.layer;
+                    texture = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+                    texture.name = "CameraText";
+                    texture.Create();
+                    if (texture.IsCreated())
+                    {
+                        cam.targetTexture = texture;
+                        cam.fieldOfView = 90;
+                        MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
+                        camMesh.material.SetTexture("_MainTex", texture);
+                    }
                 }
             }
             ship.IsGodModeActive = false;
