@@ -150,6 +150,7 @@ namespace The_Flagship
         public float VictoryTimer = 0;
         public float CooldownTimer = 0;
         float lastSync = 0;
+        public float duration = 30f;
         protected override void Start()
         {
             base.Start();
@@ -249,7 +250,8 @@ namespace The_Flagship
                 MyScreenHubBase.OptionalShipInfo.ShipID,
                 VictoryTimer,
                 CooldownTimer,
-                ShipStats.armorModifier
+                ShipStats.armorModifier,
+                duration
                 });
                 lastSync = Time.time;
             }
@@ -281,15 +283,15 @@ namespace The_Flagship
                     VictoryTimer -= Time.deltaTime;
                     description.text = "Time remaining: " + VictoryTimer.ToString("0.00");
                     bar.color = Color.red;
-                    barMask.clipOffset = new Vector2(((VictoryTimer / 3) - 1) * 510, 0);
+                    barMask.clipOffset = new Vector2(((VictoryTimer / duration) - 1) * 510, 0);
 
                 }
                 else if (CooldownTimer > 0)
                 {
                     CooldownTimer -= Time.deltaTime;
-                    description.text = "Recharging buff: " + ((1 - (CooldownTimer / 2)) * 100).ToString("0.00") + "%";
+                    description.text = "Recharging buff: " + ((1 - (CooldownTimer / 240)) * 100).ToString("0.00") + "%";
                     bar.color = Color.red;
-                    barMask.clipOffset = new Vector2(-((CooldownTimer / 2)) * 510, 0);
+                    barMask.clipOffset = new Vector2(-((CooldownTimer / 240)) * 510, 0);
                     ShipStats.armorModifier = 1f;
                 }
                 else
@@ -306,23 +308,24 @@ namespace The_Flagship
                 {
                     case 1:
                         ShipStats.armorModifier = 1.5f;
+                        duration = 300f;
                         break;
                     case 2:
                         ShipStats.armorModifier = 2f;
+                        duration = 180f;
                         break;
                     case 3:
                         ShipStats.armorModifier = 3f;
+                        duration = 120f;
                         break;
                 }
-                PulsarModLoader.Utilities.Messaging.Notification("You Won");
-                VictoryTimer = 3f;
-                CooldownTimer = 2f;
+                VictoryTimer = duration;
+                CooldownTimer = 240f;
                 defeatCount = 0;
             }
             else
             {
-                //MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempCurrent += MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempMax * 0.25f;
-                PulsarModLoader.Utilities.Messaging.Notification("You Lost");
+                MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempCurrent += MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempMax * 0.25f;
                 defeatCount++;
             }
         }
@@ -1761,6 +1764,7 @@ namespace The_Flagship
                             armor.VictoryTimer = (float)arguments[1];
                             armor.CooldownTimer = (float)arguments[2];
                             ShipStats.armorModifier = (float)arguments[3];
+                            armor.duration = (float)arguments[4];
                             break;
                         }
                     }
