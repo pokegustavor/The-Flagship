@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace The_Flagship
 {
-    
+
 
     public class PLModdedScreenBase : PLUIScreen
     {
@@ -58,7 +58,7 @@ namespace The_Flagship
         public override void Update()
         {
             base.Update();
-            if(MyScreenHubBase == null) 
+            if (MyScreenHubBase == null)
             {
                 Destroy(this);
             }
@@ -150,6 +150,7 @@ namespace The_Flagship
         public float VictoryTimer = 0;
         public float CooldownTimer = 0;
         float lastSync = 0;
+        public float duration = 30f;
         protected override void Start()
         {
             base.Start();
@@ -249,7 +250,8 @@ namespace The_Flagship
                 MyScreenHubBase.OptionalShipInfo.ShipID,
                 VictoryTimer,
                 CooldownTimer,
-                ShipStats.armorModifier
+                ShipStats.armorModifier,
+                duration
                 });
                 lastSync = Time.time;
             }
@@ -260,24 +262,18 @@ namespace The_Flagship
                     switch (difficulty)
                     {
                         case 1:
-                            Easy(gameLabels, "O");
-                            XTurn = true;
-                            AITurn++;
-                            CheckGame(gameLabels);
+                            Play(gameLabels, "easy");
                             break;
                         case 2:
-                            Medium(gameLabels, "O");
-                            XTurn = true;
-                            AITurn++;
-                            CheckGame(gameLabels);
+                            Play(gameLabels, "medium");
                             break;
                         case 3:
-                            Hard(gameLabels, "O");
-                            XTurn = true;
-                            AITurn++;
-                            CheckGame(gameLabels);
+                            Play(gameLabels, "hard");
                             break;
                     }
+                    XTurn = true;
+                    AITurn++;
+                    CheckGame(gameLabels);
                 }
             }
             else
@@ -287,7 +283,7 @@ namespace The_Flagship
                     VictoryTimer -= Time.deltaTime;
                     description.text = "Time remaining: " + VictoryTimer.ToString("0.00");
                     bar.color = Color.red;
-                    barMask.clipOffset = new Vector2(((VictoryTimer / 120) - 1) * 510, 0);
+                    barMask.clipOffset = new Vector2(((VictoryTimer / duration) - 1) * 510, 0);
 
                 }
                 else if (CooldownTimer > 0)
@@ -312,32 +308,37 @@ namespace The_Flagship
                 {
                     case 1:
                         ShipStats.armorModifier = 1.5f;
+                        duration = 300f;
                         break;
                     case 2:
                         ShipStats.armorModifier = 2f;
+                        duration = 180f;
                         break;
                     case 3:
                         ShipStats.armorModifier = 3f;
+                        duration = 120f;
                         break;
                 }
-                VictoryTimer = 120f;
+                VictoryTimer = duration;
                 CooldownTimer = 240f;
+                defeatCount = 0;
             }
             else
             {
                 MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempCurrent += MyScreenHubBase.OptionalShipInfo.MyStats.ReactorTempMax * 0.25f;
+                defeatCount++;
             }
         }
         void CheckGame(UILabel[,] board)
         {
             bool gameFinished = false;
             bool playerWon = false;
-            if (CheckWin(board, "X"))
+            if (IsWinner(board, "X"))
             {
                 gameFinished = true;
                 playerWon = true;
             }
-            else if (CheckWin(board, "O") || CheckDraw(board))
+            else if (IsWinner(board, "O") || IsGameOver(board))
             {
                 gameFinished = true;
             }
@@ -364,451 +365,250 @@ namespace The_Flagship
             }
 
         }
-        void Easy(UILabel[,] board, string player)
+        int defeatCount = 0;
+        // Play method chooses the best move and marks it with "O"
+        public void Play(UILabel[,] board, string difficulty)
         {
-            System.Random random = new System.Random();
-            int row = random.Next(0, 3);
-            int col = random.Next(0, 3);
-            int attempt = 0;
-            while (board[row, col].text != "" && attempt < 1000)
+            if (difficulty == "easy")
             {
-                row = random.Next(0, 3);
-                col = random.Next(0, 3);
-                attempt++;
+                RandomPlay(board);
             }
-            if (attempt >= 1000)
+            else if (difficulty == "medium")
             {
-                for (int i = 0; i < 3; i++)
+                int[] bestMove = MiniMax(board, 6, true, defeatCount >= 7 ? 0.7f : 0.20f);
+                if (bestMove[0] != -1 && bestMove[1] != -1) 
                 {
-                    for (int j = 0; j < 3; j++)
-                    {
-                        if (board[i, j].text == "")
-                        {
-                            board[i, j].text = player;
-                            return;
-                        }
-                    }
+                    board[bestMove[0], bestMove[1]].text = "O";
                 }
-                return;
             }
-            board[row, col].text = player;
+            else if (difficulty == "hard")
+            {
+                int[] bestMove = MiniMax(board, 6, true, defeatCount >= 7 ? 0.10f : 0.03f);
+                if (bestMove[0] != -1 && bestMove[1] != -1)
+                {
+                    board[bestMove[0], bestMove[1]].text = "O";
+                }
+            }
         }
-        void Medium(UILabel[,] board, string player)
-        {
 
-            // Check for a winning move
+        // RandomPlay chooses a random empty cell to mark with "O"
+        private void RandomPlay(UILabel[,] board)
+        {
+            List<int[]> emptyCells = GetEmptyCells(board);
+
+            if (emptyCells.Count > 0)
+            {
+                int[] randomCell = emptyCells[UnityEngine.Random.Range(0, emptyCells.Count)];
+                board[randomCell[0], randomCell[1]].text = "O";
+            }
+        }
+
+        // Minimax evaluates the value of each move based on its position in the possibility tree
+        private int Minimax(UILabel[,] board, int depth, string player)
+        {
+            if (IsGameOver(board))
+            {
+                return GetScore(board);
+            }
+
+            List<int[]> emptyCells = GetEmptyCells(board);
+
+            if (emptyCells.Count == 0)
+            {
+                return 0;
+            }
+
+            int bestScore;
+
+            if (player == "O")
+            {
+                bestScore = int.MinValue;
+
+                foreach (int[] cell in emptyCells)
+                {
+                    board[cell[0], cell[1]].text = "O";
+                    int score = Minimax(board, depth - 1, "X");
+                    board[cell[0], cell[1]].text = "";
+
+                    bestScore = Mathf.Max(bestScore, score);
+                }
+            }
+            else
+            {
+                bestScore = int.MaxValue;
+
+                foreach (int[] cell in emptyCells)
+                {
+                    board[cell[0], cell[1]].text = "X";
+                    int score = Minimax(board, depth - 1, "O");
+                    board[cell[0], cell[1]].text = "";
+
+                    bestScore = Mathf.Min(bestScore, score);
+                }
+            }
+
+            return bestScore;
+        }
+
+        // IsGameOver checks if the game has ended and who won
+        private bool IsGameOver(UILabel[,] board)
+        {
+            // check rows
+            for (int i = 0; i < 3; i++)
+            {
+                if (board[i, 0].text == board[i, 1].text && board[i, 1].text == board[i, 2].text && board[i, 0].text != "")
+                {
+                    return true;
+                }
+            }
+
+            // check columns
+            for (int j = 0; j < 3; j++)
+            {
+                if (board[0, j].text == board[1, j].text && board[1, j].text == board[2, j].text && board[0, j].text != "")
+                {
+                    return true;
+                }
+            }
+
+            // check diagonals
+            if (board[0, 0].text == board[1, 1].text && board[1, 1].text == board[2, 2].text && board[0, 0].text != "")
+            {
+                return true;
+            }
+
+            if (board[0, 2].text == board[1, 1].text && board[1, 1].text == board[2, 0].text && board[0, 2].text != "")
+            {
+                return true;
+            }
+
+            // check for tie
+            List<int[]> emptyCells = GetEmptyCells(board);
+
+            if (emptyCells.Count == 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        // GetEmptyCells returns a list of empty cells on the board
+        private List<int[]> GetEmptyCells(UILabel[,] board)
+        {
+            List<int[]> emptyCells = new List<int[]>();
+
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
                     if (board[i, j].text == "")
                     {
-                        board[i, j].text = player;
-                        if (CheckWin(board, player))
-                        {
-                            return;
-                        }
-                        board[i, j].text = "";
+                        emptyCells.Add(new int[] { i, j });
                     }
                 }
             }
 
-            // Check for a blocking move
-            string opponentSymbol = player == "X" ? "O" : "X";
+            return emptyCells;
+        }
+
+        // GetScore returns the score for the current state of the board
+        private int GetScore(UILabel[,] board)
+        {
+            if (IsWinner(board, "O"))
+            {
+                return 1;
+            }
+            else if (IsWinner(board, "X"))
+            {
+                return -1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        // IsWinner checks if a player has won the game
+        private bool IsWinner(UILabel[,] board, string player)
+        {
+            // check rows
             for (int i = 0; i < 3; i++)
             {
-                for (int j = 0; j < 3; j++)
-                {
-                    if (board[i, j].text == "")
-                    {
-                        board[i, j].text = opponentSymbol;
-                        if (CheckWin(board, opponentSymbol))
-                        {
-                            board[i, j].text = player;
-                            return;
-                        }
-                        board[i, j].text = "";
-                    }
-                }
-            }
-
-            // Try to take the center
-            if (board[1, 1].text == "")
-            {
-                board[1, 1].text = player;
-                return;
-            }
-
-            // Try to take a corner
-            int[] corners = { 0, 2 };
-            System.Random random = new System.Random();
-            foreach (int i in corners)
-            {
-                foreach (int j in corners)
-                {
-                    if (board[i, j].text == "")
-                    {
-                        board[i, j].text = player;
-                        return;
-                    }
-                }
-            }
-
-            // Take any available spot
-            Easy(board, player);
-        }
-        void Hard(UILabel[,] board, string symbol)
-        {
-            if (AITurn == 1 && board[1, 1].text == symbol)
-            {
-                if ((board[0, 0].text != "" && board[2, 2].text != "") || (board[2, 0].text != "" && board[0, 2].text != ""))
-                {
-                    board[0, 1].text = symbol;
-                    return;
-                }
-            }
-            // Check if we can win in the next move
-            int[] winMove = FindWinningMove(board, symbol);
-            if (winMove != null)
-            {
-                board[winMove[0], winMove[1]].text = symbol;
-                return;
-            }
-            // Check if we need to block the opponent's winning move
-            string opponentSymbol = symbol == "X" ? "O" : "X";
-            int[] blockMove = FindWinningMove(board, opponentSymbol);
-            if (blockMove != null)
-            {
-                board[blockMove[0], blockMove[1]].text = symbol;
-                return;
-            }
-            // Check if we can take the center
-            if (board[1, 1].text == "")
-            {
-                board[1, 1].text = symbol;
-                return;
-            }
-            // Check if we can take a corner opposite to opponent's last move
-            int[] oppositeCornerMove = FindOppositeCornerMove(board, opponentSymbol);
-            if (oppositeCornerMove != null && board[1, 1].text == "")
-            {
-                board[oppositeCornerMove[0], oppositeCornerMove[1]].text = symbol;
-                return;
-            }
-            // Check if we can take a corner
-            int[] cornerMove = FindCornerMove(board);
-            if (cornerMove != null)
-            {
-                board[cornerMove[0], cornerMove[1]].text = symbol;
-                return;
-            }
-            // Check if we can block two simultaneous winning moves of the opponent
-            int[] simultaneousWinningMove = FindSimultaneousWinningMove(board, opponentSymbol);
-            if (simultaneousWinningMove != null)
-            {
-                board[simultaneousWinningMove[0], simultaneousWinningMove[1]].text = symbol;
-                return;
-            }
-            Easy(board, symbol);
-        }
-        bool CheckWin(UILabel[,] board, string player)
-        {
-            // Verifica se o jogador ganhou na horizontal
-            for (int row = 0; row < 3; row++)
-            {
-                if (board[row, 0].text == player && board[row, 1].text == player && board[row, 2].text == player)
+                if (board[i, 0].text == player && board[i, 1].text == player && board[i, 2].text == player)
                 {
                     return true;
                 }
             }
-            // Verifica se o jogador ganhou na vertical
-            for (int col = 0; col < 3; col++)
+
+            // check columns
+            for (int j = 0; j < 3; j++)
             {
-                if (board[0, col].text == player && board[1, col].text == player && board[2, col].text == player)
+                if (board[0, j].text == player && board[1, j].text == player && board[2, j].text == player)
                 {
                     return true;
                 }
             }
-            // Verifica se o jogador ganhou na diagonal
+
+            // check diagonals
             if (board[0, 0].text == player && board[1, 1].text == player && board[2, 2].text == player)
             {
                 return true;
             }
+
             if (board[0, 2].text == player && board[1, 1].text == player && board[2, 0].text == player)
             {
                 return true;
             }
-            // Se nenhum dos casos anteriores for verdadeiro, retorna falso
+
             return false;
         }
-        bool CheckDraw(UILabel[,] board)
+
+        // método MiniMax
+        private int[] MiniMax(UILabel[,] board, int depth, bool maximizingPlayer, float fluke)
         {
-            // Verifica se todas as casas estão preenchidas
-            for (int row = 0; row < 3; row++)
+            // verifica se o jogo acabou ou se atingiu a profundidade máxima
+            if (IsGameOver(board) || depth == 0)
             {
-                for (int col = 0; col < 3; col++)
-                {
-                    if (board[row, col].text == "")
-                    {
-                        return false;
-                    }
-                }
-            }
-            // Se todas as casas estiverem preenchidas e ninguém ganhou, é um empate
-            return true;
-        }
-        private int[] FindWinningMove(UILabel[,] board, string symbol)
-        {
-            // Check rows
-            for (int i = 0; i < 3; i++)
-            {
-                int count = 0;
-                int emptyIndex = -1;
-                for (int j = 0; j < 3; j++)
-                {
-                    if (board[i, j].text == symbol)
-                    {
-                        count++;
-                    }
-                    else if (board[i, j].text == "")
-                    {
-                        emptyIndex = j;
-                    }
-                }
-                if (count == 2 && emptyIndex != -1)
-                {
-                    return new int[] { i, emptyIndex };
-                }
+                int score = GetScore(board);
+                return new int[] { -1, -1, score };
             }
 
-            // Check columns
-            for (int j = 0; j < 3; j++)
+            int bestScore = maximizingPlayer ? int.MinValue : int.MaxValue;
+            List<int[]> bestMoves = new List<int[]>();
+            List<int[]> secondBestMoves = new List<int[]>();
+            // para cada célula vazia, simula o movimento e chama o método MiniMax recursivamente
+            foreach (int[] emptyCell in GetEmptyCells(board))
             {
-                int count = 0;
-                int emptyIndex = -1;
-                for (int i = 0; i < 3; i++)
+                board[emptyCell[0], emptyCell[1]].text = maximizingPlayer ? "O" : "X";
+                int[] currentMove = MiniMax(board, depth - 1, !maximizingPlayer,fluke);
+                board[emptyCell[0], emptyCell[1]].text = "";
+                currentMove[0] = emptyCell[0];
+                currentMove[1] = emptyCell[1];
+                // verifica se o valor do movimento atual é melhor que o melhor valor até agora
+                if (maximizingPlayer && currentMove[2] > bestScore)
                 {
-                    if (board[i, j].text == symbol)
-                    {
-                        count++;
-                    }
-                    else if (board[i, j].text == "")
-                    {
-                        emptyIndex = i;
-                    }
+                    secondBestMoves = bestMoves.ToList();
+                    bestMoves.Clear();
+                    bestMoves.Add(currentMove);
+                    bestScore = currentMove[2];
                 }
-                if (count == 2 && emptyIndex != -1)
+                else if (!maximizingPlayer && currentMove[2] < bestScore)
                 {
-                    return new int[] { emptyIndex, j };
+                    secondBestMoves = bestMoves.ToList();
+                    bestMoves.Clear();
+                    bestMoves.Add(currentMove);
+                    bestScore = currentMove[2];
                 }
-            }
-
-            // Check diagonals
-            if (board[0, 0].text == symbol && board[1, 1].text == symbol && board[2, 2].text == "")
-            {
-                return new int[] { 2, 2 };
-            }
-            if (board[0, 0].text == symbol && board[2, 2].text == symbol && board[1, 1].text == "")
-            {
-                return new int[] { 1, 1 };
-            }
-            if (board[1, 1].text == symbol && board[2, 2].text == symbol && board[0, 0].text == "")
-            {
-                return new int[] { 0, 0 };
-            }
-            if (board[0, 2].text == symbol && board[1, 1].text == symbol && board[2, 0].text == "")
-            {
-                return new int[] { 2, 0 };
-            }
-            if (board[0, 2].text == symbol && board[2, 0].text == symbol && board[1, 1].text == "")
-            {
-                return new int[] { 1, 1 };
-            }
-            if (board[1, 1].text == symbol && board[2, 0].text == symbol && board[0, 2].text == "")
-            {
-                return new int[] { 0, 2 };
-            }
-
-            return null;
-        }
-        private int[] FindOppositeCornerMove(UILabel[,] board, string symbol)
-        {
-            if (board[0, 0].text == symbol && board[2, 2].text == "" ||
-                board[0, 2].text == symbol && board[2, 0].text == "" ||
-                board[2, 0].text == symbol && board[0, 2].text == "" ||
-                board[2, 2].text == symbol && board[0, 0].text == "")
-            {
-                return new int[] { 1, 1 };
-            }
-
-            return null;
-        }
-        private int[] FindCornerMove(UILabel[,] board)
-        {
-            if (board[0, 0].text == "")
-            {
-                return new int[] { 0, 0 };
-            }
-            if (board[0, 2].text == "")
-            {
-                return new int[] { 0, 2 };
-            }
-            if (board[2, 0].text == "")
-            {
-                return new int[] { 2, 0 };
-            }
-            if (board[2, 2].text == "")
-            {
-                return new int[] { 2, 2 };
-            }
-
-            return null;
-        }
-        private int[] FindSimultaneousWinningMove(UILabel[,] board, string symbol)
-        {
-            // Check rows
-            for (int i = 0; i < 3; i++)
-            {
-                int count = 0;
-                int emptyIndex = -1;
-                for (int j = 0; j < 3; j++)
+                else if (currentMove[2] == bestScore)
                 {
-                    if (board[i, j].text == symbol)
-                    {
-                        count++;
-                    }
-                    else if (board[i, j].text == "")
-                    {
-                        emptyIndex = j;
-                    }
-                }
-                if (count == 1 && emptyIndex != -1)
-                {
-                    // Check if placing the symbol in this position will allow the opponent to win
-                    UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                    boardCopy[i, emptyIndex].text = symbol;
-                    if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                    {
-                        continue;
-                    }
-
-                    // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                    boardCopy[i, emptyIndex].text = (symbol == "X" ? "O" : "X");
-                    if (FindWinningMove(boardCopy, symbol) != null)
-                    {
-                        return new int[] { i, emptyIndex };
-                    }
+                    bestMoves.Add(currentMove);
                 }
             }
-
-            // Check columns
-            for (int j = 0; j < 3; j++)
-            {
-                int count = 0;
-                int emptyIndex = -1;
-                for (int i = 0; i < 3; i++)
-                {
-                    if (board[i, j].text == symbol)
-                    {
-                        count++;
-                    }
-                    else if (board[i, j].text == "")
-                    {
-                        emptyIndex = i;
-                    }
-                }
-                if (count == 1 && emptyIndex != -1)
-                {
-                    // Check if placing the symbol in this position will allow the opponent to win
-                    UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                    boardCopy[emptyIndex, j].text = symbol;
-                    if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                    {
-                        continue;
-                    }
-
-                    // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                    boardCopy[emptyIndex, j].text = (symbol == "X" ? "O" : "X");
-                    if (FindWinningMove(boardCopy, symbol) != null)
-                    {
-                        return new int[] { emptyIndex, j };
-                    }
-                }
-            }
-
-            // Check diagonals
-            if (board[0, 0].text == symbol && board[1, 1].text == "" && board[2, 2].text == symbol)
-            {
-                // Check if placing the symbol in this position will allow the opponent to win
-                UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                boardCopy[1, 1].text = symbol;
-                if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                {
-                    return null;
-                }
-
-                // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                boardCopy[1, 1].text = (symbol == "X" ? "O" : "X");
-                if (FindWinningMove(boardCopy, symbol) != null)
-                {
-                    return new int[] { 1, 1 };
-                }
-            }
-            if (board[0, 0].text == symbol && board[1, 1].text == symbol && board[2, 2].text == "")
-            {
-                // Check if placing the symbol in this position will allow the opponent to
-                // Check if placing the symbol in this position will allow the opponent to win
-                UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                boardCopy[2, 2].text = symbol;
-                if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                {
-                    return null;
-                }
-
-                // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                boardCopy[2, 2].text = (symbol == "X" ? "O" : "X");
-                if (FindWinningMove(boardCopy, symbol) != null)
-                {
-                    return new int[] { 2, 2 };
-                }
-            }
-            if (board[0, 2].text == symbol && board[1, 1].text == "" && board[2, 0].text == symbol)
-            {
-                // Check if placing the symbol in this position will allow the opponent to win
-                UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                boardCopy[1, 1].text = symbol;
-                if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                {
-                    return null;
-                }
-
-                // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                boardCopy[1, 1].text = (symbol == "X" ? "O" : "X");
-                if (FindWinningMove(boardCopy, symbol) != null)
-                {
-                    return new int[] { 1, 1 };
-                }
-            }
-            if (board[0, 2].text == symbol && board[1, 1].text == symbol && board[2, 0].text == "")
-            {
-                // Check if placing the symbol in this position will allow the opponent to win
-                UILabel[,] boardCopy = (UILabel[,])board.Clone();
-                boardCopy[2, 0].text = symbol;
-                if (FindWinningMove(boardCopy, (symbol == "X" ? "O" : "X")) != null)
-                {
-                    return null;
-                }
-
-                // Check if placing the symbol in this position will allow the opponent to have two simultaneous winning moves
-                boardCopy[2, 0].text = (symbol == "X" ? "O" : "X");
-                if (FindWinningMove(boardCopy, symbol) != null)
-                {
-                    return new int[] { 2, 0 };
-                }
-            }
-
-            // If no simultaneous winning move is found, return null
-            return null;
+            //PulsarModLoader.Utilities.Messaging.Notification("Total: " + bestMoves.Count);
+            int[] result = bestMoves[UnityEngine.Random.Range(0, bestMoves.Count - 1)];
+            if (UnityEngine.Random.value < fluke && secondBestMoves.Count > 0 && maximizingPlayer) result = secondBestMoves[UnityEngine.Random.Range(0, secondBestMoves.Count - 1)];
+            return result;
         }
 
         UISprite CreateHorizontalBar(Vector3 inPosition, Vector2 inSize, float inValue, Color inInteriorColor, Transform inParent, out UIPanel maskPanel, out UISprite barOutline)
@@ -829,7 +629,7 @@ namespace The_Flagship
             return uisprite2;
         }
     }
-    public class PLModdedSpecialScreen : MonoBehaviour 
+    public class PLModdedSpecialScreen : MonoBehaviour
     {
         public void setValues(Transform root, Canvas canvas, PLShipInfo ship)
         {
@@ -838,13 +638,13 @@ namespace The_Flagship
             myShip = ship;
 
         }
-        virtual protected void Update() 
+        virtual protected void Update()
         {
             if (myShip == null)
             {
                 Destroy(this); return;
             }
-            if (PLServer.Instance.IsReflection_FlipIsActiveLocal != Reflected && Assembled) 
+            if (PLServer.Instance.IsReflection_FlipIsActiveLocal != Reflected && Assembled)
             {
                 Reflected = !Reflected;
                 Vector3 Scale = UIRoot.transform.localScale;
@@ -1342,25 +1142,25 @@ namespace The_Flagship
             if (Assembled)
             {
                 ButtonLabel.text = (Online ? "Deactivate" : "Activate") + " Auto Repair";
-                CurrentMultiplier = Mathf.Clamp(CurrentMultiplier + Time.deltaTime * (Online ? 1 : -1),0.1f,70);
+                CurrentMultiplier = Mathf.Clamp(CurrentMultiplier + Time.deltaTime * (Online ? 1 : -1), 0.1f, 70);
                 float valueMultier = Mathf.Log(15 * CurrentMultiplier, 2);
                 powerusage = 4000 * valueMultier;
                 float repairvalue = 2.5f * valueMultier;
                 PowerUsageLabel.text = $"Current Power Usage: {Mathf.FloorToInt(powerusage)}MW\r\n\r\nCurrent Repair Power: {repairvalue.ToString("0")}/s";
-                if (Online && myShip.MyHull != null && !myShip.IsReactorOverheated() && myShip.StartupStepIndex >= 1 && myShip.StartupSwitchBoard != null && myShip.StartupSwitchBoard.GetLateStatus(0)) 
+                if (Online && myShip.MyHull != null && !myShip.IsReactorOverheated() && myShip.StartupStepIndex >= 1 && myShip.StartupSwitchBoard != null && myShip.StartupSwitchBoard.GetLateStatus(0))
                 {
-                    if(myShip.MyHull != null) 
+                    if (myShip.MyHull != null)
                     {
                         myShip.MyHull.Current += repairvalue * Time.deltaTime;
                         myShip.MyHull.Current = Mathf.Clamp(myShip.MyHull.Current, 0, myShip.MyStats.HullMax);
                     }
 
                 }
-                else 
+                else
                 {
                     powerusage = 0f;
                 }
-                if(PhotonNetwork.isMasterClient && Time.time - lastSync > 5) 
+                if (PhotonNetwork.isMasterClient && Time.time - lastSync > 5)
                 {
                     lastSync = Time.time;
                     ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.AutoRepairReciever", PhotonTargets.Others, new object[] { Online, CurrentMultiplier });
@@ -1708,13 +1508,13 @@ namespace The_Flagship
                 PLMusic.PostEvent("play_sx_ui_ship_upgradecomponent", base.gameObject);
             }
         }
-        public static void SpawnFighter(int type,int controller = -1, PhotonPlayer sender = null) 
+        public static void SpawnFighter(int type, int controller = -1, PhotonPlayer sender = null)
         {
             if (PLEncounterManager.Instance.PlayerShip != null && PLEncounterManager.Instance.PlayerShip.InWarp || Time.time - lastClick < 3) return;
             lastClick = Time.time;
-            if (!PhotonNetwork.isMasterClient) 
+            if (!PhotonNetwork.isMasterClient)
             {
-                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.FighterRequestReciever", PhotonTargets.MasterClient, new object[] { type, (int)PLNetworkManager.Instance.LocalPlayerID});
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.FighterRequestReciever", PhotonTargets.MasterClient, new object[] { type, (int)PLNetworkManager.Instance.LocalPlayerID });
                 return;
             }
             if (controller == -1) controller = PLNetworkManager.Instance.LocalPlayerID;
@@ -1738,7 +1538,7 @@ namespace The_Flagship
             Persistantshipdata.HullPercent = 1f;
             Persistantshipdata.ShldPercent = 1f;
             //If ship doesn't exist create
-            if (Persistantshipdata.ShipInstance == null && Mod.FighterCount > 0) 
+            if (Persistantshipdata.ShipInstance == null && Mod.FighterCount > 0)
             {
                 Persistantshipdata.CompOverrides.Clear();
                 List<ComponentOverrideData> overrides = new List<ComponentOverrideData>();
@@ -1787,12 +1587,12 @@ namespace The_Flagship
                         break;
                 }
                 Persistantshipdata.MyCurrentSector = PLServer.GetCurrentSector();
-                PLShipInfoBase shipInstance = PLEncounterManager.Instance.GetCPEI().SpawnEnemyShip(Persistantshipdata.Type, Persistantshipdata, PLEncounterManager.Instance.PlayerShip.Exterior.transform.position + new Vector3(UnityEngine.Random.Range(100,300) , UnityEngine.Random.Range(100, 300), UnityEngine.Random.Range(100, 300)), PLEncounterManager.Instance.PlayerShip.Exterior.transform.rotation);
+                PLShipInfoBase shipInstance = PLEncounterManager.Instance.GetCPEI().SpawnEnemyShip(Persistantshipdata.Type, Persistantshipdata, PLEncounterManager.Instance.PlayerShip.Exterior.transform.position + new Vector3(UnityEngine.Random.Range(100, 300), UnityEngine.Random.Range(100, 300), UnityEngine.Random.Range(100, 300)), PLEncounterManager.Instance.PlayerShip.Exterior.transform.rotation);
                 shipInstance.NoRepLossOnKilled = true;
                 shipInstance.DropScrap = false;
                 shipInstance.name += " (fighterBot)";
                 fighterInstances[type] = shipInstance;
-                switch (type) 
+                switch (type)
                 {
                     case 0:
                         shipInstance.photonView.RPC("Captain_NameShip", PhotonTargets.All, new object[] { "Light Fighter" });
@@ -1810,16 +1610,16 @@ namespace The_Flagship
                     shipInstance.PilotingSystem = shipInstance.gameObject.AddComponent<PLPilotingSystem>();
                     shipInstance.PilotingSystem.MyShipInfo = shipInstance;
                 }
-                if(shipInstance.PilotingHUD == null) 
+                if (shipInstance.PilotingHUD == null)
                 {
                     shipInstance.PilotingHUD = shipInstance.gameObject.AddComponent<PLPilotingHUD>();
                     shipInstance.PilotingHUD.MyShipInfo = shipInstance;
                 }
                 shipInstance.OrbitCameraMaxDistance = 40;
                 shipInstance.OrbitCameraMinDistance = 10;
-                if(sender != null) 
+                if (sender != null)
                 {
-                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PilotFighter", sender, new object[] 
+                    ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PilotFighter", sender, new object[]
                     {
                         shipInstance.ShipID
                     });
@@ -1830,7 +1630,7 @@ namespace The_Flagship
                         controller
                     });
             }
-            else if(Persistantshipdata.ShipInstance != null && Persistantshipdata.ShipInstance.GetCurrentShipControllerPlayerID() == -1) 
+            else if (Persistantshipdata.ShipInstance != null && Persistantshipdata.ShipInstance.GetCurrentShipControllerPlayerID() == -1)
             {
                 if (sender != null)
                 {
@@ -1849,7 +1649,7 @@ namespace The_Flagship
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.SendWarning", sender, new object[] { "Fighter already been piloted" });
             }
-            else if(Mod.FighterCount <= 0 && sender != null) 
+            else if (Mod.FighterCount <= 0 && sender != null)
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.SendWarning", sender, new object[] { "No Fighter supply remmaning. Craft some more!" });
             }
@@ -1861,17 +1661,17 @@ namespace The_Flagship
             {
                 CurrentScrap.text = PLServer.Instance.CurrentUpgradeMats.ToString();
                 CurrentFighterSupply.text = Mod.FighterCount + "/10";
-                for(int i = 0; i < 3; i++) 
+                for (int i = 0; i < 3; i++)
                 {
-                    if (fighterInstances[i] != null && fighterInstances[i].GetCurrentShipControllerPlayerID() == -1) 
+                    if (fighterInstances[i] != null && fighterInstances[i].GetCurrentShipControllerPlayerID() == -1)
                     {
                         Descriptions[i].text = "Pilot Fighter";
                     }
-                    else if(fighterInstances[i] != null && fighterInstances[i].GetCurrentShipControllerPlayerID() != -1)
+                    else if (fighterInstances[i] != null && fighterInstances[i].GetCurrentShipControllerPlayerID() != -1)
                     {
                         Descriptions[i].text = "Fighter Under Use";
                     }
-                    else 
+                    else
                     {
                         Descriptions[i].text = "Construct Fighter";
                     }
@@ -1894,7 +1694,7 @@ namespace The_Flagship
                     */
                 }
                 UIRoot.SetActive(PLCameraSystem.Instance.CurrentCameraMode.GetType() != typeof(PLCameraMode_Pilot));
-                if(PhotonNetwork.isMasterClient && Time.time - lastSync > 2) 
+                if (PhotonNetwork.isMasterClient && Time.time - lastSync > 2)
                 {
                     ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.FighterSyncReciever", PhotonTargets.Others, new object[]
                     {
@@ -1905,7 +1705,7 @@ namespace The_Flagship
                     });
                     lastSync = Time.time;
                 }
-                for(int i = 0; i < 10; i++) 
+                for (int i = 0; i < 10; i++)
                 {
                     if (fighterCargo[i] != null) fighterCargo[i].transform.GetChild(0).gameObject.SetActive(i <= Mod.FighterCount - 1);
                 }
@@ -2038,6 +1838,7 @@ namespace The_Flagship
                             armor.VictoryTimer = (float)arguments[1];
                             armor.CooldownTimer = (float)arguments[2];
                             ShipStats.armorModifier = (float)arguments[3];
+                            armor.duration = (float)arguments[4];
                             break;
                         }
                     }
@@ -2080,11 +1881,11 @@ namespace The_Flagship
             }
         }
     }
-    class UpgradePatrolCurrentReciever : ModMessage 
+    class UpgradePatrolCurrentReciever : ModMessage
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
-            if (sender.sender == PhotonNetwork.masterClient) 
+            if (sender.sender == PhotonNetwork.masterClient)
             {
                 Mod.PatrolBotsLevel = (int)arguments[0];
             }
@@ -2105,14 +1906,14 @@ namespace The_Flagship
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
-            PLFighterScreen.SpawnFighter((int)arguments[0], (int)arguments[1],sender.sender);
+            PLFighterScreen.SpawnFighter((int)arguments[0], (int)arguments[1], sender.sender);
         }
     }
     class SendWarning : ModMessage
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
-            if(sender.sender == PhotonNetwork.masterClient) 
+            if (sender.sender == PhotonNetwork.masterClient)
             {
                 PLTabMenu.Instance.TimedErrorMsg = (string)arguments[0];
             }
@@ -2125,13 +1926,13 @@ namespace The_Flagship
             if (sender.sender == PhotonNetwork.masterClient)
             {
                 Mod.FighterCount = (int)arguments[0];
-                for(int i = 0; i < 3; i++) 
+                for (int i = 0; i < 3; i++)
                 {
-                    int ID = (int)arguments[i+1];
-                    if(ID != -1) 
+                    int ID = (int)arguments[i + 1];
+                    if (ID != -1)
                     {
-                        PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(ID); 
-                        if(ship != null) 
+                        PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(ID);
+                        if (ship != null)
                         {
                             PLFighterScreen.fighterInstances[i] = ship;
                         }
@@ -2149,16 +1950,16 @@ namespace The_Flagship
                 DelayedControl((int)arguments[0]);
             }
         }
-        static async void DelayedControl(int shipID) 
+        static async void DelayedControl(int shipID)
         {
             float Timer = Time.time;
             PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(shipID);
-            while(ship == null && Time.time - Timer < 15) 
+            while (ship == null && Time.time - Timer < 15)
             {
                 ship = PLEncounterManager.Instance.GetShipFromID(shipID);
                 await Task.Yield();
             }
-            if(Time.time - Timer >= 15 && ship == null) 
+            if (Time.time - Timer >= 15 && ship == null)
             {
                 return;
             }
@@ -2179,7 +1980,7 @@ namespace The_Flagship
                 {
                         (int)PLNetworkManager.Instance.LocalPlayerID
                 });
-            if(ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggro.PhaseAway(ship);
+            if (ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggro.PhaseAway(ship);
         }
     }
 }
