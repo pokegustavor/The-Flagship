@@ -465,6 +465,7 @@ namespace The_Flagship
                 }
                 for(int i = 0; i < OnWarpBase.PickupResearchItems.Length; i++) 
                 {
+                    if (OnWarpBase.ResearchItemPickups[i] == null) continue;
                     if (!PLGameStatic.Instance.m_AllPickupObjects.Contains(OnWarpBase.ResearchItemPickups[i]))
                     {
                         PLGameStatic.Instance.m_AllPickupObjects.Add(OnWarpBase.ResearchItemPickups[i]);
@@ -2067,7 +2068,7 @@ namespace The_Flagship
     public class OnWarpBase 
     {
         public static int[] PickupResearchItems = new int[5] {-1,-1,-1,-1,-1 };
-        public static PLPickupObject[] ResearchItemPickups = new PLPickupObject[5];
+        public static PLPickupObject[] ResearchItemPickups = new PLPickupObject[5] { null,null,null,null,null};
         public static GameObject[] ResearchItemGameObjects = new GameObject[5] { null,null,null,null,null};
         public readonly static int[] ResearchTypeItemSubtypes = new int[]
         {
@@ -2139,6 +2140,17 @@ namespace The_Flagship
                 }
             }
             */
+        }
+    }
+    [HarmonyPatch(typeof(PLGameProgressManager), "IsShipUnlockOpened")]
+    class UnlockInterceptor 
+    {
+        static void Postfix(int shipType, ref bool __result) 
+        {
+            if(shipType == (int)EShipType.OLDWARS_HUMAN) 
+            {
+                __result = true;
+            }
         }
     }
 }
