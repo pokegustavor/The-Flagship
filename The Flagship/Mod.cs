@@ -1822,12 +1822,12 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    //Bridge weapons shotcut
+                    //Bridge kitchen
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(-12.5099f, - 258.7097f, - 349.2461f);
-                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(344.4979f, 195.2908f, 352.6114f));
+                    cameraObj.transform.position = new Vector3(12f, - 258.7097f, - 349.2461f);
+                    cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(344.4979f, 144.1035f, 10.4296f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
                     cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1835,7 +1835,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(12.2467f, -260.1196f, -338.0208f);
+                    cameraView.transform.position = new Vector3(12.2467f, -260.1196f, -338.03f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
