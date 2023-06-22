@@ -2142,4 +2142,15 @@ namespace The_Flagship
             */
         }
     }
+    [HarmonyPatch(typeof(PLGameProgressManager), "IsShipUnlockOpened")]
+    class UnlockInterceptor 
+    {
+        static void Postfix(int shipType, ref bool __result) 
+        {
+            if(shipType == (int)EShipType.OLDWARS_HUMAN) 
+            {
+                __result = true;
+            }
+        }
+    }
 }
