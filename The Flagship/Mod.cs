@@ -25,6 +25,7 @@ namespace The_Flagship
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
+        public static List<Camera> cameras = new List<Camera>();
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
@@ -83,6 +84,7 @@ namespace The_Flagship
     public class Command : ChatCommand
     {
         public static bool shipAssembled = false;
+        public static bool realtimecams = false;
         public static int[] playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
         public static GameObject[] prisionCells = new GameObject[10];
         public override string[] CommandAliases()
@@ -94,7 +96,7 @@ namespace The_Flagship
         }
         public override string[][] Arguments()
         {
-            return new string[][] { new string[] { "assemble", "autoassemble", "prison" } };
+            return new string[][] { new string[] { "assemble", "autoassemble", "prison", "realtimecam" } };
         }
         public override string Description()
         {
@@ -103,10 +105,23 @@ namespace The_Flagship
 
         public override void Execute(string arguments)
         {
+            string[] separatedArguments = arguments.Split(' ');
+            if (arguments == Arguments()[0][3]) 
+            {
+                realtimecams = !realtimecams;
+                if (realtimecams) 
+                {
+                    PulsarModLoader.Utilities.Messaging.Notification("This may cause FPS drops on the bridge!");
+                }
+                foreach (Camera cam in Mod.cameras)
+                {
+                    cam.enabled = realtimecams;
+                }
+                return;
+            }
             if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
             if (PLEncounterManager.Instance.PlayerShip != null)
             {
-                string[] separatedArguments = arguments.Split(' ');
                 if (PLEncounterManager.Instance.PlayerShip.ShipTypeID != EShipType.OLDWARS_HUMAN)
                 {
                     PulsarModLoader.Utilities.Messaging.Notification("You must be playing with an Interceptor to use the flagship!");
@@ -237,6 +252,7 @@ namespace The_Flagship
         {
             if (shipAssembled) return;
             shipAssembled = true;
+            Mod.cameras.Clear();
             PulsarModLoader.Utilities.Messaging.Notification("Assembling the flagship, please stand by...", PLNetworkManager.Instance.LocalPlayer, default, 10000);
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
             ship.IsGodModeActive = true;
@@ -1767,6 +1783,44 @@ namespace The_Flagship
                     if (PLNetworkManager.Instance.MyLocalPawn != null) PLNetworkManager.Instance.MyLocalPawn.transform.position = (ship.Spawners[PLNetworkManager.Instance.LocalPlayer.GetClassID()] as GameObject).transform.position;
                     ship.ReactorInstance.transform.position = new Vector3(357.8f, -425.7683f, 1368.4f);
                     ship.ReactorInstance.LightMeltdownEnd = new Vector3(0, -12, 0);
+                    GameObject rbot = Object.Instantiate(Resources.Load("NetworkPrefabs/PLPlayer", typeof(GameObject))) as GameObject;
+                    rbot.name = "cameraguy";
+                    PLPlayer payer = rbot.GetComponent<PLPlayer>();
+                    payer.SetPlayerID(999);
+                    payer.IsBot = true;
+                    payer.TeamID = 0;
+                    payer.SetAIRace(2);
+                    payer.SetRace(2);
+                    payer.RaceAndGenderHaveBeenSet = true;
+                    payer.ReadyForCustomPawnDataUpdates = true;
+                    payer.SetSubHubAndTTIID(PLEncounterManager.Instance.PlayerShip.MyTLI.SubHubID, 0);
+                    payer.OnPlanet = false;
+                    payer.SetPawn((Object.Instantiate(Resources.Load("NetworkPrefabs/PLPawnAndroid", typeof(GameObject))) as GameObject).GetComponent<PLPawn>());
+                    payer.GetPawn().SetPlayerID(999);
+                    while (payer.MyCustomPawnData == null || payer.MyCustomPawnData[2] == null) await Task.Yield();
+                    payer.MyCustomPawnData[2].SetData(153, 9, false);
+                    payer.MyCustomPawnData[2].SetData(7, 10, false);
+                    payer.MyCustomPawnData[2].SetData(255, 11, false);
+                    payer.MyCustomPawnData[2].SetData(1, 13, false);
+                    payer.MyCustomPawnData[2].SetData(-1, 16, false);
+                    payer.MyCustomPawnData[2].SetData(185, 23, false);
+                    payer.MyCustomPawnData[2].SetData(27, 24, false);
+                    payer.MyCustomPawnData[2].SetData(255, 25, false);
+                    payer.MyCustomPawnData[2].SetData(2, 26, false);
+                    payer.MyCustomPawnData[2].SetData(1, 28, false);
+                    while (payer.GetPawn() == null || payer.GetPawn().HeadRenderers.Length < 1 || payer.GetPawn().HeadRenderers[0] == null) await Task.Yield();
+                    //Copy of the head, placed in the kitchen
+                    GameObject head = GameObject.Instantiate(payer.GetPawn().HeadRenderers[0].transform.parent.gameObject, new Vector3(11.4164f, - 257.782f, - 349.5872f), Quaternion.Euler(new Vector3(38.1819f, -151f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    head.name = "cameraprefab";
+                    head.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
+                    Object.DestroyImmediate(payer.GetPawn().gameObject);
+                    Object.DestroyImmediate(payer.gameObject);
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localRotation = Quaternion.Euler(new Vector3(24.3638f, 146.5199f, 14.5454f));
                     //Create camera system
                     //Bridge teleporters
                     int cameraResolution = 344;
@@ -1792,10 +1846,19 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         cam.fieldOfView = 120;
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(-9.4509f, - 254.0399f, - 437.5381f), Quaternion.Euler(new Vector3(38.1819f, 144.5455f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                    head.transform.localRotation = Quaternion.Euler(new Vector3(57.4041f, 58.818f, 29.4676f));
                     //Captain teleporter
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1819,9 +1882,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(421.9782f, - 423.76f, 1743.178f), Quaternion.Euler(new Vector3(38.182f, 150.7274f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //Bridge kitchen
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1845,9 +1916,11 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    //Camera visual already setted up
                     //Prision
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1871,9 +1944,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(332.1126f, - 440.6545f, 1745.477f), Quaternion.Euler(new Vector3(38.182f, 124.182f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //Engineering Room
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1897,10 +1978,18 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         cam.fieldOfView = 90;
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(377.5564f, - 357, 1397.46f), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //Reactor room
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1924,10 +2013,18 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         cam.fieldOfView = 90;
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(379.0726f, - 411.3309f, 1406), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //atrium
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1951,9 +2048,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(395.4129f, - 389.4619f, 1705.004f), Quaternion.Euler(new Vector3(38.1821f, 319.1541f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //science lab
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -1977,9 +2082,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(320, - 389.4619f, 1705.018f), Quaternion.Euler(new Vector3(38.1821f, 14.4268f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //Weapons main bay
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2003,10 +2116,18 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         cam.fieldOfView = 90;
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(379.9673f, - 379.7688f, 1586.555f), Quaternion.Euler(new Vector3(28.3132f, 218.7901f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //left weapons wing
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2030,9 +2151,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(397.1969f, - 378.4656f, 1567), Quaternion.Euler(new Vector3(28.3132f, 191.8811f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //right weapons wing
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2056,9 +2185,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(318.9092f, - 378.6f, 1567), Quaternion.Euler(new Vector3(28.3133f, 161.1539f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //left crew wing
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2082,9 +2219,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(471, - 418, 1734.573f), Quaternion.Euler(new Vector3(28.3133f, 218.6084f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //right crew wing
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2108,9 +2253,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(244, -418, 1734.573f), Quaternion.Euler(new Vector3(28.3133f, 153.5176f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //Cargo room
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2134,9 +2287,17 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    head = GameObject.Instantiate(head, new Vector3(282.1636f, - 422.1455f, 1471.387f), Quaternion.Euler(new Vector3(28.3133f, 41.5176f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     //bar teleporter
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
@@ -2160,9 +2321,21 @@ namespace The_Flagship
                     if (texture.IsCreated())
                     {
                         cam.targetTexture = texture;
+                        Mod.cameras.Add(cam);
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
+                    foreach (Camera cams in Mod.cameras)
+                    {
+                        cams.enabled = false;
+                    }
+                    head = GameObject.Instantiate(head, new Vector3(365.2565f, - 424.8472f, 1685.596f), Quaternion.Euler(new Vector3(28.3133f, 190.6085f, 0)));
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
+                    head.transform.GetChild(0).gameObject.layer = newbridge.layer;
+                    Object.DontDestroyOnLoad(head);
+                    head.transform.SetParent(newbridge.transform);
+                    head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                 }
             }
             ship.IsGodModeActive = false;
@@ -2258,14 +2431,14 @@ namespace The_Flagship
             {
                 await Task.Yield();
             }
-
+            foreach (MeshRenderer render in camerasRenders)
+            {
+                Object.Destroy(render, 5);
+            }
+            if (PhotonNetwork.isMasterClient && ship.GetCurrentShipControllerPlayerID() == -1) ship.Exterior.transform.position = new Vector3(-1158.395f, 394.133f, -331.6318f);
             PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
             if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
             await Task.Delay(15 * 1000);
-            foreach (MeshRenderer render in camerasRenders)
-            {
-                render.enabled = false;
-            }
             if (PLEncounterManager.Instance.PlayerShip != null)
             {
                 GameObject newinterior = PLEncounterManager.Instance.PlayerShip.InteriorStatic;
