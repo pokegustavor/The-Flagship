@@ -13,6 +13,8 @@ using UnityEngine.UI;
 using System.Linq;
 using PulsarModLoader.Utilities;
 using ExitGames.Demos.DemoAnimator;
+using CodeStage.AntiCheat.ObscuredTypes;
+using System.Reflection.Emit;
 
 namespace The_Flagship
 {
@@ -523,7 +525,7 @@ namespace The_Flagship
                         }
                     }
                 }
-                
+
             }
         }
     }
@@ -749,22 +751,22 @@ namespace The_Flagship
             //CU Hub
             else if (__instance.GetType() == typeof(PLColonialHubEncounter) && Command.shipAssembled)
             {
-                __result = new Vector3(-1158.395f, 394.133f, - 331.6318f);
+                __result = new Vector3(-1158.395f, 394.133f, -331.6318f);
             }
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "TakeDamage")]
-    class CollisionAndDeathSeekerDamageReduction 
+    class CollisionAndDeathSeekerDamageReduction
     {
-        static void Prefix(PLShipInfo __instance,ref float dmg, EDamageType dmgType) 
+        static void Prefix(PLShipInfo __instance, ref float dmg, EDamageType dmgType)
         {
-            if(__instance.GetIsPlayerShip() && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN) 
+            if (__instance.GetIsPlayerShip() && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                if(dmgType == EDamageType.E_COLLISION) 
+                if (dmgType == EDamageType.E_COLLISION)
                 {
                     dmg *= 0.2f;
                 }
-                else if(dmgType == EDamageType.E_SEEKERBLADE) 
+                else if (dmgType == EDamageType.E_SEEKERBLADE)
                 {
                     dmg *= 0.7f;
                 }
@@ -1209,6 +1211,7 @@ namespace The_Flagship
                         if (combatTarget != null && (__instance.currentPath == null || ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - combatTarget.transform.position).magnitude > 16))
                         {
                             __instance.seeker.StartPath(__instance.transform.position, combatTarget.transform.position, new OnPathDelegate(__instance.OnPathComplete));
+                            __instance.lastInvestigateActionCompletedTime = Time.time;
                             foreach (Light light in __instance.MyLights)
                             {
                                 if (light != null)
@@ -1259,6 +1262,7 @@ namespace The_Flagship
                         Vector3 targetPos = (Vector3)pgeforTLIAndTransform.Graph.GetNearest(targetSystem.position, nnconstraint).node.position;
                         //PulsarModLoader.Utilities.Messaging.Notification("Target pos: " + targetPos);
                         __instance.seeker.StartPath(__instance.transform.position, targetPos, new OnPathDelegate(__instance.OnPathComplete));
+                        __instance.lastInvestigateActionCompletedTime = Time.time;
                         foreach (Light light in __instance.MyLights)
                         {
                             if (light != null)
@@ -1333,7 +1337,7 @@ namespace The_Flagship
                         yield return endOfFrame;
                         if (setupAreaIndex)
                         {
-                            if (__instance.NextMainPathPos == null)
+                            if (__instance.NextMainPathPos == null || Time.time - __instance.lastInvestigateActionCompletedTime > 180)
                             {
                                 GraphNode nextMainPathPos = null;
                                 float num = float.MaxValue;
@@ -1348,10 +1352,21 @@ namespace The_Flagship
                                     new Vector3(0,-261,-443),
                                     new Vector3(-28,-261,-395),
                                     new Vector3(0,-261,-351),
-                                    new Vector3(0,-261,-318),
                                 };
-                                Vector3 randomTarget2 = bridgePositions[UnityEngine.Random.Range(0,bridgePositions.Length-1)];
+                                Vector3[] engineeringPositions = new Vector3[]
+                                {
+                                    new Vector3(357,-384,1352),
+                                    new Vector3(354,-384,1370),
+                                    new Vector3(341,-384,1370),
+                                    new Vector3(357,-384,1387),
+                                    new Vector3(358,-384,1439),
+                                    new Vector3(358,-384,1416),
+                                    new Vector3(373,-384,1385),
+                                    new Vector3(342,-384,1386),
+                                };
+                                Vector3 randomTarget2 = bridgePositions[UnityEngine.Random.Range(0, bridgePositions.Length - 1)];
                                 if ((__instance.transform.position - randomTarget).magnitude > (__instance.transform.position - randomTarget2).magnitude) randomTarget = randomTarget2;
+                                if (__instance.transform.position.z < 1450 && __instance.transform.position.y > -393) randomTarget = engineeringPositions[UnityEngine.Random.Range(0, engineeringPositions.Length - 1)];
                                 NNConstraint nnconstraint = new NNConstraint();
                                 nnconstraint.area = (int)__instance.AreaIndex;
                                 nnconstraint.constrainArea = true;
@@ -1388,11 +1403,13 @@ namespace The_Flagship
                                     }
                                     __instance.pathRequestInProgress = true;
                                     __instance.seeker.StartPath(__instance.transform.position, (Vector3)__instance.NextMainPathPos.position, new OnPathDelegate(__instance.OnPathComplete));
+                                    __instance.lastInvestigateActionCompletedTime = Time.time;
                                 }
                             }
                             else if (__instance.currentPath == null || __instance.currentPath.vectorPath == null || __instance.currentPath.vectorPath.Count == 0 || __instance.currentPathIndex >= __instance.currentPath.vectorPath.Count)
                             {
                                 __instance.NextMainPathPos = null;
+                                __instance.lastInvestigateActionCompletedTime = Time.time;
                             }
                         }
                     }
@@ -2051,6 +2068,15 @@ namespace The_Flagship
             return !(__instance.GetIsPlayerShip() && inShip.name.Contains("(fighterBot)"));
         }
     }
+    [HarmonyPatch(typeof(PLShipInfoBase), "ShouldBeHostileToShip")]
+    class FlagshipShouldBeAggroToDrones
+    {
+        static void Postfix(PLShipInfoBase __instance, PLShipInfoBase inShip, ref bool __result)
+        {
+            if (__instance.GetIsPlayerShip() && inShip.name.Contains("(fighterBot)")) __result = false;
+            if (__instance.TargetShip == inShip) __instance.TargetShip = null;
+        }
+    }
     [HarmonyPatch(typeof(PLInGameUI), "SetShipAsTarget")]
     class SetFighterTarget
     {
@@ -2109,9 +2135,9 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLShipInfoBase), "Ship_WarpOutNow")]
-    class DisableFighterJump 
+    class DisableFighterJump
     {
-        static bool Prefix(PLShipInfoBase __instance) 
+        static bool Prefix(PLShipInfoBase __instance)
         {
             return !__instance.name.Contains("(fighterBot)");
         }
@@ -2190,7 +2216,7 @@ namespace The_Flagship
     {
         static void Postfix(PLPlayer __instance)
         {
-            if (Command.shipAssembled && __instance.StartingShip == PLEncounterManager.Instance.PlayerShip) 
+            if (Command.shipAssembled && __instance.StartingShip == PLEncounterManager.Instance.PlayerShip)
             {
                 foreach (PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
                 {
@@ -2204,10 +2230,10 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLSpaceScrap),"Update")]
-    class FightersCollectScrap 
+    [HarmonyPatch(typeof(PLSpaceScrap), "Update")]
+    class FightersCollectScrap
     {
-        static void Postfix(PLSpaceScrap __instance) 
+        static void Postfix(PLSpaceScrap __instance)
         {
             if (!__instance.Collected)
             {
@@ -2237,6 +2263,60 @@ namespace The_Flagship
             {
                 __result = true;
             }
+        }
+    }
+    [HarmonyPatch(typeof(PLWarpGuardian), "Update")]
+    class WarpGuardianTargetFlagship
+    {
+        static float lastTarget = Time.time;
+        static void Postfix(PLWarpGuardian __instance)
+        {
+            if (PhotonNetwork.isMasterClient && PLEncounterManager.Instance.PlayerShip != null && Command.shipAssembled)
+            {
+                if (Time.time - lastTarget > 90)
+                {
+                    lastTarget = Time.time;
+                    __instance.TargetShip = PLEncounterManager.Instance.PlayerShip;
+                }
+                else if (Time.time - lastTarget < 30)
+                {
+                    __instance.TargetShip = PLEncounterManager.Instance.PlayerShip;
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLLocalize), "Localize", new Type[] { typeof(string), typeof(bool) })]
+    class RepairSwitchText
+    {
+        static void Postfix(string value, ref string __result) 
+        {
+            if (Command.shipAssembled) 
+            {
+                if (value == "Uses 1 processed scrap to repair the hull (+200 hull / scrap)") __result = "Uses 5 processed scrap to repair the hull (+20% hull / scrap)";
+                if (value == "No processed scrap to consume") __result = "Not enough processed scrap to consume";
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLOldWarsShip_Human), "HullHealSwitchPulled")]
+    class RepairSwitchValue
+    {
+        static bool Prefix(PLOldWarsShip_Human __instance)
+        {
+            if (Command.shipAssembled)
+            {
+                if (__instance.MyHull != null && PLServer.Instance.CurrentUpgradeMats > 4 && __instance.MyHull.Current < __instance.MyStats.HullMax)
+                {
+                    __instance.MyHull.Current += __instance.MyStats.HullMax * 0.2f;
+                    __instance.MyHull.Current = Mathf.Clamp(__instance.MyHull.Current, 0f, __instance.MyStats.HullMax);
+                    PLServer instance = PLServer.Instance;
+                    instance.CurrentUpgradeMats -= 5;
+                    __instance.LastHullHealAttemptSuccessTime = Time.time;
+                    return false;
+                }
+                __instance.LastHullHealAttemptFailedTime = Time.time;
+                return false;
+            }
+            return true;
         }
     }
 }

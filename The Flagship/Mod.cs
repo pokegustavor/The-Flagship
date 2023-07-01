@@ -20,7 +20,6 @@ namespace The_Flagship
     /*
     TODO
     Fix Main Turret not syincing
-    Fix patrol bots getting stuck
     Fix Drone target
     Add redundance timer on patrol bots target
      */
@@ -33,7 +32,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.8";
+        public override string Version => "1.8.1";
 
         public override string Author => "pokegustavo";
 
