@@ -962,7 +962,7 @@ namespace The_Flagship
                 Descriptions[1].text = $"Level {Mod.PatrolBotsLevel + 1}\r\n{155 + 25 * Mod.PatrolBotsLevel}\r\n\r\n{30 + 5 * Mod.PatrolBotsLevel}\r\n\r\n{1f + 0.2f * Mod.PatrolBotsLevel}";
                 if (Mod.PatrolBotsLevel < 9) Descriptions[2].text = $"Level {Mod.PatrolBotsLevel + 2}\r\n{155 + 25 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{30 + 5 * (Mod.PatrolBotsLevel + 1)}\r\n\r\n{1f + 0.2f * (Mod.PatrolBotsLevel + 1)}";
                 else Descriptions[2].text = string.Empty;
-                NextUpgradePrice = Mathf.FloorToInt(30 + 30 * 0.1f * Mod.PatrolBotsLevel);
+                NextUpgradePrice = Mathf.FloorToInt(10 + 10 * 0.1f * Mod.PatrolBotsLevel);
                 CostLabel.text = NextUpgradePrice.ToString();
             }
         }
@@ -1980,7 +1980,7 @@ namespace The_Flagship
                 {
                         (int)PLNetworkManager.Instance.LocalPlayerID
                 });
-            if (ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggro.PhaseAway(ship);
+            if (ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggroToFlagship.PhaseAway(ship);
         }
     }
 }

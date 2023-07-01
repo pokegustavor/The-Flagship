@@ -19,8 +19,12 @@ namespace The_Flagship
 {
     /*
     TODO
+    Fix Main Turret not syincing
+    Fix patrol bots getting stuck
+    Fix Drone target
+    Add redundance timer on patrol bots target
      */
-    public class Mod : PulsarMod 
+    public class Mod : PulsarMod
     {
         public static bool AutoAssemble = false;
         public static ParticleSystem reactorEffect = null;
@@ -83,6 +87,7 @@ namespace The_Flagship
     }
     public class Command : ChatCommand
     {
+        public static bool cameraenabled = true;
         public static bool shipAssembled = false;
         public static bool realtimecams = false;
         public static int[] playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
@@ -96,7 +101,7 @@ namespace The_Flagship
         }
         public override string[][] Arguments()
         {
-            return new string[][] { new string[] { "assemble", "autoassemble", "prison", "realtimecam" } };
+            return new string[][] { new string[] { "assemble", "autoassemble", "prison", "realtimecam", "cameras" } };
         }
         public override string Description()
         {
@@ -106,10 +111,10 @@ namespace The_Flagship
         public override void Execute(string arguments)
         {
             string[] separatedArguments = arguments.Split(' ');
-            if (arguments == Arguments()[0][3]) 
+            if (arguments == Arguments()[0][3])
             {
                 realtimecams = !realtimecams;
-                if (realtimecams) 
+                if (realtimecams)
                 {
                     PulsarModLoader.Utilities.Messaging.Notification("This may cause FPS drops on the bridge!");
                 }
@@ -117,6 +122,12 @@ namespace The_Flagship
                 {
                     cam.enabled = realtimecams;
                 }
+                return;
+            }
+            if (arguments == Arguments()[0][4])
+            {
+                cameraenabled = !cameraenabled;
+                PulsarModLoader.Utilities.Messaging.Notification("The camera system has been " + (cameraenabled ? "Enabled" : "Disabled"));
                 return;
             }
             if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
@@ -204,7 +215,7 @@ namespace The_Flagship
                                     }
                                 }
                             }
-                            else 
+                            else
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
@@ -628,7 +639,7 @@ namespace The_Flagship
                     {
                         walkway = gameObject;
                     }
-                    else if(gameObject.name == "Cargo_048") 
+                    else if (gameObject.name == "Cargo_048")
                     {
                         fighterCargo = gameObject;
                     }
@@ -712,7 +723,7 @@ namespace The_Flagship
                     }
                     if (oldEngineDoor != null)
                     {
-                        GameObject newEngineDoor = Object.Instantiate(copydoor, new Vector3(358.07f, - 383.02f, 1445.427f), oldEngineDoor.transform.rotation);
+                        GameObject newEngineDoor = Object.Instantiate(copydoor, new Vector3(358.07f, -383.02f, 1445.427f), oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
                         GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f, -428.5895f, 1715.356f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newStarDoor.transform.SetParent(newinterior.transform);
@@ -893,6 +904,7 @@ namespace The_Flagship
                         CapitanToBridge.transform.rotation = new Quaternion(0, 0.7124f, 0, -0.7018f);
                         CapitanToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                         CapitanToBridge.MyInterior.InteriorID = -69;
+                        PLGameStatic.Instance.m_Interiors.Add(CapitanToBridge.MyInterior);
                         CapitanToBridge.IsEntrance = true;
                         BridgeToCaptain.TargetDoor = CapitanToBridge;
                         BridgeToCaptain.OptionalTLI.SubHubID = -69;
@@ -919,7 +931,7 @@ namespace The_Flagship
                         GameObject BridgeToScienceOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(27.6f, -261, -395.3f), new Quaternion(0, -0.8471f, 0, 0.5314f));
                         Object.DontDestroyOnLoad(BridgeToScienceOjb);
                         PLInteriorDoor BridgeToScience = BridgeToScienceOjb.GetComponent<PLInteriorDoor>();
-                        GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(393.8795f, -399.9159f, 1705.848f), Quaternion.Euler(0,0,0));
+                        GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(393.8795f, -399.9159f, 1705.848f), Quaternion.Euler(0, 0, 0));
                         Object.DontDestroyOnLoad(ScienceToBridgeOjb);
                         PLInteriorDoor ScienceToBridge = ScienceToBridgeOjb.GetComponent<PLInteriorDoor>();
                         if (BridgeToScience != null && ScienceToBridge != null)
@@ -1050,9 +1062,9 @@ namespace The_Flagship
                     //newbridge.GetComponent<PLRoomArea>().Show();
                     fighterCargo.transform.SetParent(fighterCargoBase.transform);
                     int Fightercounter = 0;
-                    for(int i = 0; i < 5; i++) 
+                    for (int i = 0; i < 5; i++)
                     {
-                        for(int j = 0; j < 2; j++) 
+                        for (int j = 0; j < 2; j++)
                         {
                             float Z = i * 7.32f;
                             if (i == 4) Z = 42.84f;
@@ -1258,7 +1270,7 @@ namespace The_Flagship
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(379.7382f, -385.9098f, 1380.838f), new Quaternion(0, -0.2217f, 0, 0.9751f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
-                        newTelDoor = Object.Instantiate(teldoor, new Vector3(394.0073f, - 400.8728f, 1704.814f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(394.0073f, -400.8728f, 1704.814f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
                     }
@@ -1704,27 +1716,27 @@ namespace The_Flagship
                     if (pickup != null)
                     {
                         GameObject ResearchItem = Object.Instantiate(pickup.gameObject, newinterior.transform);
-                        ResearchItem.transform.position = new Vector3(369.4055f, - 406.6891f, 1724.177f);
+                        ResearchItem.transform.position = new Vector3(369.4055f, -406.6891f, 1724.177f);
                         OnWarpBase.ResearchItemPickups[0] = ResearchItem.GetComponent<PLPickupObject>();
                         Object.DontDestroyOnLoad(ResearchItem);
 
                         ResearchItem = Object.Instantiate(pickup.gameObject, newinterior.transform);
-                        ResearchItem.transform.position = new Vector3(371.5657f, - 403.9288f, 1735.507f);
+                        ResearchItem.transform.position = new Vector3(371.5657f, -403.9288f, 1735.507f);
                         OnWarpBase.ResearchItemPickups[1] = ResearchItem.GetComponent<PLPickupObject>();
                         Object.DontDestroyOnLoad(ResearchItem);
 
                         ResearchItem = Object.Instantiate(pickup.gameObject, newinterior.transform);
-                        ResearchItem.transform.position = new Vector3(367.3712f, - 409.4961f, 1741.433f);
+                        ResearchItem.transform.position = new Vector3(367.3712f, -409.4961f, 1741.433f);
                         OnWarpBase.ResearchItemPickups[2] = ResearchItem.GetComponent<PLPickupObject>();
                         Object.DontDestroyOnLoad(ResearchItem);
 
                         ResearchItem = Object.Instantiate(pickup.gameObject, newinterior.transform);
-                        ResearchItem.transform.position = new Vector3(348.8619f, - 409.4961f, 1731.426f);
+                        ResearchItem.transform.position = new Vector3(348.8619f, -409.4961f, 1731.426f);
                         OnWarpBase.ResearchItemPickups[3] = ResearchItem.GetComponent<PLPickupObject>();
                         Object.DontDestroyOnLoad(ResearchItem);
 
                         ResearchItem = Object.Instantiate(pickup.gameObject, newinterior.transform);
-                        ResearchItem.transform.position = new Vector3(344.6439f, - 403.8234f, 1737.68f);
+                        ResearchItem.transform.position = new Vector3(344.6439f, -403.8234f, 1737.68f);
                         OnWarpBase.ResearchItemPickups[4] = ResearchItem.GetComponent<PLPickupObject>();
                         Object.DontDestroyOnLoad(ResearchItem);
 
@@ -1748,7 +1760,7 @@ namespace The_Flagship
                     repairUpgrade.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
 
-                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(-12.7774f, - 259.9289f, - 337.9999f), Quaternion.Euler(new Vector3(0, 180, 0)));
+                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(-12.7774f, -259.9289f, -337.9999f), Quaternion.Euler(new Vector3(0, 180, 0)));
                     PLFighterScreen fighterControl = droneUpgradeRoot.AddComponent<PLFighterScreen>();
                     fighterControl.setValues(fighterControl.transform, ship.worldUiCanvas, ship);
                     fighterControl.Assemble();
@@ -1810,7 +1822,7 @@ namespace The_Flagship
                     payer.MyCustomPawnData[2].SetData(1, 28, false);
                     while (payer.GetPawn() == null || payer.GetPawn().HeadRenderers.Length < 1 || payer.GetPawn().HeadRenderers[0] == null) await Task.Yield();
                     //Copy of the head, placed in the kitchen
-                    GameObject head = GameObject.Instantiate(payer.GetPawn().HeadRenderers[0].transform.parent.gameObject, new Vector3(11.4164f, - 257.782f, - 349.5872f), Quaternion.Euler(new Vector3(38.1819f, -151f, 0)));
+                    GameObject head = GameObject.Instantiate(payer.GetPawn().HeadRenderers[0].transform.parent.gameObject, new Vector3(11.4164f, -257.782f, -349.5872f), Quaternion.Euler(new Vector3(38.1819f, -151f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -1827,7 +1839,7 @@ namespace The_Flagship
                     GameObject cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(-8.6182f, -255.2728f, - 437);
+                    cameraObj.transform.position = new Vector3(-8.6182f, -255.2728f, -437);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(40.1343f, 38.2f, 18.2477f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -1836,7 +1848,7 @@ namespace The_Flagship
                     GameObject cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(13.3449f, - 260.1196f, -338.0208f);
+                    cameraView.transform.position = new Vector3(13.3449f, -260.1196f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -1851,7 +1863,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(-9.4509f, - 254.0399f, - 437.5381f), Quaternion.Euler(new Vector3(38.1819f, 144.5455f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(-9.4509f, -254.0399f, -437.5381f), Quaternion.Euler(new Vector3(38.1819f, 144.5455f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -1863,7 +1875,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(422.1003f, - 424.9404f, 1743.08f);
+                    cameraObj.transform.position = new Vector3(422.1003f, -424.9404f, 1743.08f);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.1234f, 159.8055f, 12.9391f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -1886,7 +1898,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(421.9782f, - 423.76f, 1743.178f), Quaternion.Euler(new Vector3(38.182f, 150.7274f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(421.9782f, -423.76f, 1743.178f), Quaternion.Euler(new Vector3(38.182f, 150.7274f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -1897,7 +1909,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(12f, - 258.7097f, - 349.2461f);
+                    cameraObj.transform.position = new Vector3(12f, -258.7097f, -349.2461f);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(344.4979f, 144.1035f, 10.4296f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -1925,7 +1937,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(332, - 440.9998f, 1745);
+                    cameraObj.transform.position = new Vector3(332, -440.9998f, 1745);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.5706f, 150.6783f, 7.1573f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -1948,7 +1960,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(332.1126f, - 440.6545f, 1745.477f), Quaternion.Euler(new Vector3(38.182f, 124.182f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(332.1126f, -440.6545f, 1745.477f), Quaternion.Euler(new Vector3(38.182f, 124.182f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -1959,7 +1971,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(370, - 368, 1396);
+                    cameraObj.transform.position = new Vector3(370, -368, 1396);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.6799f, 202.9273f, 347.157f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -1968,7 +1980,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(13.3449f, - 258.2174f, -338.0208f);
+                    cameraView.transform.position = new Vector3(13.3449f, -258.2174f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -1983,7 +1995,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(377.5564f, - 357, 1397.46f), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(377.5564f, -357, 1397.46f), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -1994,7 +2006,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(384, - 414.9999f, 1397);
+                    cameraObj.transform.position = new Vector3(384, -414.9999f, 1397);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.68f, 217.4727f, 342.0661f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2003,7 +2015,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(12.2798f, - 258.2174f, -338.0208f);
+                    cameraView.transform.position = new Vector3(12.2798f, -258.2174f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2018,7 +2030,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(379.0726f, - 411.3309f, 1406), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(379.0726f, -411.3309f, 1406), Quaternion.Euler(new Vector3(38.1821f, 206.0002f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2029,7 +2041,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(397, - 389, 1705);
+                    cameraObj.transform.position = new Vector3(397, -389, 1705);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(44.8616f, 328.018f, 348.6111f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2038,7 +2050,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(11.1736f, - 259.1556f, -338.0208f);
+                    cameraView.transform.position = new Vector3(11.1736f, -259.1556f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2052,7 +2064,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(395.4129f, - 389.4619f, 1705.004f), Quaternion.Euler(new Vector3(38.1821f, 319.1541f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(395.4129f, -389.4619f, 1705.004f), Quaternion.Euler(new Vector3(38.1821f, 319.1541f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2063,7 +2075,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(316.9096f, - 388.9924f, 1704.998f);
+                    cameraObj.transform.position = new Vector3(316.9096f, -388.9924f, 1704.998f);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(42.3168f, 43.3274f, 22.4293f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2072,7 +2084,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(11.1736f, - 260.1196f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(11.1736f, -260.1196f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2086,7 +2098,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(320, - 389.4619f, 1705.018f), Quaternion.Euler(new Vector3(38.1821f, 14.4268f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(320, -389.4619f, 1705.018f), Quaternion.Euler(new Vector3(38.1821f, 14.4268f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2097,7 +2109,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(380, - 379.9999f, 1585);
+                    cameraObj.transform.position = new Vector3(380, -379.9999f, 1585);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(16.8621f, 237.2904f, 333.5201f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2106,7 +2118,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(11.1736f, - 258.1938f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(11.1736f, -258.1938f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2121,7 +2133,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(379.9673f, - 379.7688f, 1586.555f), Quaternion.Euler(new Vector3(28.3132f, 218.7901f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(379.9673f, -379.7688f, 1586.555f), Quaternion.Euler(new Vector3(28.3132f, 218.7901f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2132,7 +2144,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(397.0001f, - 379, 1566);
+                    cameraObj.transform.position = new Vector3(397.0001f, -379, 1566);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 196.2365f, 350.611f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2141,7 +2153,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(10.1406f, -258.1938f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(10.1406f, -258.1938f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2155,7 +2167,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(397.1969f, - 378.4656f, 1567), Quaternion.Euler(new Vector3(28.3132f, 191.8811f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(397.1969f, -378.4656f, 1567), Quaternion.Euler(new Vector3(28.3132f, 191.8811f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2166,7 +2178,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(317.9306f, - 378.9911f, 1565.998f);
+                    cameraObj.transform.position = new Vector3(317.9306f, -378.9911f, 1565.998f);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 168.2366f, 0.7929f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2189,7 +2201,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(318.9092f, - 378.6f, 1567), Quaternion.Euler(new Vector3(28.3133f, 161.1539f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(318.9092f, -378.6f, 1567), Quaternion.Euler(new Vector3(28.3133f, 161.1539f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2200,7 +2212,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(472.9999f, - 418, 1734);
+                    cameraObj.transform.position = new Vector3(472.9999f, -418, 1734);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 201.6911f, 350.6112f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2209,7 +2221,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(10.1073f, - 259.1466f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(10.1073f, -259.1466f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2223,7 +2235,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(471, - 418, 1734.573f), Quaternion.Euler(new Vector3(28.3133f, 218.6084f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(471, -418, 1734.573f), Quaternion.Euler(new Vector3(28.3133f, 218.6084f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2234,7 +2246,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(242.5644f, - 417.9845f, 1733.999f);
+                    cameraObj.transform.position = new Vector3(242.5644f, -417.9845f, 1733.999f);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.0442f, 173.6911f, 1.8838f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2243,7 +2255,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(9.0493f, - 259.1466f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(9.0493f, -259.1466f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2268,7 +2280,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(280.0001f, - 422, 1471);
+                    cameraObj.transform.position = new Vector3(280.0001f, -422, 1471);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(48.1356f, 61.3493f, 31.3384f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2277,7 +2289,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(10.1073f, - 260.1286f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(10.1073f, -260.1286f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2291,7 +2303,7 @@ namespace The_Flagship
                         MeshRenderer camMesh = cameraView.GetComponent<MeshRenderer>();
                         camMesh.material.SetTexture("_MainTex", texture);
                     }
-                    head = GameObject.Instantiate(head, new Vector3(282.1636f, - 422.1455f, 1471.387f), Quaternion.Euler(new Vector3(28.3133f, 41.5176f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(282.1636f, -422.1455f, 1471.387f), Quaternion.Euler(new Vector3(28.3133f, 41.5176f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2302,7 +2314,7 @@ namespace The_Flagship
                     cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraObj.name = "cameraObj";
                     cameraObj.transform.SetParent(newbridge.transform);
-                    cameraObj.transform.position = new Vector3(366, - 424.9998f, 1685);
+                    cameraObj.transform.position = new Vector3(366, -424.9998f, 1685);
                     cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(9.9539f, 203.8947f, 350.2475f));
                     cameraObj.layer = newbridge.layer;
                     camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
@@ -2311,7 +2323,7 @@ namespace The_Flagship
                     cameraView = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cameraView.name = "cameraView";
                     cameraView.transform.SetParent(newbridge.transform);
-                    cameraView.transform.position = new Vector3(9.0529f, - 260.1286f, - 338.0208f);
+                    cameraView.transform.position = new Vector3(9.0529f, -260.1286f, -338.0208f);
                     cameraView.transform.localScale = new Vector3(0.01f, 0.175f, 0.1836f);
                     cameraView.transform.localRotation = Quaternion.Euler(new Vector3(3.3363f, 271.0923f, 334.5788f));
                     cameraView.layer = newbridge.layer;
@@ -2329,7 +2341,7 @@ namespace The_Flagship
                     {
                         cams.enabled = false;
                     }
-                    head = GameObject.Instantiate(head, new Vector3(365.2565f, - 424.8472f, 1685.596f), Quaternion.Euler(new Vector3(28.3133f, 190.6085f, 0)));
+                    head = GameObject.Instantiate(head, new Vector3(365.2565f, -424.8472f, 1685.596f), Quaternion.Euler(new Vector3(28.3133f, 190.6085f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
                     head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
                     head.transform.GetChild(0).gameObject.layer = newbridge.layer;
@@ -2391,13 +2403,13 @@ namespace The_Flagship
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 13, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
             }
-            if(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient) 
+            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient)
             {
                 int mainTurretLevel = ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].Level;
                 ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0]);
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), mainTurretLevel, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
             }
-            else if(PhotonNetwork.isMasterClient)
+            else if (PhotonNetwork.isMasterClient)
             {
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
             }
@@ -2407,6 +2419,7 @@ namespace The_Flagship
                 PLServer.Instance.RepLevels[2] = 5;
                 PLServer.Instance.CrewFactionID = 2;
             }
+            //Changing base values of the ship
             ship.EngineeringSystem.MaxHealth = 100;
             ship.EngineeringSystem.Health = 100;
             ship.WeaponsSystem.MaxHealth = 100;
@@ -2417,12 +2430,13 @@ namespace The_Flagship
             ship.LifeSupportSystem.Health = 100;
             ship.BridgeCameraTransform.position = new Vector3(-6.5955f, -258.5034f, -328.7074f);
             ship.BridgeCameraTransform.rotation = Quaternion.Euler(new Vector3(22.026f, 34.7839f, -0.0017f));
+            ship.SensorDishCollectingScrapRange = 4200f;
             foreach (MeshRenderer render in ship.InteriorStatic.GetComponentsInChildren<MeshRenderer>(true))
             {
                 render.enabled = true;
                 render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
             }
-            
+
             AsyncOperation des = SceneManager.UnloadSceneAsync(Estate);
             AsyncOperation des1 = SceneManager.UnloadSceneAsync(Flagship);
             AsyncOperation des2 = SceneManager.UnloadSceneAsync(WDHub);
@@ -2458,7 +2472,7 @@ namespace The_Flagship
                 List<PLCombatTarget> drones = new List<PLCombatTarget>();
                 Vector3[] positions = new Vector3[]
                 {
-                new Vector3(0, -261, -411), 
+                new Vector3(0, -261, -411),
                 new Vector3(428, -430, 1751),
                 new Vector3(321, -382, 1453),
                 new Vector3(357, -442, 1541),
@@ -2515,28 +2529,28 @@ namespace The_Flagship
             PLPathfinderGraphEntity oldPath = PLPathfinder.GetInstance().GetPGEforShip(ship);
             if (oldPath != null) oldPath.TLI = null;
             List<PLUIScreen> screensfordeletion = new List<PLUIScreen>();
-            foreach(PLUIScreen screen in UnityEngine.Object.FindObjectsOfType<PLUIScreen>(true)) 
+            foreach (PLUIScreen screen in UnityEngine.Object.FindObjectsOfType<PLUIScreen>(true))
             {
-                if(screen.MyScreenHubBase != null && screen.MyRootPanel == null && !(screen is PLClonedScreen)) 
+                if (screen.MyScreenHubBase != null && screen.MyRootPanel == null && !(screen is PLClonedScreen))
                 {
                     screensfordeletion.Add(screen);
                 }
-                if(screen.MyScreenHubBase.OptionalShipInfo == PLEncounterManager.Instance.PlayerShip && screen.transform.position.x < 200 && screen.transform.position.y < -300) 
+                if (screen.MyScreenHubBase.OptionalShipInfo == PLEncounterManager.Instance.PlayerShip && screen.transform.position.x < 200 && screen.transform.position.y < -300)
                 {
                     screensfordeletion.Add(screen);
                 }
             }
-            for(int i = screensfordeletion.Count -1; i >= 0; i--) 
+            for (int i = screensfordeletion.Count - 1; i >= 0; i--)
             {
                 screensfordeletion[i].MyScreenHubBase.AllScreens.Remove(screensfordeletion[i]);
                 Object.Destroy(screensfordeletion[i]);
             }
-            
+
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
     }
-    [HarmonyPatch(typeof(PLWarpGuardian),"Update")]
-    class GuardianBeamFix 
+    [HarmonyPatch(typeof(PLWarpGuardian), "Update")]
+    class GuardianBeamFix
     {
         public static float BeamMultiplier = 8f;
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)
@@ -2547,7 +2561,7 @@ namespace The_Flagship
             return instructionsList.AsEnumerable();
         }
 
-        static void Postfix() 
+        static void Postfix()
         {
             BeamMultiplier = (Command.shipAssembled ? 0f : 8f);
         }

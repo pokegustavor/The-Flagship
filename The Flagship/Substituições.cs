@@ -497,7 +497,7 @@ namespace The_Flagship
                 if (PLNetworkManager.Instance.ViewedPawn != null)
                 {
                     Vector3 position = PLNetworkManager.Instance.ViewedPawn.transform.position;
-                    if (position.y > -262 && position.y < -257 && position.z > -345 && position.z < -313 && position.x < 30 && position.x > -30)
+                    if (Command.cameraenabled && position.y > -262 && position.y < -257 && position.z > -345 && position.z < -313 && position.x < 30 && position.x > -30)
                     {
                         if (Command.realtimecams)
                         {
@@ -1338,7 +1338,19 @@ namespace The_Flagship
                                 GraphNode nextMainPathPos = null;
                                 float num = float.MaxValue;
                                 Vector3 randomTarget = new Vector3(UnityEngine.Random.Range(249, 480), UnityEngine.Random.Range(-426, -345), UnityEngine.Random.Range(1337, 1795));
-                                Vector3 randomTarget2 = new Vector3(UnityEngine.Random.Range(-33, 31), -256, UnityEngine.Random.Range(-447, -315));
+                                Vector3[] bridgePositions = new Vector3[]
+                                {
+                                    new Vector3(13,-261,-328),
+                                    new Vector3(-15,-261,-328),
+                                    new Vector3(17,-261,-355),
+                                    new Vector3(-14,-261,-352),
+                                    new Vector3(27,-261,-395),
+                                    new Vector3(0,-261,-443),
+                                    new Vector3(-28,-261,-395),
+                                    new Vector3(0,-261,-351),
+                                    new Vector3(0,-261,-318),
+                                };
+                                Vector3 randomTarget2 = bridgePositions[UnityEngine.Random.Range(0,bridgePositions.Length-1)];
                                 if ((__instance.transform.position - randomTarget).magnitude > (__instance.transform.position - randomTarget2).magnitude) randomTarget = randomTarget2;
                                 NNConstraint nnconstraint = new NNConstraint();
                                 nnconstraint.area = (int)__instance.AreaIndex;
@@ -1875,7 +1887,7 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLShipInfoBase), "Update")]
-    internal class FighterAggro
+    internal class FighterAggroToFlagship
     {
         static List<PLShipInfoBase> warpingShips = new List<PLShipInfoBase>();
         static void Prefix(PLShipInfoBase __instance)
@@ -1910,6 +1922,7 @@ namespace The_Flagship
                 if (__instance.TargetSpaceTarget == PLEncounterManager.Instance.PlayerShip || (__instance.TargetSpaceTarget != null && __instance.TargetSpaceTarget.name.Contains("(fighterBot)"))) __instance.TargetSpaceTarget = null;
                 if (__instance.SpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.SpaceTargetID = -1;
                 if (__instance.CaptainTargetedSpaceTargetID == PLEncounterManager.Instance.PlayerShip.SpaceTargetID) __instance.CaptainTargetedSpaceTargetID = -1;
+                __instance.DistressSignalActive = false;
             }
         }
         public static async void PhaseAway(PLShipInfoBase ship)
@@ -2030,6 +2043,14 @@ namespace The_Flagship
             GameObject.Instantiate(PLGlobal.Instance.PhasePS, ship.Exterior.transform.position, Quaternion.identity);
         }
     }
+    [HarmonyPatch(typeof(PLShipInfoBase), "AddHostileShip")]
+    class FlagshipAggroToDrones
+    {
+        static bool Prefix(PLShipInfoBase __instance, PLShipInfoBase inShip)
+        {
+            return !(__instance.GetIsPlayerShip() && inShip.name.Contains("(fighterBot)"));
+        }
+    }
     [HarmonyPatch(typeof(PLInGameUI), "SetShipAsTarget")]
     class SetFighterTarget
     {
@@ -2085,6 +2106,14 @@ namespace The_Flagship
                     }
                 }
             }
+        }
+    }
+    [HarmonyPatch(typeof(PLShipInfoBase), "Ship_WarpOutNow")]
+    class DisableFighterJump 
+    {
+        static bool Prefix(PLShipInfoBase __instance) 
+        {
+            return !__instance.name.Contains("(fighterBot)");
         }
     }
     [HarmonyPatch(typeof(PLServer), "ClientGetUpdatedComponent")]
@@ -2156,45 +2185,47 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLServer), "ServerAddCrewBotPlayer")]
+    [HarmonyPatch(typeof(PLPlayer), "SpawnLocalPawnForBotPlayer")]
     class SetInterior
     {
-        static void Postfix(int inClass)
+        static void Postfix(PLPlayer __instance)
         {
-            foreach (PLPlayer player in PLServer.Instance.AllPlayers)
+            if (Command.shipAssembled && __instance.StartingShip == PLEncounterManager.Instance.PlayerShip) 
             {
-                PLPawn pawn = player.GetPawn();
-                if (pawn != null)
+                foreach (PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
                 {
-                    PLPathfinderGraphEntity path = PLPathfinder.GetInstance().GetPGEforPlayer(player);
-                    if (path != null && (path.GraphBounds.center - new Vector3(-43.8945f, -48.2f, 602.4f)).magnitude < 1)
+                    if (interior.InteriorID == -69)
                     {
-                        foreach (PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
+                        __instance.CurrentInterior = interior;
+                        __instance.GetPawn().MyInterior = interior;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLSpaceScrap),"Update")]
+    class FightersCollectScrap 
+    {
+        static void Postfix(PLSpaceScrap __instance) 
+        {
+            if (!__instance.Collected)
+            {
+                foreach (PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values)
+                {
+                    if (ship != null && ship.name.Contains("(fighterBot)"))
+                    {
+                        if (ship.ExteriorTransformCached != null)
                         {
-                            if (interior.InteriorID == -69)
+                            float sqrMagnitude = (ship.ExteriorTransformCached.position - __instance.transform.position).sqrMagnitude;
+                            if (PhotonNetwork.isMasterClient && sqrMagnitude < 6400f)
                             {
-                                player.CurrentInterior = interior;
-                                player.GetPawn().MyInterior = interior;
-                                break;
+                                __instance.OnCollect();
                             }
                         }
                     }
                 }
             }
-            /*
-            PLPlayer player = PLServer.Instance.GetCachedFriendlyPlayerOfClass(inClass);
-            if(player != null && Command.shipAssembled) 
-            {
-                foreach(PLInterior interior in UnityEngine.Object.FindObjectsOfType<PLInterior>(true))
-                {
-                    if(interior.InteriorID == -69) 
-                    {
-                        player.CurrentInterior = interior;
-                        break;
-                    }
-                }
-            }
-            */
         }
     }
     [HarmonyPatch(typeof(PLGameProgressManager), "IsShipUnlockOpened")]

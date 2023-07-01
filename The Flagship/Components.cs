@@ -17,8 +17,8 @@ namespace The_Flagship
         public FlagShipMainTurret(int inLevel = 0) : base(inLevel)
         {
             Level = inLevel;
-            SubType = MegaTurretModManager.Instance.GetMegaTurretIDFromName("FlagShipMainTurret");
-            Name = "The HullRender";
+            SubType = MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret");
+            Name = "The Hullrender";
             Desc = "This monster of a turret will melt the hull of most ships that becomes it's target, but at the price of extemely slow charge and high power usage";
             BeamColor = Color.green;
             m_Damage = 1700f;
