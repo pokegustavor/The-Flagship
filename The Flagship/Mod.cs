@@ -19,9 +19,8 @@ namespace The_Flagship
 {
     /*
     TODO
-    check crawlers spawn
+    check why delayed assembled breaks the pathfinding on the main interior
     check the infected spore spinning for non hosts
-    fix patrol bots not setting proper target position to move
      */
     public class Mod : PulsarMod
     {
@@ -2460,6 +2459,8 @@ namespace The_Flagship
             PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGame>();
             if (PLNetworkManager.Instance.CurrentGame == null) PLNetworkManager.Instance.CurrentGame = Object.FindObjectOfType<PLGamePlanet>();
             await Task.Delay(15 * 1000);
+
+            //Main interior pathfinding fix
             if (PLEncounterManager.Instance.PlayerShip != null)
             {
                 GameObject newinterior = PLEncounterManager.Instance.PlayerShip.InteriorStatic;
@@ -2473,6 +2474,8 @@ namespace The_Flagship
                 }
 
             }
+
+            //Spawn patrolbots
             if (PhotonNetwork.isMasterClient)
             {
                 Mod.BridgePathID = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(ship.MyTLI, new Vector3(-14, -261, -362)).ID;

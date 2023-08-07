@@ -295,11 +295,15 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLNetworkManager), "OnServerCreatedRoom")]
-    class OnCreateGame
+    [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
+    public class OnJoin
     {
-        static void Postfix()
+        static void Prefix()
         {
+            if (!PhotonNetwork.isMasterClient)
+            {
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
+            }
             if (PhotonNetwork.isMasterClient)
             {
                 string savedoptions = PLXMLOptionsIO.Instance.CurrentOptions.GetStringValue("flagship");
@@ -311,17 +315,6 @@ namespace The_Flagship
                 {
                     OnJoin.AutoAssemble();
                 }
-            }
-        }
-    }
-    [HarmonyPatch(typeof(PLGlobal), "EnterNewGame")]
-    public class OnJoin
-    {
-        static void Prefix()
-        {
-            if (!PhotonNetwork.isMasterClient)
-            {
-                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
             }
         }
         public static async void AutoAssemble(bool fromFile = false)
