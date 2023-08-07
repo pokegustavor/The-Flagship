@@ -577,7 +577,7 @@ namespace The_Flagship
                 {
                     if (Command.playersArrested[i] == __instance.GetPlayerID())
                     {
-                        Vector3 prisioncell = Vector3.one;
+                        Vector3 prisioncell;
                         switch (i)
                         {
                             default:
@@ -622,7 +622,7 @@ namespace The_Flagship
                             __instance.RecallPawnToPos(prisioncell);
                             if (Time.time - LastWarning > 10)
                             {
-                                PLServer.Instance.AddCrewWarning("Your host arrested you!", Color.red, 1, "Prision");
+                                PLServer.Instance.AddCrewWarning("Your captain arrested you!", Color.red, 1, "Prision");
                                 LastWarning = Time.time;
                             }
                         }
