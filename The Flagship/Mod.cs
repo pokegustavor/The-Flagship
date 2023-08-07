@@ -19,6 +19,9 @@ namespace The_Flagship
 {
     /*
     TODO
+    check crawlers spawn
+    check the infected spore spinning for non hosts
+    fix patrol bots not setting proper target position to move
      */
     public class Mod : PulsarMod
     {
@@ -29,7 +32,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.8.1";
+        public override string Version => "1.9";
 
         public override string Author => "pokegustavo";
 
@@ -126,7 +129,6 @@ namespace The_Flagship
                 PulsarModLoader.Utilities.Messaging.Notification("The camera system has been " + (cameraenabled ? "Enabled" : "Disabled"));
                 return;
             }
-            if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
             if (PLEncounterManager.Instance.PlayerShip != null)
             {
                 if (PLEncounterManager.Instance.PlayerShip.ShipTypeID != EShipType.OLDWARS_HUMAN)
@@ -136,7 +138,8 @@ namespace The_Flagship
                 }
                 if (arguments == Arguments()[0][0])
                 {
-                    if (!shipAssembled)
+                    if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
+                    else if (!shipAssembled)
                     {
                         FabricateFlagship();
                         ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
@@ -160,6 +163,10 @@ namespace The_Flagship
                     if (!shipAssembled)
                     {
                         PulsarModLoader.Utilities.Messaging.Notification("Ship needs to be assembled!");
+                    }
+                    if (PLNetworkManager.Instance.LocalPlayer != null && PLNetworkManager.Instance.LocalPlayer.GetClassID() != 0) 
+                    {
+                        PulsarModLoader.Utilities.Messaging.Notification("Only the captain can use this command");
                     }
                     else if (separatedArguments.Length > 1)
                     {
@@ -221,6 +228,10 @@ namespace The_Flagship
                                         break;
                                     }
                                 }
+                            }
+                            if (!PhotonNetwork.isMasterClient) 
+                            {
+                                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.prisionRPC", PhotonTargets.MasterClient, new object[] { Command.playersArrested });
                             }
                         }
                         else
@@ -865,6 +876,7 @@ namespace The_Flagship
                     PLKillVolume abyssdeath = Abyssdeathobject.AddComponent<PLKillVolume>();
                     Abyssdeathobject.transform.position = new Vector3(447, -501, 1514);
                     abyssdeath.Dimensions = new Vector3(200, 5, 200);
+                    abyssdeath.OnPlanet = false;
                     Object.DontDestroyOnLoad(Abyssdeathobject);
                     Abyssdeathobject.transform.SetParent(newinterior.transform);
                     foreach (PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>())
@@ -1761,13 +1773,12 @@ namespace The_Flagship
                     fighterControl.setValues(fighterControl.transform, ship.worldUiCanvas, ship);
                     fighterControl.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
-                    /*
-                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(0.7774f, -259.9289f, -337.9999f), Quaternion.Euler(new Vector3(0, 180, 0)));
+
+                    droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(450.1019f, - 430.0838f, 1536.81f), Quaternion.Euler(new Vector3(0, 180, 0)));
                     PLCyberAttackScreen cyberScreen = droneUpgradeRoot.AddComponent<PLCyberAttackScreen>();
                     cyberScreen.setValues(cyberScreen.transform, ship.worldUiCanvas, ship);
                     cyberScreen.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
-                    */
                     //ship.InteriorStatic = interior;
                     if (foxplush != null)
                     {

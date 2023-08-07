@@ -18,6 +18,20 @@ using System.Reflection.Emit;
 
 namespace The_Flagship
 {
+    class FlagshipHelperMethods 
+    {
+        public static PLPlayer GetPlayerFromPhotonPlayer(PhotonPlayer photon) 
+        {
+            foreach(PLPlayer player in PLServer.Instance.AllPlayers) 
+            {
+                if(player != null && player.GetPhotonPlayer() != null && player.GetPhotonPlayer().Equals(photon)) 
+                {
+                    return player;
+                }
+            }
+            return null;
+        }
+    }
     /*
     public class PLFlagship : PLOldWarsShip_Human
     {
@@ -358,7 +372,7 @@ namespace The_Flagship
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
-            if (sender.sender == PhotonNetwork.masterClient)
+            if (sender.sender == PhotonNetwork.masterClient || (FlagshipHelperMethods.GetPlayerFromPhotonPlayer(sender.sender) != null && FlagshipHelperMethods.GetPlayerFromPhotonPlayer(sender.sender).GetClassID() == 0))
             {
                 Command.playersArrested = (int[])arguments[0];
             }
@@ -1253,7 +1267,7 @@ namespace The_Flagship
                             targetSystem = system.MyInstance.transform;
                         }
                     }
-                    if (targetSystem != null && (__instance.MyLights[0].color == Color.green || (__instance.MyLights[0].color == Color.white && ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - targetSystem.position).magnitude > 16)))
+                    if (targetSystem != null && (__instance.MyLights[0].color == Color.green || (__instance.MyLights[0].color == Color.white && __instance.currentPath != null && ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - targetSystem.position).magnitude > 16)))
                     {
                         NNConstraint nnconstraint = new NNConstraint();
                         nnconstraint.area = (int)__instance.AreaIndex;
@@ -1410,6 +1424,7 @@ namespace The_Flagship
                             {
                                 __instance.NextMainPathPos = null;
                                 __instance.lastInvestigateActionCompletedTime = Time.time;
+                                __instance.currentPath = null;
                             }
                         }
                     }
@@ -1467,128 +1482,6 @@ namespace The_Flagship
                     __instance.AI_TargetInterior = null;
                 }
             }
-            /*
-            if (__instance.MyBotController != null)
-            {
-                __instance.MyBotController.MyBot = __instance;
-                if (PLEncounterManager.Instance.PlayerShip != null && __instance.AI_TargetTLI == PLEncounterManager.Instance.PlayerShip.MyTLI && Command.shipAssembled)
-                {
-                    PLPathfinderGraphEntity targetInterior = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(PLEncounterManager.Instance.PlayerShip.MyTLI, __instance.AI_TargetPos);
-                    PLPathfinderGraphEntity currentInterior = PLPathfinder.GetInstance().GetPGEforPlayer(__instance.PlayerOwner);
-                    //PulsarModLoader.Utilities.Messaging.Notification("Current: " + __instance.PlayerOwner.MyPGE.ID + ", Target: " + targetInterior.ID);
-                    //PulsarModLoader.Utilities.Messaging.Notification("Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
-                    if (currentInterior != null && targetInterior.ID != currentInterior.ID)
-                    {
-                        if (targetInterior.ID < currentInterior.ID) //Bot is in brige but wants to go to main area 
-                        {
-                            float distance = (new Vector3(434.2143f, -430.2697f, 1730.034f) - __instance.AI_TargetPos).magnitude;
-                            int doorID = 0;
-                            if ((new Vector3(378.7f, -384.8338f, 1366.8f) - __instance.AI_TargetPos).magnitude < distance)
-                            {
-                                distance = (new Vector3(378.7f, -384.8338f, 1366.8f) - __instance.AI_TargetPos).magnitude;
-                                doorID = 1;
-                            }
-                            if ((new Vector3(380.3f, -399.7f, 1723.8f) - __instance.AI_TargetPos).magnitude < distance)
-                            {
-                                distance = (new Vector3(380.3f, -399.7f, 1723.8f) - __instance.AI_TargetPos).magnitude;
-                                doorID = 2;
-                            }
-                            if ((new Vector3(375.4f, -382.7f, 1575.7f) - __instance.AI_TargetPos).magnitude < distance)
-                            {
-                                doorID = 3;
-                            }
-                            switch (doorID)
-                            {
-                                default:
-                                case 0:
-                                    __instance.AI_TargetPos = new Vector3(-28.0667f, -260.9866f, -395.6801f);
-                                    __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
-                                    {
-                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(434.2143f, -430.2697f, 1730.034f));
-                                        
-                                        __instance.MyBotController.Path = null;
-                                        __instance.PlayerOwner.GetPawn().transform.position = new Vector3(434.2143f, -430.2697f, 1730.034f);
-                                        __instance.PlayerOwner.GetPawn().OnTeleport();
-                                        
-                                        Physics.SyncTransforms();
-                                        if (__instance.PlayerOwner.GetPawn() != null)
-                                        {
-                                            __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
-                                            __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                            __instance.ResetTLI();
-                                        }
-                                        
-                                    }
-                                    break;
-                                case 1:
-                                    __instance.AI_TargetPos = new Vector3(-0.6f, -261, -443.1f);
-                                    __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
-                                    {
-                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(378.7f, -384.8338f, 1366.8f));
-                                        
-                                        __instance.MyBotController.Path = null;
-                                        __instance.PlayerOwner.GetPawn().transform.position = new Vector3(378.7f, -384.8338f, 1366.8f);
-                                        __instance.PlayerOwner.GetPawn().OnTeleport();
-                                        
-                                        Physics.SyncTransforms();
-                                        if (__instance.PlayerOwner.GetPawn() != null)
-                                        {
-                                            __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
-                                            __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                            __instance.ResetTLI();
-                                        }
-                                        
-                                    }
-                                    break;
-                                case 2:
-                                    __instance.AI_TargetPos = new Vector3(27.6f, -261f, -395.3f);
-                                    __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    if ((__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
-                                    {
-                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(380.3f, -399.7f, 1723.8f));
-                                        
-                                        __instance.MyBotController.Path = null;
-                                        __instance.PlayerOwner.GetPawn().transform.position = new Vector3(380.3f, -399.7f, 1723.8f);
-                                        __instance.PlayerOwner.GetPawn().OnTeleport();
-                                        
-                                        Physics.SyncTransforms();
-                                        if (__instance.PlayerOwner.GetPawn() != null)
-                                        {
-                                            __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
-                                            __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                            __instance.ResetTLI();
-                                        }
-                                        
-                                    }
-                                    break;
-                                case 3:
-                                    __instance.AI_TargetPos = new Vector3(-13.4f, -261, -364.3f);
-                                    __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                    if (__instance.PlayerOwner.GetPawn() != null && (__instance.PlayerOwner.GetPawn().transform.position - __instance.AI_TargetPos).sqrMagnitude < 16)
-                                    {
-                                        __instance.PlayerOwner.RecallPawnToPos(new Vector3(375.4f, -382.7f, 1575.7f));
-                                        
-                                        __instance.PlayerOwner.GetPawn().transform.position = new Vector3(375.4f, -382.7f, 1575.7f);
-                                        __instance.PlayerOwner.GetPawn().OnTeleport();
-                                        Physics.SyncTransforms();
-                                        __instance.AI_TargetPos = __instance.PlayerOwner.GetPawn().transform.position;
-                                        __instance.AI_TargetPos_Raw = __instance.AI_TargetPos;
-                                        
-                                    }
-                                    break;
-                            }
-                        }
-                        else //Bot is in main area but wants to go to bridge
-                        {
-
-                        }
-                    }
-                    //PulsarModLoader.Utilities.Messaging.Notification("New Target Position: " + __instance.MyBotController.Assigned_AI_TargetPos);
-                }
-            }
-            */
         }
     }
     [HarmonyPatch(typeof(PLReactor), "ShipUpdate")]

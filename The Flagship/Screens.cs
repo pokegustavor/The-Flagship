@@ -11,6 +11,9 @@ using HarmonyLib;
 using System.Linq;
 using Pathfinding;
 using System.Threading.Tasks;
+using TeamUtility.IO;
+using UnityEngine.EventSystems;
+using Pathfinding.RVO;
 
 namespace The_Flagship
 {
@@ -376,7 +379,7 @@ namespace The_Flagship
             else if (difficulty == "medium")
             {
                 int[] bestMove = MiniMax(board, 6, true, defeatCount >= 7 ? 0.7f : 0.20f);
-                if (bestMove[0] != -1 && bestMove[1] != -1) 
+                if (bestMove[0] != -1 && bestMove[1] != -1)
                 {
                     board[bestMove[0], bestMove[1]].text = "O";
                 }
@@ -581,7 +584,7 @@ namespace The_Flagship
             foreach (int[] emptyCell in GetEmptyCells(board))
             {
                 board[emptyCell[0], emptyCell[1]].text = maximizingPlayer ? "O" : "X";
-                int[] currentMove = MiniMax(board, depth - 1, !maximizingPlayer,fluke);
+                int[] currentMove = MiniMax(board, depth - 1, !maximizingPlayer, fluke);
                 board[emptyCell[0], emptyCell[1]].text = "";
                 currentMove[0] = emptyCell[0];
                 currentMove[1] = emptyCell[1];
@@ -1617,6 +1620,23 @@ namespace The_Flagship
                 }
                 shipInstance.OrbitCameraMaxDistance = 40;
                 shipInstance.OrbitCameraMinDistance = 10;
+                //sends warning about building a new ship to the captain
+                PLPlayer cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(0);
+                if (cachedFriendlyPlayerOfClass != null && cachedFriendlyPlayerOfClass.GetPhotonPlayer() != sender)
+                {
+                    PLPlayer failuer = FlagshipHelperMethods.GetPlayerFromPhotonPlayer(sender);
+                    if (failuer != null)
+                    {
+                        PLServer.Instance.photonView.RPC("AddNotificationLocalize", cachedFriendlyPlayerOfClass.GetPhotonPlayer(), new object[]
+                            {
+                                "[PL] has built a new fighter",
+                                failuer.GetPlayerID(),
+                                PLServer.Instance.GetEstimatedServerMs() + 6000,
+                                true
+                            });
+                    }
+                }
+
                 if (sender != null)
                 {
                     ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PilotFighter", sender, new object[]
@@ -1629,7 +1649,9 @@ namespace The_Flagship
                     {
                         controller
                     });
+
             }
+            //Gives control if ship exists
             else if (Persistantshipdata.ShipInstance != null && Persistantshipdata.ShipInstance.GetCurrentShipControllerPlayerID() == -1)
             {
                 if (sender != null)
@@ -1645,10 +1667,12 @@ namespace The_Flagship
                         controller
                     });
             }
+            //Sends warning if ship exists but is already been piloted
             else if (Persistantshipdata.ShipInstance != null && Persistantshipdata.ShipInstance.GetCurrentShipControllerPlayerID() != -1 && sender != null)
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.SendWarning", sender, new object[] { "Fighter already been piloted" });
             }
+            //Sends warning if there is not enough supplies to build another figther
             else if (Mod.FighterCount <= 0 && sender != null)
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.SendWarning", sender, new object[] { "No Fighter supply remmaning. Craft some more!" });
@@ -1728,6 +1752,20 @@ namespace The_Flagship
     }
     public class PLCyberAttackScreen : PLModdedSpecialScreen
     {
+        Text Title;
+        GameObject selecttargettext;
+        Text[] Descriptions = new Text[5];
+        GameObject[] Buttons = new GameObject[5];
+        Tile[,] gameBoard = new Tile[8, 9];
+        List<PLShipInfo> targetsList = new List<PLShipInfo>();
+        static bool ingame = false;
+        bool syncendInGame = true;
+        static int mines = 0;
+        static int flags = 0;
+        public static bool failed = false;
+        float lastListUpdate = Time.time;
+        PLShipInfo targetship;
+        public static List<PLShipInfo> shutdownList = new List<PLShipInfo>();
         public override void Assemble()
         {
             if (UIWorldRoot == null) return;
@@ -1763,7 +1801,7 @@ namespace The_Flagship
             typeof(Text)
             });
             gameObject4.transform.SetParent(gameObject.transform);
-            gameObject4.transform.localPosition = new Vector3(0f, -20f, 0f);
+            gameObject4.transform.localPosition = new Vector3(0f, 55f, 0f);
             gameObject4.transform.localRotation = Quaternion.identity;
             gameObject4.transform.localScale = Vector3.one * 0.25f;
             gameObject4.GetComponent<RectTransform>().anchoredPosition3D = gameObject4.transform.localPosition;
@@ -1776,8 +1814,9 @@ namespace The_Flagship
             UpgradeName.resizeTextForBestFit = true;
             UpgradeName.alignment = TextAnchor.UpperCenter;
             UpgradeName.raycastTarget = false;
-            UpgradeName.text = "Select your target";
+            UpgradeName.text = "Select your target:\nShift + LeftClick to flag/unflag";
             UpgradeName.color = Color.white;
+            selecttargettext = gameObject4;
             GameObject gameObject5 = new GameObject("Title", new Type[]
             {
             typeof(Text)
@@ -1798,7 +1837,484 @@ namespace The_Flagship
             ScreenTitle.raycastTarget = false;
             ScreenTitle.text = PLLocalize.Localize("VIRTUAL CYBERATTACK", false);
             ScreenTitle.color = Color.white;
+            Title = ScreenTitle;
+            for (int i = 0; i < 5; i++)
+            {
+                int valueofI = i;
+                GameObject MainButton = new GameObject("EXTRACT_BTN", new Type[]
+                {
+                typeof(Image),
+                typeof(Button)
+                });
+                Button MainButtonBtn = MainButton.GetComponent<Button>();
+                Image MainButtonImage = MainButton.GetComponent<Image>();
+                MainButtonImage.sprite = PLGlobal.Instance.TabFillSprite;
+                MainButtonImage.type = Image.Type.Sliced;
+                MainButtonImage.transform.SetParent(gameObject.transform);
+                MainButtonBtn.transform.localPosition = new Vector3(0f, -25f - (60 * i), 0f);
+                MainButtonBtn.transform.localRotation = Quaternion.identity;
+                MainButtonBtn.transform.localScale = new Vector3(1.8f, 1, 1);
+                MainButtonBtn.gameObject.layer = 3;
+                MainButtonBtn.GetComponent<RectTransform>().anchoredPosition3D = MainButtonBtn.transform.localPosition;
+                MainButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 250f);
+                MainButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                ColorBlock colors1 = MainButtonBtn.colors;
+                colors1.normalColor = Color.gray;
+                MainButtonBtn.colors = colors1;
+                MainButtonBtn.onClick.AddListener(delegate ()
+                {
+                    StartMine(valueofI);
+                });
+                GameObject ButtonTextobj = new GameObject("ExtractBtnLabel", new Type[]
+                {
+                typeof(Text)
+                });
+                ButtonTextobj.transform.SetParent(MainButton.transform);
+                ButtonTextobj.transform.localPosition = new Vector3(0f, 0f, 0f);
+                ButtonTextobj.transform.localRotation = Quaternion.identity;
+                ButtonTextobj.transform.localScale = new Vector3(0.55f, 1, 1);
+                Text ButtonText = ButtonTextobj.GetComponent<Text>();
+                ButtonText.alignment = TextAnchor.MiddleCenter;
+                ButtonText.resizeTextForBestFit = true;
+                ButtonText.resizeTextMinSize = 8;
+                ButtonText.resizeTextMaxSize = 18;
+                ButtonText.color = Color.black;
+                ButtonText.raycastTarget = false;
+                ButtonText.text = PLLocalize.Localize("U.S.S Money <color=red>HARD</color>", false);
+                ButtonText.font = PLGlobal.Instance.MainFont;
+                ButtonText.GetComponent<RectTransform>().anchoredPosition3D = ButtonText.transform.localPosition;
+                ButtonText.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                ButtonText.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                Descriptions[i] = ButtonText;
+                Buttons[i] = MainButton;
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    int valueofI = i;
+                    int valueofJ = j;
+                    GameObject MainButton = new GameObject("EXTRACT_BTN", new Type[]
+                    {
+                typeof(Image),
+                typeof(Button)
+                    });
+                    Button MainButtonBtn = MainButton.GetComponent<Button>();
+                    Image MainButtonImage = MainButton.GetComponent<Image>();
+                    MainButtonImage.sprite = PLGlobal.Instance.TabFillSprite;
+                    MainButtonImage.type = Image.Type.Sliced;
+                    MainButtonImage.transform.SetParent(gameObject.transform);
+                    MainButtonBtn.transform.localPosition = new Vector3(-185f + (50 * i), 215 - (60 * j), 0f);
+                    MainButtonBtn.transform.localRotation = Quaternion.identity;
+                    MainButtonBtn.transform.localScale = new Vector3(0.15f, 0.9f, 1);
+                    MainButtonBtn.gameObject.layer = 3;
+                    MainButtonBtn.GetComponent<RectTransform>().anchoredPosition3D = MainButtonBtn.transform.localPosition;
+                    MainButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 250f);
+                    MainButtonBtn.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                    ColorBlock colors1 = MainButtonBtn.colors;
+                    colors1.normalColor = Color.gray;
+                    MainButtonBtn.colors = colors1;
+                    GameObject ButtonTextobj = new GameObject("ExtractBtnLabel", new Type[]
+                    {
+                typeof(Text)
+                    });
+                    ButtonTextobj.transform.SetParent(MainButton.transform);
+                    ButtonTextobj.transform.localPosition = new Vector3(0f, 0f, 0f);
+                    ButtonTextobj.transform.localRotation = Quaternion.identity;
+                    ButtonTextobj.transform.localScale = new Vector3(6f, 1.2f, 1);
+                    Text ButtonText = ButtonTextobj.GetComponent<Text>();
+                    ButtonText.alignment = TextAnchor.MiddleCenter;
+                    ButtonText.resizeTextForBestFit = true;
+                    ButtonText.resizeTextMinSize = 8;
+                    ButtonText.resizeTextMaxSize = 18;
+                    ButtonText.color = Color.black;
+                    ButtonText.raycastTarget = false;
+                    ButtonText.text = PLLocalize.Localize("<color=#36154D>1</color>", false);
+                    ButtonText.font = PLGlobal.Instance.MainFont;
+                    ButtonText.GetComponent<RectTransform>().anchoredPosition3D = ButtonText.transform.localPosition;
+                    ButtonText.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                    ButtonText.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                    Tile tile = new Tile(MainButton, ButtonText, i, j);
+                    gameBoard[i, j] = tile;
+                    MainButtonBtn.onClick.AddListener(delegate ()
+                    {
+                        PressedTile(valueofI, valueofJ);
+                    });
+                }
+            }
+            Assembled = true;
         }
+        void StartMine(int target)
+        {
+            //Resets the board
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    gameBoard[i, j].Reset();
+                }
+            }
+            flags = 0;
+            mines = 0;
+            if (target >= targetsList.Count()) return;
+            PLShipInfo ship = targetsList[target];
+            if (ship != null)
+            {
+                int difficulty = 5;
+                if (ship.MyStats.CyberDefenseRating >= 2)
+                {
+                    difficulty = 13;
+                }
+                else if (ship.MyStats.CyberDefenseRating >= 1f)
+                {
+                    difficulty = 7;
+                }
+                mines = difficulty;
+                for (int i = 0; i < difficulty; i++)
+                {
+                    int x;
+                    int y;
+                    do
+                    {
+                        x = UnityEngine.Random.Range(0, 8);
+                        y = UnityEngine.Random.Range(0, 9);
+                    } while (gameBoard[x, y].hasMine);
+                    gameBoard[x, y].hasMine = true;
+                }
+                //updates the value for all mines
+                for (int i = 0; i < 8; i++)
+                {
+                    for (int j = 0; j < 9; j++)
+                    {
+                        gameBoard[i, j].GenerateValue(gameBoard);
+                    }
+                }
+                ingame = true;
+                targetship = ship;
+                Title.text = "VIRTUAL CYBERATTACK      " + (mines - flags) + " Mines";
+            }
+        }
+        void PressedTile(int x, int y)
+        {
+            if (ingame && !failed)
+            {
+                if (!gameBoard[x, y].revealed)
+                {
+                    gameBoard[x, y].Pressed(gameBoard, Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+                    if (!failed && GameIsComplete())
+                    {
+                        ingame = false;
+                        if (targetship != null)
+                        {
+                            ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.MasterClient, new object[] { true, targetship.ShipID, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
+                        }
+                    }
+                }
+                Title.text = "VIRTUAL CYBERATTACK      " + (mines - flags) + " Mines";
+            }
+        }
+        protected override void Update()
+        {
+            base.Update();
+            if (Assembled && PLEncounterManager.Instance.PlayerShip != null)
+            {
+                if (syncendInGame != ingame)
+                {
+                    for (int i = 0; i < 8; i++)
+                    {
+                        for (int j = 0; j < 9; j++)
+                        {
+                            gameBoard[i, j].button.SetActive(ingame);
+                        }
+                    }
+                    selecttargettext.SetActive(!ingame);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Buttons[i].SetActive(!ingame);
+                    }
+                    if (!ingame) Title.text = "VIRTUAL CYBERATTACK";
+                    syncendInGame = ingame;
+                }
+                if (failed)
+                {
+                    PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+                    if (ship != null)
+                    {
+                        if (ship.StartupSwitchBoard != null && !ship.StartupSwitchBoard.GetStatus(0))
+                        {
+                            failed = false;
+                            ingame = false;
+                        }
+                        else if (PhotonNetwork.isMasterClient)
+                        {
+                            ship.DischargeAmount += 0.2f * Time.deltaTime;
+                        }
+                    }
+                    else
+                    {
+                        failed = false;
+                    }
+                }
+                if (PhotonNetwork.isMasterClient)
+                {
+                    shutdownList.RemoveAll((PLShipInfo ship) => ship == null || ship.StartupSwitchBoard == null || !ship.StartupSwitchBoard.GetStatus(0));
+                    foreach (PLShipInfo ship in shutdownList)
+                    {
+                        ship.DischargeAmount += 0.2f * Time.deltaTime;
+                        ship.AddHostileShip(PLEncounterManager.Instance.PlayerShip);
+                    }
+                }
+                if (Time.time - lastListUpdate > 1f && !ingame)
+                {
+                    targetsList.Clear();
+                    foreach (PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values)
+                    {
+                        if (targetsList.Count >= 5) break;
+                        if (ship != null && !ship.GetIsPlayerShip() && ship is PLShipInfo && ship.MySensorObjectShip.IsDetectedBy(PLEncounterManager.Instance.PlayerShip))
+                        {
+                            targetsList.Add(ship as PLShipInfo);
+                        }
+                    }
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (i + 1 <= targetsList.Count() && targetsList[i] != null)
+                        {
+                            Buttons[i].SetActive(true);
+                            Descriptions[i].text = targetsList[i].ShipName;
+                            if (targetsList[i].MyStats.CyberDefenseRating >= 2)
+                            {
+                                Descriptions[i].text += " <color=red>HARD</color>";
+                            }
+                            else if (targetsList[i].MyStats.CyberDefenseRating >= 1f)
+                            {
+                                Descriptions[i].text += " <color=yellow>MEDIUM</color>";
+                            }
+                            else
+                            {
+                                Descriptions[i].text += " <color=green>EASY</color>";
+                            }
+                        }
+                        else
+                        {
+                            Buttons[i].SetActive(false);
+                        }
+                    }
+                    lastListUpdate = Time.time;
+                }
+            }
+        }
+        bool GameIsComplete()
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    if (!gameBoard[i, j].revealed && !gameBoard[i, j].hasMine) return false;
+                }
+            }
+            return true;
+        }
+        class Tile
+        {
+            private readonly int x, y;
+            public bool hasMine = false;
+            public bool revealed = false;
+            public bool flagged = false;
+            int nearMines = 0;
+            public GameObject button;
+            Text text;
+
+            public Tile(GameObject button, Text text, int x, int y)
+            {
+                this.button = button;
+                this.text = text;
+                this.x = x;
+                this.y = y;
+            }
+            public void GenerateValue(Tile[,] board)
+            {
+                int mineCount = 0;
+                try
+                {
+                    if (!hasMine)
+                    {
+                        //Count top line mines
+                        if (y > 0)
+                        {
+                            for (int i = x - 1; i <= x + 1; i++)
+                            {
+                                if (i >= 0 && i < 8 && board[i, y - 1].hasMine)
+                                {
+                                    mineCount++;
+                                }
+                            }
+                        }
+                        //Count side mines
+                        for (int i = x - 1; i <= x + 1; i++)
+                        {
+                            if (i >= 0 && i < 8 && x != i && board[i, y].hasMine)
+                            {
+                                mineCount++;
+                            }
+                        }
+                        //Count bottom mines
+                        if (y < 8)
+                        {
+                            for (int i = x - 1; i <= x + 1; i++)
+                            {
+                                if (i >= 0 && i < 8 && board[i, y + 1].hasMine)
+                                {
+                                    mineCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    PulsarModLoader.Utilities.Logger.Info("ERROR AT COORDINATES: " + x + ", " + y);
+                }
+                switch (mineCount)
+                {
+                    case 1:
+                        text.text = "<color=#17B2FA>1</color>";
+                        break;
+                    case 2:
+                        text.text = "<color=#66FA17>2</color>";
+                        break;
+                    case 3:
+                        text.text = "<color=#FA1717>3</color>";
+                        break;
+                    case 4:
+                        text.text = "<color=#0F00FF>4</color>";
+                        break;
+                    case 5:
+                        text.text = "<color=#F5D20A>5</color>";
+                        break;
+                    case 6:
+                        text.text = "<color=#8007F9>6</color>";
+                        break;
+                    case 7:
+                        text.text = "<color=#F907C6>7</color>";
+                        break;
+                    case 8:
+                        text.text = "<color=#E8FF00>8</color>";
+                        break;
+                    default:
+                        text.text = string.Empty;
+                        break;
+                }
+                nearMines = mineCount;
+                text.enabled = false;
+            }
+            public void Pressed(Tile[,] board, bool shouldFlag)
+            {
+                if (!revealed && !flagged && !shouldFlag)
+                {
+                    revealed = true;
+                    text.enabled = true;
+                    if (nearMines == 0)
+                    {
+                        if (hasMine)
+                        {
+                            Button but = button.gameObject.GetComponent<Button>();
+                            ColorBlock colors1 = but.colors;
+                            colors1.normalColor = Color.red;
+                            colors1.highlightedColor = Color.red;
+                            colors1.pressedColor = Color.red;
+                            colors1.selectedColor = Color.red;
+                            but.colors = colors1;
+                        }
+                        else
+                        {
+                            Button but = button.gameObject.GetComponent<Button>();
+                            ColorBlock colors1 = but.colors;
+                            colors1.normalColor = Color.green;
+                            colors1.highlightedColor = Color.green;
+                            colors1.pressedColor = Color.green;
+                            colors1.selectedColor = Color.green;
+                            but.colors = colors1;
+                        }
+                    }
+                    else
+                    {
+                        Button but = button.gameObject.GetComponent<Button>();
+                        ColorBlock colors1 = but.colors;
+                        colors1.normalColor = Color.gray;
+                        colors1.highlightedColor = Color.white;
+                        colors1.pressedColor = Color.white;
+                        colors1.selectedColor = Color.gray;
+                        but.colors = colors1;
+                    }
+                    if (hasMine)
+                    {
+                        failed = true;
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.MasterClient, new object[] { false, -1, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
+                        return;
+                    }
+                    if (nearMines == 0)
+                    {
+                        for (int i = x - 1; i <= x + 1; i++)
+                        {
+                            for (int j = y - 1; j <= y + 1; j++)
+                            {
+                                if (i >= 0 && j >= 0 && (i != x || j != y) && i < 8 && j < 9 && !board[i, j].revealed)
+                                {
+                                    if (board[i, j].flagged)
+                                    {
+                                        board[i, j].flagged = false;
+                                        flags--;
+                                    }
+                                    board[i, j].Pressed(board, false);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (!revealed && shouldFlag)
+                {
+                    if (flagged)
+                    {
+                        Button but = button.gameObject.GetComponent<Button>();
+                        ColorBlock colors1 = but.colors;
+                        colors1.normalColor = Color.gray;
+                        colors1.highlightedColor = Color.white;
+                        colors1.pressedColor = Color.white;
+                        colors1.selectedColor = Color.gray;
+                        but.colors = colors1;
+                        flagged = false;
+                        flags--;
+                    }
+                    else if (mines > flags)
+                    {
+                        Button but = button.gameObject.GetComponent<Button>();
+                        ColorBlock colors1 = but.colors;
+                        colors1.normalColor = Color.cyan;
+                        colors1.highlightedColor = Color.cyan;
+                        colors1.pressedColor = Color.cyan;
+                        colors1.selectedColor = Color.cyan;
+                        but.colors = colors1;
+                        flagged = true;
+                        flags++;
+                    }
+                }
+            }
+            public void Reset()
+            {
+                hasMine = false;
+                nearMines = 0;
+                revealed = false;
+                flagged = false;
+                Button but = button.gameObject.GetComponent<Button>();
+                ColorBlock colors1 = but.colors;
+                colors1.normalColor = Color.gray;
+                colors1.highlightedColor = Color.white;
+                colors1.pressedColor = Color.white;
+                colors1.selectedColor = Color.gray;
+                but.colors = colors1;
+            }
+        }
+
     }
     class ArmorCompletionReciever : ModMessage
     {
@@ -1814,6 +2330,24 @@ namespace The_Flagship
                     {
                         PLArmorBonusScreen armor = screen as PLArmorBonusScreen;
                         armor.OnCompletion((int)arguments[1], (bool)arguments[2]);
+                        if (!(bool)arguments[2])
+                        {
+                            PLPlayer cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(0);
+                            if (cachedFriendlyPlayerOfClass != null && cachedFriendlyPlayerOfClass.GetPhotonPlayer() != sender.sender)
+                            {
+                                PLPlayer failuer = FlagshipHelperMethods.GetPlayerFromPhotonPlayer(sender.sender);
+                                if (failuer != null)
+                                {
+                                    PLServer.Instance.photonView.RPC("AddNotificationLocalize", cachedFriendlyPlayerOfClass.GetPhotonPlayer(), new object[]
+                                    {
+                                        "[PL] failed the armor boost",
+                                        failuer.GetPlayerID(),
+                                        PLServer.Instance.GetEstimatedServerMs() + 6000,
+                                        true
+                                    });
+                                }
+                            }
+                        }
                         break;
                     }
                 }
@@ -1877,6 +2411,21 @@ namespace The_Flagship
                         "PATROL BOTS"
                     });
                     PLServer.Instance.CurrentUpgradeMats -= (int)arguments[0];
+                    PLPlayer cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(0);
+                    if (cachedFriendlyPlayerOfClass != null && cachedFriendlyPlayerOfClass.GetPhotonPlayer() != sender.sender)
+                    {
+                        PLPlayer failuer = FlagshipHelperMethods.GetPlayerFromPhotonPlayer(sender.sender);
+                        if (failuer != null)
+                        {
+                            PLServer.Instance.photonView.RPC("AddNotificationLocalize", cachedFriendlyPlayerOfClass.GetPhotonPlayer(), new object[]
+                            {
+                                        "[PL] upgrade the patrol bots",
+                                        failuer.GetPlayerID(),
+                                        PLServer.Instance.GetEstimatedServerMs() + 6000,
+                                        true
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -1981,6 +2530,37 @@ namespace The_Flagship
                         (int)PLNetworkManager.Instance.LocalPlayerID
                 });
             if (ship.MyStats.HullCurrent >= ship.MyStats.HullMax && ship.MyStats.ShieldsCurrent >= ship.MyStats.ShieldsMax) FighterAggroToFlagship.PhaseAway(ship);
+        }
+    }
+    class CyberAttackReciever : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            PLPlayer cachedFriendlyPlayerOfClass = PLServer.Instance.GetCachedFriendlyPlayerOfClass(0);
+            bool victory = (bool)arguments[0];
+            if (victory)
+            {
+                PLShipInfo ship = PLEncounterManager.Instance.GetShipFromID((int)arguments[1]) as PLShipInfo;
+                if (ship != null) PLCyberAttackScreen.shutdownList.Add(ship);
+            }
+            else
+            {
+                PLCyberAttackScreen.failed = true;
+                if (cachedFriendlyPlayerOfClass.GetPlayerID() != (int)arguments[2])
+                {
+                    PLPlayer failuer = PLServer.Instance.GetPlayerFromPlayerID((int)arguments[2]);
+                    if (failuer != null)
+                    {
+                        PLServer.Instance.photonView.RPC("AddNotificationLocalize", cachedFriendlyPlayerOfClass.GetPhotonPlayer(), new object[]
+                            {
+                                "[PL] failed the cyberattack",
+                                failuer.GetPlayerID(),
+                                PLServer.Instance.GetEstimatedServerMs() + 6000,
+                                true
+                            });
+                    }
+                }
+            }
         }
     }
 }
