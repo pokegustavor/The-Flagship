@@ -273,6 +273,8 @@ namespace The_Flagship
             PulsarModLoader.Utilities.Messaging.Notification("Assembling the flagship, please stand by...", PLNetworkManager.Instance.LocalPlayer, default, 10000);
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
             ship.IsGodModeActive = true;
+            
+            //Load the required sectors to get the assets
             AsyncOperation op = SceneManager.LoadSceneAsync(67, LoadSceneMode.Additive);
             AsyncOperation op2 = SceneManager.LoadSceneAsync(10, LoadSceneMode.Additive);
             AsyncOperation op3 = SceneManager.LoadSceneAsync(105, LoadSceneMode.Additive);
@@ -290,6 +292,9 @@ namespace The_Flagship
             List<MeshRenderer> camerasRenders = new List<MeshRenderer>();
             if (ship != null)
             {
+            
+                //Phase 1: Assemble the exterior of the flagship
+                //Finds the exterior object to copy
                 GameObject exterior = null;
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
                 {
@@ -301,6 +306,7 @@ namespace The_Flagship
                 }
                 if (exterior != null)
                 {
+                    //Makes a copy of the exterior and changes some of the values, while adding some missing components, also changes the values on the shipinfo to the new components
                     GameObject newexterior = Object.Instantiate(exterior, currentexterior.transform.position, exterior.transform.rotation);
                     newexterior.AddComponent<PLPilotingSystem>();
                     newexterior.GetComponent<PLPilotingSystem>().MyShipInfo = ship;
@@ -354,6 +360,8 @@ namespace The_Flagship
                     ship.MainTurretPoint.transform.localScale = Vector3.one * 0.2f;
                     ship.MainTurretPoint.transform.localRotation = new Quaternion(0, 0, 0, 0);
                     List<Transform> allturretpoints = new List<Transform>();
+
+                    //Moves the turret points and add the extra ones
                     ship.RegularTurretPoints[0].transform.SetParent(newexterior.transform);
                     ship.RegularTurretPoints[0].transform.localPosition = new Vector3(-75, 40.4253f, 235.0909f);
                     ship.RegularTurretPoints[0].transform.localScale = Vector3.one * 10f;
@@ -413,6 +421,8 @@ namespace The_Flagship
                     ship.RegularTurretPoints = allturretpoints.ToArray();
                     ship.CurrentTurretControllerPlayerID = new int[7] { -1, -1, -1, -1, -1, -1, -1 };
                     GameObject clamps = null;
+
+                    //removes the exterior clamps object
                     foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>())
                     {
                         if (gameObject.name == "Exterior_FactoryClamps" && gameObject.transform.parent == newexterior.transform)
@@ -425,6 +435,8 @@ namespace The_Flagship
                     {
                         Object.Destroy(clamps);
                     }
+
+                    //Disables the original exterior of the Interceptor
                     foreach (MeshRenderer renderer in currentexterior.GetComponentsInChildren<MeshRenderer>())
                     {
                         renderer.enabled = false;
@@ -437,6 +449,8 @@ namespace The_Flagship
                     currentexterior.transform.SetParent(newexterior.transform);
                     currentexterior.SetActive(false);
                 }
+
+                //Phase 2: Assemble the interior of the flagship
                 GameObject interior = null;
                 GameObject bridge = null;
                 GameObject rightwing = null;
@@ -477,6 +491,8 @@ namespace The_Flagship
                 GameObject walkway = null;
                 GameObject fighterCargo = null;
                 GameObject fighterCargoBase = null;
+
+                //Collect all the assets that will be used during the assemble of the interior
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
                 {
                     if (gameObject.name == "Planet" && gameObject.scene.buildIndex == 105)
@@ -661,6 +677,7 @@ namespace The_Flagship
                 }
                 if (interior != null && bridge != null && rightwing != null && rightwingDeco != null && vault != null && vaultDeco != null && engineering != null)
                 {
+                    //Moves all the doors and screens from the original interior to far away
                     foreach (PLDoor door in ship.InteriorDynamic.GetComponentsInChildren<PLDoor>())
                     {
                         door.gameObject.transform.position += new Vector3(0, 0, 1500);
@@ -669,37 +686,57 @@ namespace The_Flagship
                     {
                         screen.gameObject.transform.position += new Vector3(0, 0, 1500);
                     }
+
+                    //Assembles the main structure of the main interior and the bridge
                     GameObject newinterior = Object.Instantiate(interior, interior.transform.position + new Vector3(400, -400, 1500), interior.transform.rotation);
                     GameObject newbridge = Object.Instantiate(bridge, new Vector3(0, -258.2285f, -409.0034f), bridge.transform.rotation);
                     GameObject newrighwing = Object.Instantiate(rightwing, new Vector3(357.7801f, -367.354f, 1681.315f), rightwing.transform.rotation);
                     GameObject newrightwingdeco = Object.Instantiate(rightwingDeco, new Vector3(462.3824f, -431.5907f, 1618.373f), rightwingDeco.transform.rotation);
                     Vector3 offset = newrighwing.transform.position - rightwing.transform.position;
+                    
+                    //Makes sure all lights are save to not be destroyed and moves them to the right position
                     foreach (Light light in allLights)
                     {
                         GameObject newlight = Object.Instantiate(light.gameObject, light.gameObject.transform.position + offset, light.gameObject.transform.rotation);
                         Object.DontDestroyOnLoad(newlight);
                         newlight.transform.SetParent(newinterior.transform);
                     }
+
+                    //Assembles the vault and decoration
                     GameObject newvault = Object.Instantiate(vault, vault.transform.position + offset, new Quaternion(0, 0.0012f, 0, -1));
                     GameObject newvaultdeco = Object.Instantiate(vaultDeco, vaultDeco.transform.position + offset, new Quaternion(0, 0.0012f, 0, -1));
+                    
+                    //Assembles the engineering and reactor rooms
                     GameObject newengineering = Object.Instantiate(engineering, engineering.transform.position + offset + new Vector3(0, 0, 2), new Quaternion(0, 0.0029f, 0, 1));
                     GameObject newreactor = Object.Instantiate(reactorroom, reactorroom.transform.position + offset, new Quaternion(0, 0.0029f, 0, 1));
+                    
+                    //moves the bridge to the correct position
                     newbridge.transform.localRotation = new Quaternion(0.2202f, 0.0157f, 0.0263f, -0.975f);
+                    
+                    //Adds the barber station into the main interior
                     GameObject newbarber = Object.Instantiate(barber, new Vector3(369f, -443.3361f, 1497), new Quaternion(0, -0.0376f, 0, 0.9993f));
                     Object.DontDestroyOnLoad(newbarber);
                     newbarber.transform.SetParent(newinterior.transform);
                     PLGameStatic.Instance.m_AppearanceStations.Add(newbarber.GetComponentInChildren<PLAppearanceStation>());
+                    
+                    //Adds the neural rewritter into the main interior
                     GameObject newneural = Object.Instantiate(neural, new Vector3(370, -443.3894f, 1551.893f), neural.transform.rotation);
                     Object.DontDestroyOnLoad(newneural);
                     newneural.transform.SetParent(newinterior.transform);
                     PLGameStatic.Instance.m_NeuralRewriters.Add(newneural.GetComponentInChildren<PLNeuralRewriter>());
+
+                    //Adds the land drone decoration into the interior
                     GameObject newlanddrone = Object.Instantiate(landdrone, landdrone.transform.position + offset, landdrone.transform.rotation);
                     Object.DontDestroyOnLoad(newlanddrone);
                     newlanddrone.transform.SetParent(newinterior.transform);
+
+                    //Adds the blackbox bellow the starmap
                     GameObject newblackbox = Object.Instantiate(blackbox, new Vector3(282, -432.9246f, 1740), blackbox.transform.rotation);
                     newblackbox.transform.SetParent(newinterior.transform);
                     Object.DontDestroyOnLoad(newblackbox);
                     ship.InteriorRenderers.Add(newblackbox.GetComponent<MeshRenderer>());
+
+                    //Adds the plataform into the starmap to facilitate looking at it (added twice to make the plataform double sided)
                     GameObject StarPlataform1 = Object.Instantiate(blackbox, new Vector3(274.9763f, -424.1945f, 1737.242f), new Quaternion(0.6533f, -0.2706f, -0.2706f, -0.6553f));
                     StarPlataform1.transform.SetParent(newinterior.transform);
                     StarPlataform1.transform.localScale = new Vector3(15, 5, 1);
@@ -718,6 +755,8 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newvaultdeco);
                     Object.DontDestroyOnLoad(newengineering);
                     Object.DontDestroyOnLoad(newreactor);
+
+                    //Removes the engineering door that does't open and adds a functional door, also adding 2 other missing doors
                     GameObject oldEngineDoor = null;
                     foreach (GameObject @object in Object.FindObjectsOfType<GameObject>(true))
                     {
@@ -731,13 +770,15 @@ namespace The_Flagship
                     {
                         GameObject newEngineDoor = Object.Instantiate(copydoor, new Vector3(358.07f, -383.02f, 1445.427f), oldEngineDoor.transform.rotation);
                         newEngineDoor.transform.SetParent(newinterior.transform);
+                        oldEngineDoor.transform.position += new Vector3(0, 20, 0);
                         GameObject newStarDoor = Object.Instantiate(copydoor, new Vector3(278.0616f, -428.5895f, 1715.356f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newStarDoor.transform.SetParent(newinterior.transform);
-                        oldEngineDoor.transform.position += new Vector3(0, 20, 0);
                         GameObject newCaptainDoor = Object.Instantiate(copydoor, new Vector3(372.6432f, -440.1014f, 1670.436f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                         newCaptainDoor.transform.SetParent(newinterior.transform);
 
                     }
+
+                    //Adds the walkway in the main interior that is missing in the forsaken flagship object
                     if (walkway != null)
                     {
                         GameObject newwalkway = Object.Instantiate(walkway, new Vector3(396.2569f, -383.5245f, 1519.001f), walkway.transform.rotation);
@@ -750,6 +791,8 @@ namespace The_Flagship
                         newwalkway.GetComponentInChildren<PLPushVolume>().WindForceGlobal.z *= -1;
                         newwalkway.transform.SetParent(newinterior.transform);
                     }
+
+                    //sets a tag in every object named REACTOR to help later
                     foreach (Transform transform in newinterior.transform)
                     {
                         if (transform.gameObject.name == "REACTOR")
@@ -758,13 +801,7 @@ namespace The_Flagship
                             break;
                         }
                     }
-                    /*
-                    foreach(PLUIScreen screen in ship.InteriorDynamic.GetComponentsInChildren<PLUIScreen>(true)) 
-                    {
-                        ship.MyScreenBase.AllScreens.Remove(screen);
-                        Object.Destroy(screen.gameObject);
-                    }
-                    */
+                    //setup the reactor room by changing some colors, enabling some particle effects, and removing the "reactor" used by the Estate
                     newreactor.transform.GetChild(7).gameObject.SetActive(true);
                     Mod.reactorEffect = newreactor.transform.GetComponentInChildren<ParticleSystem>(true);
                     Mod.reactorEffect.startColor = new Color(0.3835f, 0, 0.6f, 1);
@@ -782,6 +819,7 @@ namespace The_Flagship
                             transform.gameObject.name = transform.gameObject.name.Replace("Particle System", "Reactor Particle");
                         }
                     }
+                    //Perfomes the layer movement so everything is in the interior layer and destroy objects based on their name (to remove mostly the infected stuff in the forsaken flagship interior)
                     MoveObjAndChild(newinterior.transform, ship.InteriorStatic.layer);
                     MoveObjAndChild(newbridge.transform, ship.InteriorStatic.layer);
                     MoveObjAndChild(newrighwing.transform, ship.InteriorStatic.layer);
@@ -797,15 +835,21 @@ namespace The_Flagship
                     newvaultdeco.transform.SetParent(newvault.transform);
                     newengineering.transform.SetParent(newinterior.transform);
                     newreactor.transform.SetParent(newinterior.transform);
+
+                    //sets the particle effects used in the reactor room
                     foreach (ParticleSystem particle in ship.ReactorInstance.gameObject.GetComponentsInChildren<ParticleSystem>(true))
                     {
                         particle.startLifetime = 5;
                     }
+                    
+                    //Destroy any infected objects that remained
                     GameObject[] infectedstuff = GameObject.FindGameObjectsWithTag("Projectile");
                     foreach (GameObject @object in infectedstuff)
                     {
                         Object.DestroyImmediate(@object);
                     }
+
+                    //Adds the renders into a list used to ensure everything is visible
                     foreach (MeshRenderer render in newinterior.GetComponentsInChildren<MeshRenderer>(true))
                     {
                         if (render != null)
@@ -820,6 +864,8 @@ namespace The_Flagship
                             ship.InteriorRenderers.Add(render);
                         }
                     }
+
+                    //Adds the lights into the shipinfo list of lights to make them functional
                     ship.InteriorShipLights.Clear();
                     foreach (Light light in newbridge.GetComponentsInChildren<Light>(true))
                     {
@@ -837,6 +883,8 @@ namespace The_Flagship
                             light.enabled = true;
                         }
                     }
+
+                    //Ensure all doors in the interior are enabled
                     foreach (PLDoor door in newinterior.GetComponentsInChildren<PLDoor>(true))
                     {
                         if (door != null)
@@ -852,6 +900,8 @@ namespace The_Flagship
                             lockedoor.RequiredItem = "Hands";
                         }
                     }
+
+                    //Sets up the prision bars for the prision system
                     foreach (Transform transform in newinterior.transform.GetChild(5))
                     {
                         if (transform.gameObject.name.Contains("FS_Bar_Brig_Deco_02"))
@@ -871,6 +921,8 @@ namespace The_Flagship
                             }
                         }
                     }
+
+                    //Adds a death barrier in the "secret" room in the left wing giant hole
                     GameObject Abyssdeathobject = Object.Instantiate(blackbox);
                     PLKillVolume abyssdeath = Abyssdeathobject.AddComponent<PLKillVolume>();
                     Abyssdeathobject.transform.position = new Vector3(447, -501, 1514);
@@ -878,6 +930,8 @@ namespace The_Flagship
                     abyssdeath.OnPlanet = false;
                     Object.DontDestroyOnLoad(Abyssdeathobject);
                     Abyssdeathobject.transform.SetParent(newinterior.transform);
+
+                    //Disables the sound effects of the Forsaken Flagship
                     foreach (PLAmbientSFXControl sfx in newinterior.GetComponentsInChildren<PLAmbientSFXControl>())
                     {
                         if (sfx.Event.ToLower().Contains("infected"))
@@ -885,6 +939,8 @@ namespace The_Flagship
                             sfx.enabled = false;
                         }
                     }
+
+                    //Finds the teleport screen
                     PLTeleportationScreen origianlTP = null;
                     foreach (PLUIScreen mesa in ship.MyScreenBase.AllScreens)
                     {
@@ -894,7 +950,11 @@ namespace The_Flagship
                             break;
                         }
                     }
+
+                    //moves the captain chair into the bridge
                     ship.CaptainsChairPivot.position = new Vector3(-0.7818f, -261.7534f, -324.4219f);
+
+                    //sets all the cloned screens from the interior to target the ship teleportation screen (redunduncy)
                     if (origianlTP != null)
                     {
                         foreach (PLClonedScreen screen in newinterior.GetComponentsInChildren<PLClonedScreen>())
@@ -902,6 +962,8 @@ namespace The_Flagship
                             screen.MyTargetScreen = origianlTP;
                         }
                     }
+
+                    //Setup of the shortcuts used inside the interior of the flagship
                     PLInteriorDoor CapitanToBridge = newinterior.GetComponentInChildren<PLInteriorDoor>(true);
                     PLInteriorDoor BridgeToCaptain = newbridge.GetComponentInChildren<PLInteriorDoor>(true);
                     if (CapitanToBridge != null && BridgeToCaptain != null)
@@ -994,6 +1056,8 @@ namespace The_Flagship
                             //BridgeToWeapons.MyInterior = BridgeToCaptain.MyInterior;
                         }
                     }
+
+                    //settup the lights systems to allow stuff like alert light color change
                     ship.AllInteriorShipLightIntensities = new float[ship.InteriorShipLights.Count];
                     ship.AllInteriorShipLightColors = new Color[ship.InteriorShipLights.Count];
                     ship.AllInteriorShipLightModIntensities = new float[ship.InteriorShipLights.Count];
@@ -1019,6 +1083,8 @@ namespace The_Flagship
                         ship.AllInteriorShipLightModIntensities[j] = 0f;
                     }
                     if (newinterior.GetComponent<MeshRenderer>() != null) ship.InteriorRenderers.Add(newinterior.GetComponent<MeshRenderer>());
+
+                    //Disables and destroy all the infected spawners in the interior region of the flagship
                     PLSpawner[] spawners = newinterior.GetComponentsInChildren<PLSpawner>();
                     foreach (PLSpawner spawner in newinterior.GetComponentsInChildren<PLSpawner>())
                     {
