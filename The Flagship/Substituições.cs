@@ -2205,4 +2205,39 @@ namespace The_Flagship
             return true;
         }
     }
+    [HarmonyPatch(typeof(PLWarpGuardian), "Update")]
+    class GuardianBeamFix
+    {
+        public static float BeamMultiplier = 8f;
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)
+        {
+            List<CodeInstruction> instructionsList = Instructions.ToList();
+            instructionsList[1038].operand = AccessTools.Field(typeof(GuardianBeamFix), "BeamMultiplier");
+            instructionsList[1038].opcode = OpCodes.Ldsfld;
+            return instructionsList.AsEnumerable();
+        }
+
+        static void Postfix()
+        {
+            BeamMultiplier = (Command.shipAssembled ? 0f : 8f);
+        }
+    }
+    [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
+    internal class OnExit
+    {
+        internal static void Postfix()
+        {
+            foreach (GameObject gameObject in Mod.moddedScreens)
+            {
+                Object.Destroy(gameObject);
+            }
+            Command.shipAssembled = false;
+            Mod.moddedScreens.Clear();
+            Mod.FighterCount = 10;
+            Mod.PatrolBotsLevel = 0;
+            PLAutoRepairScreen.CurrentMultiplier = 1f;
+            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+            Command.prisionCells = new GameObject[10];
+        }
+    }
 }
