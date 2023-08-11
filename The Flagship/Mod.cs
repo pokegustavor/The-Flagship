@@ -1105,6 +1105,8 @@ namespace The_Flagship
                             break;
                         }
                     }
+
+                    //Main interior pathfinding mesh setup
                     //How me changing the starting position of the contraband station broke this part of the code???????
                     //PLPathfinder.GetInstance().AllPGEs.RemoveAll((PLPathfinderGraphEntity graph) => graph.ID == ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs[0]);
                     ship.InteriorStatic.transform.GetChild(1).GetComponent<PLShipAStarConnection>().navGraphIDs.Clear();
@@ -1124,6 +1126,8 @@ namespace The_Flagship
                         graph.forcedBoundsCenter += newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position - newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc;
                         graph.RelocateNodes(newMat * oldMat.inverse);
                     }
+
+                    
                     //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc = new Vector3(-43.8946f, 34.6f, 69.9739f);
                     //newinterior.GetComponentInChildren<PLPlanetAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
                     newbridge.GetComponentInChildren<PLCustomAStarConnection>().TLI = ship.MyTLI;
@@ -1133,6 +1137,8 @@ namespace The_Flagship
                     //areas.Add(newbridge.GetComponent<PLRoomArea>());
                     //PLEncounterManager.Instance.PlayerShip.AllRoomAreas = areas.ToArray();
                     //newbridge.GetComponent<PLRoomArea>().Show();
+
+                    //setup figthers visual in the cargo room
                     fighterCargo.transform.SetParent(fighterCargoBase.transform);
                     int Fightercounter = 0;
                     for (int i = 0; i < 5; i++)
@@ -1152,6 +1158,8 @@ namespace The_Flagship
                             Fightercounter++;
                         }
                     }
+
+                    //Move turrets control station
                     List<Transform> allturrets = new List<Transform>();
                     if (smallturret1 != null)
                     {
@@ -1190,6 +1198,8 @@ namespace The_Flagship
                         mainturret.transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
                         ship.InteriorRenderers.Add(mainturret.GetComponent<MeshRenderer>());
                     }
+
+                    //Move ship systems and other interactible into their proper position
                     if (weaponssys != null)
                     {
                         weaponssys.transform.position = new Vector3(358.1818f, -383.6548f, 1588.564f);
@@ -1293,6 +1303,8 @@ namespace The_Flagship
                         hullheal.transform.SetParent(newvault.transform);
                         hullheal.transform.rotation = new Quaternion(0, 0.9952f, 0, 0.0974f);
                     }
+
+                    //Setup the Liars Dice
                     if (chair != null)
                     {
                         GameObject cloneChair = Object.Instantiate(chair, new Vector3(327.5073f, -443.3779f, 1788.547f), new Quaternion(0, 0, 0, 1));
@@ -1347,6 +1359,8 @@ namespace The_Flagship
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
                     }
+
+                    //move ammo refill, lockers, crew spawn point and ship log
                     ship.MyAmmoRefills[0].transform.position = new Vector3(344.9436f, -383.6307f, 1609.502f);
                     ship.MyAmmoRefills[0].transform.rotation = new Quaternion(0, 0.7168f, 0, 0.6972f);
                     (ship.Spawners[0] as GameObject).transform.position = new Vector3(-2, -260, -324);
@@ -1367,6 +1381,8 @@ namespace The_Flagship
                     ship.GetLockers()[3].transform.rotation = new Quaternion(0, 0, 0, 1);
                     ship.GetLockers()[4].transform.position = new Vector3(406.1302f, -430, 1753.819f);
                     ship.GetLockers()[4].transform.rotation = new Quaternion(0, 0, 0, 1);
+
+                    //setup the cargo system
                     for (int i = 0; i < 14; i++)
                     {
                         ship.CargoBases[i].transform.position = new Vector3(281.2728f, -443.3417f, 1472.178f + (i * 2));
@@ -1394,6 +1410,8 @@ namespace The_Flagship
                         }
                     }
                     ship.CargoBases = cargo.ToArray();
+
+                    //Move engineering screens
                     ship.EngUpgradeUIRoot.transform.position = new Vector3(340.7982f, -384.2946f, 1387.454f);
                     ship.EngUpgradeUIRoot.transform.rotation = new Quaternion(0, 0.3768f, 0, -0.9263f);
                     ship.EngUpgradeUIWorldRoot.position = new Vector3(340.7982f, -384.2946f, 1387.454f);
@@ -1406,6 +1424,8 @@ namespace The_Flagship
                     ship.SalvageUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
                     ship.SalvageShipUIRoot.transform.position = new Vector3(336.0931f, -384.0558f, 1380.696f);
                     ship.SalvageShipUIRoot.transform.rotation = new Quaternion(0, 0.5292f, 0, -0.8485f);
+
+                    //Move and setup the screens on the ship
                     PLTeleportationScreen tpscreen = null;
                     PLScientistSensorScreen sensorscreen = null;
                     PLScientistComputerScreen computerscreen = null;
@@ -1743,15 +1763,21 @@ namespace The_Flagship
                         powerscreen.transform.position = new Vector3(347.9655f, -384.222f, 1392.117f);
                         powerscreen.transform.rotation = new Quaternion(0, 0.9732f, 0, 0.2298f);
                     }
+
+                    //Setup starmap
                     GameObject starmap = Object.Instantiate(Object.FindObjectOfType<PLWDParticleSystem>().gameObject, new Vector3(287.5f, -430, 1749.5f), Object.FindObjectOfType<PLWDParticleSystem>().transform.rotation);
                     starmap.layer = newinterior.layer;
                     Object.DontDestroyOnLoad(starmap);
                     starmap.transform.SetParent(newinterior.transform);
+
+                    //Move dialogue screen to the bridge
                     ship.DialogueChoiceBG.transform.position = new Vector3(0.7823f, -259, -321.5387f);
                     ship.DialogueChoiceBG.transform.rotation = new Quaternion(-0.1016f, 0.1994f, 0.0202f, 0.9744f);
                     ship.DialogueTextBG.transform.position = new Vector3(-2.7849f, -259, -321.5387f);
                     ship.DialogueTextBG.transform.rotation = new Quaternion(0.0861f, 0.2357f, 0.0244f, -0.9672f);
                     ship.MyTLI.AllTTIs[0].transform.position = new Vector3(425.1f, -430, 1729.7f);
+
+                    //add extra teleporter points into the ship
                     GameObject newtp = Object.Instantiate(ship.MyTLI.AllTTIs[0].gameObject, new Vector3(355.8f, -441.5f, 1479.2f), ship.MyTLI.AllTTIs[0].transform.rotation);
                     GameObject newtp2 = Object.Instantiate(ship.MyTLI.AllTTIs[0].gameObject, new Vector3(347.5f, -442f, 1662.4f), ship.MyTLI.AllTTIs[0].transform.rotation);
                     Object.DontDestroyOnLoad(newtp);
@@ -1764,6 +1790,8 @@ namespace The_Flagship
                     newtargets[1].TeleporterTargetName = "Reactor";
                     newtargets[2].TeleporterTargetName = "Bar";
                     ship.MyTLI.AllTTIs = newtargets;
+
+                    //setup exosuit visual
                     ship.ExosuitVisualAssets[0].transform.position = new Vector3(388.613f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[0].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
                     ship.ExosuitVisualAssets[1].transform.position = new Vector3(389.013f, -400.052f, 1724.208f);
@@ -1774,6 +1802,8 @@ namespace The_Flagship
                     ship.ExosuitVisualAssets[3].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
                     ship.ExosuitVisualAssets[4].transform.position = new Vector3(390.213f, -400.052f, 1724.208f);
                     ship.ExosuitVisualAssets[4].transform.rotation = new Quaternion(0, 0.7377f, 0, -0.6752f);
+
+                    //setup the atriums
                     ship.MyAtrium.transform.position = new Vector3(380.1347f, -399.7f, 1723f);
                     GameObject newatrium = Object.Instantiate(ship.MyAtrium.gameObject, new Vector3(380.1347f, -399.7f, 1727f), ship.MyAtrium.transform.rotation);
                     Object.DontDestroyOnLoad(newatrium.transform);
@@ -1785,6 +1815,7 @@ namespace The_Flagship
                     Object.DontDestroyOnLoad(newatrium.transform);
                     newatrium.transform.SetParent(newinterior.transform);
 
+                    //Setup the research farm system
                     PLPickupObject pickup = newinterior.GetComponentInChildren<PLPickupObject>();
                     if (pickup != null)
                     {
@@ -1820,6 +1851,7 @@ namespace The_Flagship
                             OnWarpBase.ResearchItemPickups[i].name = "Flagship Research " + i;
                         }
                     }
+                    
                     //Special manual screens
                     GameObject droneUpgradeRoot = Object.Instantiate(ship.EngUpgradeUIWorldRoot.gameObject, new Vector3(468.5817f, -399, 1477.902f), Quaternion.Euler(new Vector3(0, 270, 0)));
                     PLPatrolBotUpgradeScreen patrolUpgrade = droneUpgradeRoot.AddComponent<PLPatrolBotUpgradeScreen>();
@@ -1845,6 +1877,8 @@ namespace The_Flagship
                     cyberScreen.Assemble();
                     Object.DontDestroyOnLoad(droneUpgradeRoot);
                     //ship.InteriorStatic = interior;
+
+                    //Place the foxes
                     if (foxplush != null)
                     {
                         GameObject newfox = Object.Instantiate(foxplush, new Vector3(330.5399f, -443.1522f, 1735.403f), new Quaternion(0, 0.5688f, 0, -0.8225f));
@@ -1864,6 +1898,8 @@ namespace The_Flagship
                         newfox.transform.SetParent(newinterior.transform);
                         newfox.transform.localScale = Vector3.one * 0.5f;
                     }
+
+                    //Teleport player to the bridge if they are already in game, also load the asset for the camera visual object
                     if (PLNetworkManager.Instance.MyLocalPawn != null) PLNetworkManager.Instance.MyLocalPawn.transform.position = (ship.Spawners[PLNetworkManager.Instance.LocalPlayer.GetClassID()] as GameObject).transform.position;
                     ship.ReactorInstance.transform.position = new Vector3(357.8f, -425.7683f, 1368.4f);
                     ship.ReactorInstance.LightMeltdownEnd = new Vector3(0, -12, 0);
@@ -1893,6 +1929,7 @@ namespace The_Flagship
                     payer.MyCustomPawnData[2].SetData(2, 26, false);
                     payer.MyCustomPawnData[2].SetData(1, 28, false);
                     while (payer.GetPawn() == null || payer.GetPawn().HeadRenderers.Length < 1 || payer.GetPawn().HeadRenderers[0] == null) await Task.Yield();
+                    
                     //Copy of the head, placed in the kitchen
                     GameObject head = GameObject.Instantiate(payer.GetPawn().HeadRenderers[0].transform.parent.gameObject, new Vector3(11.4164f, -257.782f, -349.5872f), Quaternion.Euler(new Vector3(38.1819f, -151f, 0)));
                     head.GetComponentInChildren<SkinnedMeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
@@ -2422,6 +2459,8 @@ namespace The_Flagship
                     head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                 }
             }
+
+            //setup ship status
             ship.IsGodModeActive = false;
             ship.MyStats.Mass = 4620;
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
@@ -2491,7 +2530,8 @@ namespace The_Flagship
                 PLServer.Instance.RepLevels[2] = 5;
                 PLServer.Instance.CrewFactionID = 2;
             }
-            //Changing base values of the ship
+            
+            //Changing base values of the ship systems, moving the spectate camera into the bridge, increasing the sensor dish range and enable all textures
             ship.EngineeringSystem.MaxHealth = 100;
             ship.EngineeringSystem.Health = 100;
             ship.WeaponsSystem.MaxHealth = 100;
@@ -2509,6 +2549,7 @@ namespace The_Flagship
                 render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
             }
 
+            //begin to unload the sectors that the assets were collected from
             AsyncOperation des = SceneManager.UnloadSceneAsync(Estate);
             AsyncOperation des1 = SceneManager.UnloadSceneAsync(Flagship);
             AsyncOperation des2 = SceneManager.UnloadSceneAsync(WDHub);
@@ -2591,6 +2632,8 @@ namespace The_Flagship
                 }
             }
             ship.InteriorRenderers.RemoveAll((MeshRenderer render) => render == null);
+
+            //Enable all lights
             foreach (Light light in ship.InteriorShipLights)
             {
                 try
@@ -2602,6 +2645,8 @@ namespace The_Flagship
                 }
                 catch { }
             }
+
+            //remove the pathfinding mesh from the interceptor and delete all screens that don't have a proper target
             PLPathfinderGraphEntity oldPath = PLPathfinder.GetInstance().GetPGEforShip(ship);
             if (oldPath != null) oldPath.TLI = null;
             List<PLUIScreen> screensfordeletion = new List<PLUIScreen>();
@@ -2623,41 +2668,6 @@ namespace The_Flagship
             }
 
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
-        }
-    }
-    [HarmonyPatch(typeof(PLWarpGuardian), "Update")]
-    class GuardianBeamFix
-    {
-        public static float BeamMultiplier = 8f;
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)
-        {
-            List<CodeInstruction> instructionsList = Instructions.ToList();
-            instructionsList[1038].operand = AccessTools.Field(typeof(GuardianBeamFix), "BeamMultiplier");
-            instructionsList[1038].opcode = OpCodes.Ldsfld;
-            return instructionsList.AsEnumerable();
-        }
-
-        static void Postfix()
-        {
-            BeamMultiplier = (Command.shipAssembled ? 0f : 8f);
-        }
-    }
-    [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
-    internal class OnExit
-    {
-        internal static void Postfix()
-        {
-            foreach (GameObject gameObject in Mod.moddedScreens)
-            {
-                Object.Destroy(gameObject);
-            }
-            Command.shipAssembled = false;
-            Mod.moddedScreens.Clear();
-            Mod.FighterCount = 10;
-            Mod.PatrolBotsLevel = 0;
-            PLAutoRepairScreen.CurrentMultiplier = 1f;
-            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-            Command.prisionCells = new GameObject[10];
         }
     }
 }
