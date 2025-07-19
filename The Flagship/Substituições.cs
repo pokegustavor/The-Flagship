@@ -18,13 +18,13 @@ using System.Reflection.Emit;
 
 namespace The_Flagship
 {
-    class FlagshipHelperMethods 
+    class FlagshipHelperMethods
     {
-        public static PLPlayer GetPlayerFromPhotonPlayer(PhotonPlayer photon) 
+        public static PLPlayer GetPlayerFromPhotonPlayer(PhotonPlayer photon)
         {
-            foreach(PLPlayer player in PLServer.Instance.AllPlayers) 
+            foreach (PLPlayer player in PLServer.Instance.AllPlayers)
             {
-                if(player != null && player.GetPhotonPlayer() != null && player.GetPhotonPlayer().Equals(photon)) 
+                if (player != null && player.GetPhotonPlayer() != null && player.GetPhotonPlayer().Equals(photon))
                 {
                     return player;
                 }
@@ -32,31 +32,6 @@ namespace The_Flagship
             return null;
         }
     }
-    /*
-    public class PLFlagship : PLOldWarsShip_Human
-    {
-        public override string GetShipTypeName()
-        {
-            return "Flagship";
-        }
-        public override string GetShipShortDesc()
-        {
-            return "Restored Capital Class Vessel";
-        }
-        public override string GetShipAttributes()
-        {
-            return "Nnockback Resistance\n+100% Reactor Output\n+10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>";
-        }
-        public override void ShipFinalCalculateStats(ref PLShipStats inStats)
-        {
-            base.ShipFinalCalculateStats(ref inStats);
-            inStats.ReactorOutputFactor *= 2;
-            inStats.OxygenRefillRate *= 10;
-            inStats.HullArmor *= ShipStats.armorModifier;
-            inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
-        }
-    }
-    */
     [HarmonyPatch(typeof(PLOldWarsShip_Human), "GetShipTypeName")]
     class ShipType
     {
@@ -322,6 +297,7 @@ namespace The_Flagship
             while (PLEncounterManager.Instance.PlayerShip == null) await Task.Yield();
             //if (PLServer.GetCurrentSector() != null && (!fromFile && (PLServer.GetCurrentSector().VisualIndication != ESectorVisualIndication.COLONIAL_HUB || PLServer.Instance.CurrentCrewLevel > 1))) return;
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
+            if (ship.ShipTypeID != EShipType.OLDWARS_HUMAN) return;
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
@@ -334,9 +310,9 @@ namespace The_Flagship
             {
                 await Task.Yield();
             }
-            if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.OLDWARS_HUMAN && !Command.shipAssembled)
+            if (!Command.shipAssembled)
             {
-                Command.FabricateFlagship();
+                Assembler.FabricateFlagship();
             }
         }
     }
@@ -357,7 +333,7 @@ namespace The_Flagship
         {
             if (sender.sender == PhotonNetwork.masterClient)
             {
-                Command.FabricateFlagship();
+                Assembler.FabricateFlagship();
             }
         }
     }
@@ -415,12 +391,18 @@ namespace The_Flagship
             }
             if (!__instance.ShowingExterior && __instance.GetIsPlayerShip() && (PLNetworkManager.Instance.MyLocalPawn == null || PLNetworkManager.Instance.MyLocalPawn.CurrentShip == __instance) && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
-                if (PLNetworkManager.Instance.LocalPlayer.GetPlayerID() == __instance.SensorDishControllerPlayerID) __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                if (__instance.ExteriorMeshRenderer != null)
+                {
+                    __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    if (PLNetworkManager.Instance.LocalPlayer.GetPlayerID() == __instance.SensorDishControllerPlayerID) __instance.ExteriorMeshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                }
                 foreach (MeshRenderer render in __instance.InteriorRenderers)
                 {
-                    render.enabled = true;
-                    render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    if (render != null)
+                    {
+                        render.enabled = true;
+                        render.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+                    }
                 }
                 PLWDParticleSystem starmap = __instance.InteriorStatic.GetComponentInChildren<PLWDParticleSystem>();
                 if (starmap != null)
@@ -447,15 +429,18 @@ namespace The_Flagship
             {
                 foreach (Transform transform in __instance.RegularTurretPoints)
                 {
-                    foreach (Transform child in transform)
+                    if (transform != null)
                     {
-                        if (child.localScale.x < 1)
+                        foreach (Transform child in transform)
                         {
-                            child.localScale = Vector3.one;
+                            if (child != null && child.localScale.x < 1)
+                            {
+                                child.localScale = Vector3.one;
+                            }
                         }
                     }
                 }
-                if (__instance.MainTurretPoint.childCount > 0 && __instance.MainTurretPoint.GetChild(0).localScale.x < 10)
+                if (__instance.MainTurretPoint != null && __instance.MainTurretPoint.childCount > 0 && __instance.MainTurretPoint.GetChild(0).localScale.x < 10)
                 {
                     __instance.MainTurretPoint.GetChild(0).localScale = Vector3.one * 13;
                 }
@@ -496,17 +481,17 @@ namespace The_Flagship
                             OnWarpBase.ResearchItemPickups[i].ResetInternalItem();
                             OnWarpBase.ResearchItemGameObjects[i] = gameObject;
                         }
-                        if (!OnWarpBase.ResearchItemGameObjects[i].activeSelf)
+                        if (OnWarpBase.ResearchItemGameObjects[i] != null && !OnWarpBase.ResearchItemGameObjects[i].activeSelf)
                         {
                             OnWarpBase.PickupResearchItems[i] = -1;
                             UnityEngine.Object.Destroy(OnWarpBase.ResearchItemGameObjects[i]);
                         }
                     }
                 }
-                if (PLNetworkManager.Instance.ViewedPawn != null)
+                if (PLNetworkManager.Instance.ViewedPawn != null && PLNetworkManager.Instance.ViewedPawn.MyInterior != null)
                 {
                     Vector3 position = PLNetworkManager.Instance.ViewedPawn.transform.position;
-                    if (Command.cameraenabled && position.y > -262 && position.y < -257 && position.z > -345 && position.z < -313 && position.x < 30 && position.x > -30)
+                    if (Command.cameraenabled && PLNetworkManager.Instance.ViewedPawn.MyInterior.name == "BridgeBSO(Clone)" && position.z > -345 && position.z < -313 && position.x < 30 && position.x > -30)
                     {
                         if (Command.realtimecams)
                         {
@@ -546,18 +531,7 @@ namespace The_Flagship
             }
         }
     }
-    /*
-    [HarmonyPatch(typeof(PLShipInfo), "OnSysInstValueChanged")]
-    class SystemBar 
-    {
-        static void Postfix(int inID, PLSysIntUISlider slider, float value) 
-        {
-            Text description = slider.gameObject.GetComponent<Text>();
-            if (description.text.Contains("\n")) description.text = description.text.Remove(description.text.IndexOf("\n"));
-            description.text += $"\n({Mathf.FloorToInt(value * 100)}%)";
-        }
-    }
-    */
+
     [HarmonyPatch(typeof(PLPlayer), "Update")]
     class PlayerUpdate
     {
@@ -634,6 +608,7 @@ namespace The_Flagship
             {
                 __instance.Speed = 0;
                 __instance.MyRigidbody.velocity = Vector3.zero;
+                __instance.MyRigidbody.mass = 0;
             }
         }
     }
@@ -969,6 +944,7 @@ namespace The_Flagship
         }
         static bool Prefix(PLBoardingBot __instance)
         {
+            if (__instance.Lifetime < 5f && !PhotonNetwork.isMasterClient) return true;
             if (!__instance.name.Contains("(frienddrone)")) return true;
             float expectedMaxH = 155 + Mod.PatrolBotsLevel * 25;
             if (PhotonNetwork.isMasterClient && Time.time - LastSync > 10)
@@ -2034,7 +2010,7 @@ namespace The_Flagship
         static void Prefix(int inShipID)
         {
             PLShipInfoBase ship = PLEncounterManager.Instance.GetShipFromID(inShipID);
-            if (ship != null && ship == PLEncounterManager.Instance.PlayerShip && ship.ShipTypeID == EShipType.OLDWARS_HUMAN)
+            if (ship != null && ship == PLEncounterManager.Instance.PlayerShip && ship.ShipTypeID == EShipType.OLDWARS_HUMAN && Command.shipAssembled)
             {
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
@@ -2049,15 +2025,18 @@ namespace The_Flagship
     [HarmonyPatch(typeof(PLOldWarsShip_Human), "SetupShipStats")]
     class InitialSpaceOnLoad
     {
-        static void Postfix(PLOldWarsShip_Human __instance)
+        static void Postfix(PLOldWarsShip_Human __instance, bool previewStats = false)
         {
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
-            __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            if (!previewStats && (Command.shipAssembled || (Mod.AutoAssemble && PhotonNetwork.isMasterClient)) && __instance.GetIsPlayerShip())
+            {
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
+                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            }
         }
     }
     [HarmonyPatch(typeof(PLShipInfoBase), "OnWarp")]
@@ -2081,7 +2060,7 @@ namespace The_Flagship
         };
         static void Postfix(PLShipInfoBase __instance)
         {
-            if (__instance.GetIsPlayerShip() && PhotonNetwork.isMasterClient)
+            if (__instance.GetIsPlayerShip() && PhotonNetwork.isMasterClient && Command.shipAssembled)
             {
                 foreach (PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values)
                 {
@@ -2093,7 +2072,7 @@ namespace The_Flagship
                 }
                 int pos = UnityEngine.Random.Range(0, 5);
                 if (PickupResearchItems[pos] == -1) PickupResearchItems[pos] = UnityEngine.Random.Range(0, ResearchTypeItemSubtypes.Length);
-                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.ResearchRPC", PhotonTargets.Others, new object[] { OnWarpBase.PickupResearchItems });
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.ResearchRPC", PhotonTargets.Others, new object[] { PickupResearchItems });
             }
         }
     }
@@ -2140,17 +2119,7 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLGameProgressManager), "IsShipUnlockOpened")]
-    class UnlockInterceptor
-    {
-        static void Postfix(int shipType, ref bool __result)
-        {
-            if (shipType == (int)EShipType.OLDWARS_HUMAN)
-            {
-                __result = true;
-            }
-        }
-    }
+
     [HarmonyPatch(typeof(PLWarpGuardian), "Update")]
     class WarpGuardianTargetFlagship
     {
@@ -2174,9 +2143,9 @@ namespace The_Flagship
     [HarmonyPatch(typeof(PLLocalize), "Localize", new Type[] { typeof(string), typeof(bool) })]
     class RepairSwitchText
     {
-        static void Postfix(string value, ref string __result) 
+        static void Postfix(string value, ref string __result)
         {
-            if (Command.shipAssembled) 
+            if (Command.shipAssembled)
             {
                 if (value == "Uses 1 processed scrap to repair the hull (+200 hull / scrap)") __result = "Uses 5 processed scrap to repair the hull (+20% hull / scrap)";
                 if (value == "No processed scrap to consume") __result = "Not enough processed scrap to consume";

@@ -1752,19 +1752,20 @@ namespace The_Flagship
     }
     public class PLCyberAttackScreen : PLModdedSpecialScreen
     {
-        Text Title;
+        static Text Title;
         GameObject selecttargettext;
         Text[] Descriptions = new Text[5];
         GameObject[] Buttons = new GameObject[5];
-        Tile[,] gameBoard = new Tile[8, 9];
-        List<PLShipInfo> targetsList = new List<PLShipInfo>();
+        static Tile[,] gameBoard = new Tile[8, 9];
+        static List<PLShipInfo> targetsList = new List<PLShipInfo>();
         static bool ingame = false;
+        static bool firstClick = true;
         bool syncendInGame = true;
         static int mines = 0;
         static int flags = 0;
         public static bool failed = false;
         float lastListUpdate = Time.time;
-        PLShipInfo targetship;
+        static PLShipInfo targetship;
         public static List<PLShipInfo> shutdownList = new List<PLShipInfo>();
         public override void Assemble()
         {
@@ -1944,8 +1945,14 @@ namespace The_Flagship
             }
             Assembled = true;
         }
-        void StartMine(int target)
+        internal static void StartMine(int target, int seed = -1)
         {
+            if (seed == -1)
+            {
+                seed = UnityEngine.Random.Range(0, int.MaxValue);
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackStart", PhotonTargets.Others, new object[] { target, seed });
+            }
+            firstClick = true;
             //Resets the board
             for (int i = 0; i < 8; i++)
             {
@@ -1970,14 +1977,15 @@ namespace The_Flagship
                     difficulty = 7;
                 }
                 mines = difficulty;
+                System.Random RNG = new System.Random(seed);
                 for (int i = 0; i < difficulty; i++)
                 {
                     int x;
                     int y;
                     do
                     {
-                        x = UnityEngine.Random.Range(0, 8);
-                        y = UnityEngine.Random.Range(0, 9);
+                        x = RNG.Next(0, 9);
+                        y = RNG.Next(0, 10);
                     } while (gameBoard[x, y].hasMine);
                     gameBoard[x, y].hasMine = true;
                 }
@@ -1994,8 +2002,9 @@ namespace The_Flagship
                 Title.text = "VIRTUAL CYBERATTACK      " + (mines - flags) + " Mines";
             }
         }
-        void PressedTile(int x, int y)
+        internal static void PressedTile(int x, int y)
         {
+            ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackClickMine", PhotonTargets.Others, new object[] { x, y });
             if (ingame && !failed)
             {
                 if (!gameBoard[x, y].revealed)
@@ -2004,9 +2013,9 @@ namespace The_Flagship
                     if (!failed && GameIsComplete())
                     {
                         ingame = false;
-                        if (targetship != null)
+                        if (targetship != null && PhotonNetwork.isMasterClient)
                         {
-                            ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.MasterClient, new object[] { true, targetship.ShipID, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
+                            ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.All, new object[] { true, targetship.ShipID, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
                         }
                     }
                 }
@@ -2045,7 +2054,7 @@ namespace The_Flagship
                             failed = false;
                             ingame = false;
                         }
-                        else if (PhotonNetwork.isMasterClient)
+                        else
                         {
                             ship.DischargeAmount += 0.2f * Time.deltaTime;
                         }
@@ -2055,7 +2064,7 @@ namespace The_Flagship
                         failed = false;
                     }
                 }
-                if (PhotonNetwork.isMasterClient)
+                if (PhotonNetwork.isMasterClient && PhotonNetwork.isMasterClient)
                 {
                     shutdownList.RemoveAll((PLShipInfo ship) => ship == null || ship.StartupSwitchBoard == null || !ship.StartupSwitchBoard.GetStatus(0));
                     foreach (PLShipInfo ship in shutdownList)
@@ -2103,7 +2112,7 @@ namespace The_Flagship
                 }
             }
         }
-        bool GameIsComplete()
+        static bool GameIsComplete()
         {
             for (int i = 0; i < 8; i++)
             {
@@ -2209,8 +2218,26 @@ namespace The_Flagship
             }
             public void Pressed(Tile[,] board, bool shouldFlag)
             {
+
                 if (!revealed && !flagged && !shouldFlag)
                 {
+                    if (firstClick)
+                    {
+                        firstClick = false;
+                        if (hasMine)
+                        {
+                            System.Random RNG = new System.Random(-1);
+                            int x;
+                            int y;
+                            do
+                            {
+                                x = RNG.Next(0, 9);
+                                y = RNG.Next(0, 10);
+                            } while (board[x, y].hasMine || board[x, y] == this);
+                            board[x, y].hasMine = true;
+                            hasMine = false;
+                        }
+                    }
                     revealed = true;
                     text.enabled = true;
                     if (nearMines == 0)
@@ -2246,10 +2273,10 @@ namespace The_Flagship
                         colors1.selectedColor = Color.gray;
                         but.colors = colors1;
                     }
-                    if (hasMine)
+                    if (hasMine && PhotonNetwork.isMasterClient)
                     {
                         failed = true;
-                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.MasterClient, new object[] { false, -1, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.CyberAttackReciever", PhotonTargets.All, new object[] { false, -1, PLNetworkManager.Instance.LocalPlayer.GetPlayerID() });
                         return;
                     }
                     if (nearMines == 0)
@@ -2549,7 +2576,7 @@ namespace The_Flagship
                 if (cachedFriendlyPlayerOfClass.GetPlayerID() != (int)arguments[2])
                 {
                     PLPlayer failuer = PLServer.Instance.GetPlayerFromPlayerID((int)arguments[2]);
-                    if (failuer != null)
+                    if (failuer != null && PhotonNetwork.isMasterClient)
                     {
                         PLServer.Instance.photonView.RPC("AddNotificationLocalize", cachedFriendlyPlayerOfClass.GetPhotonPlayer(), new object[]
                             {
@@ -2561,6 +2588,20 @@ namespace The_Flagship
                     }
                 }
             }
+        }
+    }
+    class CyberAttackStart : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            PLCyberAttackScreen.StartMine((int)arguments[0], (int)arguments[1]);
+        }
+    }
+    class CyberAttackClickMine : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            PLCyberAttackScreen.PressedTile((int)arguments[0], (int)arguments[1]);
         }
     }
 }

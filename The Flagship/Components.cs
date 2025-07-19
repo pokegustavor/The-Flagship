@@ -1,4 +1,5 @@
 ﻿using PulsarModLoader.Content.Components.MegaTurret;
+using PulsarModLoader.Content.Components.Hull;
 using UnityEngine;
 
 namespace The_Flagship
@@ -10,6 +11,20 @@ namespace The_Flagship
             public override string Name => "TheFlagship_FlagShipMainTurret";
 
             public override PLShipComponent PLMegaTurret => new FlagShipMainTurret();
+        }
+        class FlagShipHullMod : HullMod
+        {
+            public override string Name => "W.D Flagship Hull";
+
+            public override string Description => "An extremely dense hull designed to support the massive scale of the W.D. Flagship, due to it's size this hull is only compatiable with the flagship.";
+
+            public override int MarketPrice => 70000;
+
+            public override bool CanBeDroppedOnShipDeath => false;
+
+            public override float HullMax => 4000f;
+
+            public override float Armor => 2.2f;
         }
     }
     class FlagShipMainTurret : PLMegaTurret
