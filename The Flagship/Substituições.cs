@@ -2191,22 +2191,4 @@ namespace The_Flagship
             BeamMultiplier = (Command.shipAssembled ? 0f : 8f);
         }
     }
-    [HarmonyPatch(typeof(PLNetworkManager), "OnLeaveGame")]
-    internal class OnExit
-    {
-        internal static void Postfix()
-        {
-            foreach (GameObject gameObject in Mod.moddedScreens)
-            {
-                Object.Destroy(gameObject);
-            }
-            Command.shipAssembled = false;
-            Mod.moddedScreens.Clear();
-            Mod.FighterCount = 10;
-            Mod.PatrolBotsLevel = 0;
-            PLAutoRepairScreen.CurrentMultiplier = 1f;
-            Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-            Command.prisionCells = new GameObject[10];
-        }
-    }
 }
