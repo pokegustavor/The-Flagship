@@ -15,6 +15,12 @@ using PulsarModLoader.Utilities;
 using ExitGames.Demos.DemoAnimator;
 using CodeStage.AntiCheat.ObscuredTypes;
 using System.Reflection.Emit;
+using PulsarModLoader.Patches;
+using System.IO;
+using static PulsarModLoader.Patches.HarmonyHelpers;
+using System.Reflection;
+
+
 
 namespace The_Flagship
 {
@@ -286,18 +292,24 @@ namespace The_Flagship
                 {
                     Mod.AutoAssemble = bool.Parse(savedoptions);
                 }
-                if (Mod.AutoAssemble)
-                {
-                    OnJoin.AutoAssemble();
-                }
+                OnJoin.AutoAssemble(Mod.AutoAssemble);
             }
         }
-        public static async void AutoAssemble(bool fromFile = false)
+        public static async void AutoAssemble(bool autoAssemble = false)
         {
+            if (!PhotonNetwork.isMasterClient) return;
             while (PLEncounterManager.Instance.PlayerShip == null) await Task.Yield();
             //if (PLServer.GetCurrentSector() != null && (!fromFile && (PLServer.GetCurrentSector().VisualIndication != ESectorVisualIndication.COLONIAL_HUB || PLServer.Instance.CurrentCrewLevel > 1))) return;
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-            if (ship.ShipTypeID != EShipType.OLDWARS_HUMAN) return;
+            List<int> originalSize = new List<int>
+            {ship.MyStats.GetSlot(ESlotType.E_COMP_CARGO).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_CPU).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Capacity,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_SENS).Capacity,
+            };
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
@@ -305,18 +317,168 @@ namespace The_Flagship
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
-            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, false);
             while (PLEncounterManager.Instance == null || !PLLoader.Instance.IsLoaded)
             {
                 await Task.Yield();
             }
-            if (!Command.shipAssembled)
+            if (!Command.shipAssembled && (autoAssemble || Mod.ShouldAssemble))
             {
                 Assembler.FabricateFlagship();
             }
+            while (!PLServer.Instance.GameHasStarted) 
+            {
+                await Task.Yield();
+            }
+            if (!Command.shipAssembled) 
+            {
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, originalSize[0]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, originalSize[1]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, originalSize[2]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, originalSize[3]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, originalSize[4]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, originalSize[5]);
+                ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, originalSize[6]);
+            }
         }
     }
-    public class sendRPC : ModMessage
+    [HarmonyPatch(typeof(PLServer), "SpawnPlayerShipFromSaveData")]
+    class AssembleTranspiler 
+    {
+        [HarmonyPrefix]
+        public static bool SpawnPlayerShipFromSaveData(ref PLServer __instance, ref SaveGameData inData)
+        {
+            Vector3 position = Vector3.zero;
+            if (PLEncounterManager.Instance.GetCPEI() != null)
+            {
+                position = PLEncounterManager.Instance.GetCPEI().GetPlayerStartLoc();
+            }
+            string prefabNameForShipType = PLPersistantEncounterInstance.GetPrefabNameForShipType((EShipType)inData.PS_ShipType.GetDecrypted());
+            GameObject gameObject = PhotonNetwork.Instantiate("NetworkPrefabs/" + prefabNameForShipType, position, Quaternion.identity, 0, null) as GameObject;
+            PLEncounterManager.Instance.PlayerShip = gameObject.GetComponent<PLShipInfo>();
+            PLEncounterManager.Instance.PlayerShip.SetShipID(PLServer.ServerSpaceTargetIDCounter++);
+            PLEncounterManager.Instance.PlayerShip.TeamID = 0;
+            PLEncounterManager.Instance.PlayerShip.CreatedFromSaveData = inData;
+            __instance.CrewFactionID = inData.CrewFactionID;
+            __instance.PlayerCrew_BiscuitsSold = inData.PS_BiscuitsSold;
+            __instance.PlayerCrew_BiscuitsSold_WhenContestEnded = inData.PS_BiscuitsSold_WhenContestEnded;
+            __instance.PlayerCrew_WonFBContest = inData.PS_BiscuitsSold_WonFBContest;
+            __instance.BiscuitBombAvailable = inData.PS_BBAvailable;
+            __instance.ActiveBountyHunter_SectorID = inData.ActiveBountyHunter_SectorID;
+            __instance.ActiveBountyHunter_SecondsSinceWarp = inData.ActiveBountyHunter_SecondsSinceWarp;
+            __instance.ActiveBountyHunter_TypeID = inData.ActiveBountyHunter_TypeID;
+            __instance.ActiveBountyHunter_ProcessedChaosLevel = inData.ActiveBountyHunter_ProcessedChaosLevel;
+            __instance.PacifistRun = inData.PacifistRun;
+            __instance.CreditsSpent_InRun = inData.CreditsSpent_InRun;
+            __instance.BlindJumpCount = inData.BlindJumpCount;
+            __instance.PerfectBiscuitStreak = inData.PerfectBiscuitStreak;
+            __instance.CrewPurchaseLimitsEnabled = inData.PurchaseLimitsEnabled;
+            __instance.FragmentsCollected = inData.DataFragmentsCollected;
+            __instance.BountyHuntersSpawned = inData.BountyHuntersSpawned;
+            __instance.PTCountdownTime = inData.PTCountdown;
+            __instance.PTCountdownArmed = inData.PTCountdownArmed;
+            __instance.PTCountdown_JumpCountMode = inData.PTCountdownDisabledTimer;
+            if (inData.BHI_Exists)
+            {
+                __instance.BountyHunterInfo = new PLPersistantShipInfo((EShipType)inData.BHI_ShipType.GetDecrypted(), 6, null, 0, false, false, false, -1, -1);
+                __instance.BountyHunterInfo.HullPercent = inData.BHI_HullPercent;
+                __instance.BountyHunterInfo.ShipName = inData.BHI_ShipName;
+            }
+            else
+            {
+                __instance.BountyHunterInfo = null;
+            }
+            if (inData.BHL_Exists)
+            {
+                __instance.BountyHunterLayout = new PLEncounterManager.ShipLayout(inData.BHL_Data + "," + inData.BHL_Crew);
+            }
+            else
+            {
+                __instance.BountyHunterLayout = null;
+            }
+            __instance.IsCrewRepRevealed = inData.PlayerShipIsRevealed;
+            PLNetworkManager.Instance.SelectedShipTypeID = inData.SelectedShipTypeID;
+            __instance.LongRangeCommsDisabled = inData.LongRangeCommsDisabled;
+            PLEncounterManager.Instance.PlayerShip.IsFlagged = inData.PlayerShipIsFlagged;
+            PLServer.Instance.CurrentUpgradeMats = inData.PS_CurrentUpgradeMats;
+            PLEncounterManager.Instance.PlayerShip.WeapUpgrade_PawnItemInLockerHash = (uint)inData.PS_CurrentItemUpgradeHash.GetDecrypted();
+            for (int i = 0; i < Mathf.Min(__instance.RepLevels.Length, inData.FactionRepInfo.Length); i++)
+            {
+                __instance.RepLevels[i] = inData.FactionRepInfo[i];
+            }
+            __instance.BiscuitContestIsOver = inData.BiscuitContestIsOver;
+            if (PLGlobal.Instance.Galaxy != null && inData.StormPosition != Vector3.zero)
+            {
+                PLGlobal.Instance.Galaxy.StormPosition = inData.StormPosition;
+            }
+            __instance.RacesWonBitfield = inData.RacesWonBitfield;
+            __instance.RacesLostBitfield = inData.RacesLostBitfield;
+            __instance.RacesStartedBitfield = inData.RacesStartedBitfield;
+            PLEncounterManager.Instance.PlayerShip.ShipNameValue = inData.PS_ShipName;
+            PLEncounterManager.Instance.PlayerShip.ShouldCreateDefaultComponents = false;
+            PLEncounterManager.Instance.PlayerShip.SetupShipStats(false, false);
+            OnJoin.AutoAssemble();
+            PLEncounterManager.Instance.PlayerShip.ReadAdditionalDataFromSaveIO(PLServer.ObscuredByteArrayToByteArray(inData.PS_AdditionalShipData));
+            if (inData.SaveVerID >= 61)
+            {
+                PLEncounterManager.Instance.PlayerShip.FactionID = inData.PS_FactionID;
+            }
+            for (int j = 0; j < inData.PS_ComponentHash.Count; j++)
+            {
+                PLShipComponent plshipComponent = PLShipComponent.CreateShipComponentFromHash((int)inData.PS_ComponentHash[j].GetDecrypted(), inData);
+                if (plshipComponent != null && plshipComponent.ActualSlotType != ESlotType.E_COMP_VIRUS)
+                {
+                    plshipComponent.SortID = inData.PS_ComponentSortID[j];
+                    plshipComponent.SubTypeData = inData.PS_SubTypeData[j];
+                    PLEncounterManager.Instance.PlayerShip.MyStats.AddShipComponent(plshipComponent, -1, plshipComponent.VisualSlotType);
+                    PLSlot slot = PLEncounterManager.Instance.PlayerShip.MyStats.GetSlot(plshipComponent.VisualSlotType);
+                    if (slot != null && inData.PS_ComponentSortID[j] < slot.MaxItems)
+                    {
+                        plshipComponent.SortID = inData.PS_ComponentSortID[j];
+                    }
+                }
+            }
+            if (inData.SaveVerID < 35)
+            {
+                PLSlot slot2 = PLEncounterManager.Instance.PlayerShip.MyStats.GetSlot(ESlotType.E_COMP_SENSORDISH);
+                if (slot2 != null && slot2.MaxItems > 0 && slot2.Count == 0)
+                {
+                    PLEncounterManager.Instance.PlayerShip.MyStats.AddShipComponent(new PLSensorDish(ESensorDishType.E_NORMAL, 0), -1, ESlotType.E_COMP_SENSORDISH);
+                }
+                PLSlot slot3 = PLEncounterManager.Instance.PlayerShip.MyStats.GetSlot(ESlotType.E_COMP_CLOAKING_SYS);
+                if (slot3 != null && slot3.MaxItems > 0 && slot3.Count == 0)
+                {
+                    PLEncounterManager.Instance.PlayerShip.MyStats.AddShipComponent(new PLCloakingSystem(ECloakingSystemType.E_NORMAL, 0), -1, ESlotType.E_COMP_CLOAKING_SYS);
+                }
+            }
+            for (int k = 0; k < inData.PS_DroppedItems.Count; k++)
+            {
+                uint hash = inData.PS_DroppedItems[k].ItemHash;
+                Vector3 pos = inData.PS_DroppedItems[k].Position;
+                PLServer instance = PLServer.Instance;
+                int num = instance.droppedPlayerItemIDCounter;
+                instance.droppedPlayerItemIDCounter = num + 1;
+                PLPlayerDroppedItem item = new PLPlayerDroppedItem(hash, pos, num);
+                PLEncounterManager.Instance.PlayerShip.AllPlayerDroppedItems.Add(item);
+            }
+            PLEncounterManager.Instance.PlayerShip.NumberOfFuelCapsules = inData.PS_Fuel;
+            PLEncounterManager.Instance.PlayerShip.ReactorCoolantLevelPercent = inData.PS_CoolantLevel;
+            PLEncounterManager.Instance.PlayerShip.EndGameSequenceActive = inData.PS_EndGameSequenceActive;
+            __instance.IsReflection = inData.PS_IsReflection;
+            PLHull shipComponent = PLEncounterManager.Instance.PlayerShip.MyStats.GetShipComponent<PLHull>(ESlotType.E_COMP_HULL, false);
+            if (shipComponent != null)
+            {
+                shipComponent.Current = inData.PS_Hull;
+            }
+            PLEncounterManager.Instance.PlayerShip.FBCrateSupply = inData.PS_FBCrateSupply;
+            if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.E_ABYSS_PLAYERSHIP)
+            {
+                PLEncounterManager.Instance.PlayerShip.Exterior.transform.position = inData.ShipPosition;
+                PLEncounterManager.Instance.PlayerShip.Exterior.transform.forward = inData.ShipDirection;
+            }
+            return false;
+        }
+    }
+    public class SendRPC : ModMessage
     {
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {

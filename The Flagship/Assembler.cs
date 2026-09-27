@@ -1098,7 +1098,7 @@ namespace The_Flagship
                     while (payer.GetPawn() == null || payer.GetPawn().HeadRenderers.Length < 1 || payer.GetPawn().HeadRenderers[0] == null) await Task.Yield();
                     AssembleCameras(newinterior, newbridge, payer, ref camerasRenders);
                     ship.IsGodModeActive = false;
-                    SetupStats(ship, prevShip);
+                    SetupStats(ship, prevShip, newinterior);
                     newbridge.transform.position += new Vector3(0, verticalOffset, 0);
                     //Teleport players into their spawn positions
                     if (PLNetworkManager.Instance.MyLocalPawn != null)
@@ -2407,19 +2407,22 @@ namespace The_Flagship
             newfox.transform.SetParent(newinterior.transform);
             newfox.transform.localScale = Vector3.one * 0.5f;
         }
-        static void SetupStats(PLShipInfo ship, PLShipInfo prevShip)
+        static void SetupStats(PLShipInfo ship, PLShipInfo prevShip, GameObject newInterior)
         {
             //setup cargo pads
             int index = 0;
+            /*
             for (int i = 0; i < prevShip.MyStats.GetSlot(ESlotType.E_COMP_CARGO).MaxItems; i++)
             {
                 if (ship.CargoBases.Length >= i) break;
                 ship.CargoBases[i].transform.position = new Vector3(281.2728f + (i / 24 * 4), -443.3417f, 1472.178f + (i * 2));
                 ship.CargoBases[i].transform.rotation = new Quaternion(0, 0.7082f, 0, 0.706f);
+                ship.CargoBases[i].transform.SetParent(newInterior.transform);
                 index++;
             }
+            */
             List<GameObject> cargo = new List<GameObject>();
-            cargo.AddRange(ship.CargoBases);
+            //cargo.AddRange(ship.CargoBases);
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 24; j++)
@@ -2431,6 +2434,7 @@ namespace The_Flagship
                     }
                     GameObject cargoslot = Object.Instantiate(ship.CargoBases[0], new Vector3(281.2728f + (i * 4), -443.3417f, 1472.178f + (j * 2)), new Quaternion(0, 0.7082f, 0, 0.706f));
                     cargoslot.GetComponent<MeshRenderer>().enabled = true;
+                    cargoslot.transform.SetParent(newInterior.transform);
                     Object.DontDestroyOnLoad(cargoslot);
                     cargo.Add(cargoslot);
                     CargoObjectDisplay cargoDisplay = new CargoObjectDisplay();
@@ -2439,6 +2443,7 @@ namespace The_Flagship
                     cargoDisplay.DisplayObj = null;
                     cargoDisplay.Index = index;
                     cargoDisplay.Hidden = false;
+                    ship.CargoObjectDisplays.Clear();
                     ship.CargoObjectDisplays.Add(cargoDisplay);
                     index++;
                 }
@@ -2471,11 +2476,6 @@ namespace The_Flagship
             powerPercent.AddRangeToArray(ship.m_SysIntConduit_LocalChangeValue);
             powerPercent[16] = 0;
             ship.m_SysIntConduit_LocalChangeValue = powerPercent;
-            if (ship.MyHull != null && ship.MyHull.Level < 9)
-            {
-                ship.MyHull.Level = 9;
-                ship.MyHull.Current = 3920;
-            }
             if (ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2 && PhotonNetwork.isMasterClient)
             {
                 for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
@@ -2495,25 +2495,26 @@ namespace The_Flagship
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 13, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
             }
-            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].SubType != PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"))
+            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0] != null && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].SubType != PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"))
             {
                 ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0]);
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
             }
-            else if (PhotonNetwork.isMasterClient) 
+            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count == 0) 
             {
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
             }
             if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0].SubType != PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"))
             {
                 ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0]);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
             }
-            else if (PhotonNetwork.isMasterClient) 
+            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count == 0)
             {
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
             }
             ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_MAINTURRET, true);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, true);
             if (PLServer.Instance.CrewFactionID == -1)
             {
                 PLServer.Instance.RepLevels[2] = 5;

@@ -24,13 +24,14 @@ namespace The_Flagship
     public class Mod : PulsarMod
     {
         public static bool AutoAssemble = false;
+        public static bool ShouldAssemble = false;
         public static ParticleSystem reactorEffect = null;
         public static List<GameObject> moddedScreens = new List<GameObject>();
         public static List<Camera> cameras = new List<Camera>();
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.1";
+        public override string Version => "1.9.2";
 
         public override string Author => "pokegustavo";
 
@@ -61,7 +62,7 @@ namespace The_Flagship
                 using (BinaryReader binaryReader = new BinaryReader(dataStream))
                 {
                     bool assembled = binaryReader.ReadBoolean();
-                    if (assembled) OnJoin.AutoAssemble();
+                    if (assembled) Mod.ShouldAssemble = true;
                     Mod.PatrolBotsLevel = binaryReader.ReadInt32();
                     Mod.FighterCount = binaryReader.ReadInt32();
                 }
@@ -84,7 +85,7 @@ namespace The_Flagship
     }
     public class Command : ChatCommand
     {
-        public static bool cameraenabled = true;
+        public static bool cameraenabled = false;
         public static bool shipAssembled = false;
         public static bool realtimecams = false;
         public static int[] playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
@@ -251,6 +252,7 @@ namespace The_Flagship
             Mod.moddedScreens.Clear();
             Mod.FighterCount = 10;
             Mod.PatrolBotsLevel = 0;
+            Mod.ShouldAssemble = false;
             PLAutoRepairScreen.CurrentMultiplier = 1f;
             Command.playersArrested = new int[10] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
             Command.prisionCells = new GameObject[10];
