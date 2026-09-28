@@ -302,13 +302,13 @@ namespace The_Flagship
             //if (PLServer.GetCurrentSector() != null && (!fromFile && (PLServer.GetCurrentSector().VisualIndication != ESectorVisualIndication.COLONIAL_HUB || PLServer.Instance.CurrentCrewLevel > 1))) return;
             PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
             List<int> originalSize = new List<int>
-            {ship.MyStats.GetSlot(ESlotType.E_COMP_CARGO).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_CPU).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Capacity,
-            ship.MyStats.GetSlot(ESlotType.E_COMP_SENS).Capacity,
+            {ship.MyStats.GetSlot(ESlotType.E_COMP_CARGO).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_CPU).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).MaxItems,
+            ship.MyStats.GetSlot(ESlotType.E_COMP_SENS).MaxItems,
             };
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);

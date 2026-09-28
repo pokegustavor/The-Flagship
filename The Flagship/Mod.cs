@@ -31,7 +31,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.2";
+        public override string Version => "1.9.3";
 
         public override string Author => "pokegustavo";
 
