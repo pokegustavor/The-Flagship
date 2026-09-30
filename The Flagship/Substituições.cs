@@ -917,45 +917,7 @@ namespace The_Flagship
             }
         }
     }
-    [HarmonyPatch(typeof(PLOldWarsShip_Human), "SetupShipStats")]
-    class StartingSlots
-    {
-        static void Postfix(PLOldWarsShip_Human __instance)
-        {
-            if (__instance.GetIsPlayerShip() && Mod.AutoAssemble)
-            {
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
-            }
-        }
-    }
-    [HarmonyPatch(typeof(PLServer), "SpawnPlayerShipFromSaveData")]
-    class FinishSlots
-    {
-        static void Postfix()
-        {
-            if (PLEncounterManager.Instance.PlayerShip.ShipTypeID == EShipType.OLDWARS_HUMAN)
-            {
-                PLShipInfo ship = PLEncounterManager.Instance.PlayerShip;
-                if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_CPU).Count <= 5 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET).Count <= 2 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_THRUSTER).Count <= 2
-                    && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_INERTIA_THRUSTER).Count <= 1 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MANEUVER_THRUSTER).Count <= 1 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_SENS).Count <= 1)
-                {
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 14);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 5);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 2);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 2);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 1);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 1);
-                    ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 1);
-                }
-            }
-        }
-    }
+
     [HarmonyPatch(typeof(PLShipInfoBase), "Start")]
     class PowerSlide
     {
@@ -989,6 +951,69 @@ namespace The_Flagship
             }
         }
     }
+    
+    [HarmonyPatch(typeof(PLGameStatic), "Update")]
+    class  InteractWithPatrol
+    {
+        static void Postfix() 
+        {
+            if (PLNetworkManager.Instance.MyLocalPawn != null && Command.shipAssembled) 
+            {
+                PLBoardingBot nearestDrone = null;
+                float nearest = float.MaxValue;
+                foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets) 
+                {
+                    if (combatTarget is PLBoardingBot && combatTarget != null && combatTarget.name.Contains("(frienddrone)") && (PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < 4f) 
+                    {
+                        if ((PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < nearest) 
+                        {
+                            nearest = (PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude;
+                            nearestDrone = combatTarget as PLBoardingBot;
+                        }
+                    }
+                }
+                if (nearestDrone != null)
+                {
+                    PLGlobal.Instance.SetBottomInfo("", "Pet the drone","", "talk_to_npc");
+                    if (PLInput.Instance.GetButtonUp(PLInputBase.EInputActionName.talk_to_npc))
+                    {
+                        List<string> sounds = new List<string> 
+                        {
+                            "play_sx_ship_enemy_ancientsentry_shoot",
+                            "play_sx_ui_ship_generic_slider_click",
+                            "play_sx_ship_warpguardian_bubble",
+                            "play_sx_player_sylvassi_skill_cloak",
+                            "play_sx_enemy_mindslaver_attack1",
+                            "play_sx_enemy_mindslaver_attack2",
+                            "play_sx_creature_largeant_emerge",
+                            "play_sx_planet_mine_explosion",
+                            "play_sx_ship_generic_probe_launch",
+                            "play_sx_ship_warpguardian_finalexplosion",
+                            "play_sx_planet_cypher_ring_move",
+                            "play_sx_player_item_biscuit_eat",
+                            "play_sx_env_planet_oldWarsEra_errorBeep_loop",
+                            "play_sx_ui_countdown_final_01",
+                            "play_sx_ui_countdown_01",
+                            "play_sx_ship_enemy_ancientsentry_emote",
+                            "play_ship_generic_internal_fire_burning",
+                            "play_sx_enemy_stalker_death"
+                        };
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.DroneReciever", PhotonTargets.All, new object[]
+                        {
+                        nearestDrone.photonView.instantiationId,
+                        0.192f,
+                        0f,
+                        0.902f,
+                        0.8f,
+                        nearestDrone.MyLights[0].enabled,
+                        sounds[UnityEngine.Random.Range(0,sounds.Count)]
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
     [HarmonyPatch(typeof(PLBoardingBot), "CombatRoutine")]
     class PatrolBotsCombat
     {
@@ -1073,9 +1098,10 @@ namespace The_Flagship
                         if (light != null)
                         {
                             light.color = new Color((float)arguments[1], (float)arguments[2], (float)arguments[3], (float)arguments[4]);
-                            light.enabled = (bool)arguments[5];
+                            if(sender.photonView.owner.IsMasterClient)light.enabled = (bool)arguments[5];
                         }
                     }
+                    PLMusic.PostEvent((string)arguments[6], bot.gameObject);
                     break;
                 }
             }
@@ -1098,7 +1124,8 @@ namespace The_Flagship
                     bot.MyLights[0].color.g,
                     bot.MyLights[0].color.b,
                     bot.MyLights[0].color.a,
-                    bot.MyLights[0].enabled
+                    bot.MyLights[0].enabled,
+                    ""
                     });
                 }
             }

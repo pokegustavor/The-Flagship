@@ -31,7 +31,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.3";
+        public override string Version => "1.9.4";
 
         public override string Author => "pokegustavo";
 
@@ -103,7 +103,7 @@ namespace The_Flagship
         }
         public override string Description()
         {
-            return "Assembles the flagship and allows for prison control";
+            return "Assembles the flagship, allows for prison and camera system control";
         }
 
         public override void Execute(string arguments)
