@@ -1165,7 +1165,8 @@ namespace The_Flagship
             }
             PulsarModLoader.Utilities.Logger.Info("Phase 5.1");
             //Spawn patrolbots and turrets
-            Mod.BridgePathID = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(ship.MyTLI, new Vector3(-14, -261 + verticalOffset, -362)).ID;
+            PLPathfinderGraphEntity bridgePath = PLPathfinder.GetInstance().GetPGEforTLIAndPosition(ship.MyTLI, new Vector3(-14, -261 + verticalOffset, -362));
+            if(bridgePath != null)Mod.BridgePathID = bridgePath.ID;
             if (PhotonNetwork.isMasterClient)
             {
                 SpawnPatrolBots(ship, verticalOffset);
@@ -1198,7 +1199,7 @@ namespace The_Flagship
                 screensfordeletion[i].MyScreenHubBase.AllScreens.Remove(screensfordeletion[i]);
                 Object.Destroy(screensfordeletion[i]);
             }
-            if (prevShip != ship) PhotonNetwork.Destroy(prevShip.photonView);
+            if (prevShip != ship && prevShip != null) PhotonNetwork.Destroy(prevShip.photonView);
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
 

@@ -31,7 +31,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.4";
+        public override string Version => "1.9.5";
 
         public override string Author => "pokegustavo";
 
@@ -132,7 +132,7 @@ namespace The_Flagship
             {
                 if (arguments == Arguments()[0][0])
                 {
-                    if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use the commands!");
+                    if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use assemble command!");
                     else if (!shipAssembled)
                     {
                         FabricateFlagship();

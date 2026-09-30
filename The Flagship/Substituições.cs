@@ -341,6 +341,21 @@ namespace The_Flagship
             }
         }
     }
+    class sendRPC : ModMessage
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            if (PhotonNetwork.isMasterClient)
+            {
+                SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", sender.sender, new object[] { Command.shipAssembled || Mod.ShouldAssemble });
+            }
+            else if(sender.sender.IsMasterClient && arguments.Count() > 0 && (bool)arguments[0])
+            {
+                Console.WriteLine("Building Flagship");
+                Assembler.FabricateFlagship();
+            }
+        }
+    }
     [HarmonyPatch(typeof(PLServer), "SpawnPlayerShipFromSaveData")]
     class AssembleTranspiler 
     {
