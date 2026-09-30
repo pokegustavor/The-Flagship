@@ -285,7 +285,7 @@ namespace The_Flagship
             {
                 ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
             }
-            if (PhotonNetwork.isMasterClient)
+            if (PhotonNetwork.isMasterClient && PLServer.Instance.CurrentCrewLevel == 1)
             {
                 string savedoptions = PLXMLOptionsIO.Instance.CurrentOptions.GetStringValue("flagship");
                 if (savedoptions != string.Empty)
@@ -953,7 +953,7 @@ namespace The_Flagship
     }
     
     [HarmonyPatch(typeof(PLGameStatic), "Update")]
-    class  InteractWithPatrol
+    class PetPatrolDrone
     {
         static void Postfix() 
         {
@@ -996,7 +996,8 @@ namespace The_Flagship
                             "play_sx_ui_countdown_01",
                             "play_sx_ship_enemy_ancientsentry_emote",
                             "play_ship_generic_internal_fire_burning",
-                            "play_sx_enemy_stalker_death"
+                            "play_sx_enemy_stalker_death",
+                            "play_sx_env_ship_powerdownslow_rattles"
                         };
                         ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.DroneReciever", PhotonTargets.All, new object[]
                         {
@@ -2208,23 +2209,6 @@ namespace The_Flagship
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
                 PLEncounterManager.Instance.PlayerShip.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
-            }
-        }
-    }
-    [HarmonyPatch(typeof(PLOldWarsShip_Human), "SetupShipStats")]
-    class InitialSpaceOnLoad
-    {
-        static void Postfix(PLOldWarsShip_Human __instance, bool previewStats = false)
-        {
-            if (!previewStats && (Command.shipAssembled || (Mod.AutoAssemble && PhotonNetwork.isMasterClient)) && __instance.GetIsPlayerShip())
-            {
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, 72);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
-                __instance.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
             }
         }
     }
