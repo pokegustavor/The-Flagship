@@ -59,7 +59,7 @@ namespace The_Flagship
     {
         static void Postfix(PLOldWarsShip_Human __instance, ref string __result)
         {
-            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+100% Reactor Output\n10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>100x EM Signature</color>";
+            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+150% Reactor Output\n10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>100x EM Signature</color>";
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "ShipFinalCalculateStats")]
@@ -70,7 +70,7 @@ namespace The_Flagship
         {
             if (__instance.GetIsPlayerShip() && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                inStats.ReactorOutputFactor *= 2;
+                inStats.ReactorOutputFactor *= 2.5f;
                 inStats.OxygenRefillRate *= 10;
                 inStats.HullArmor *= armorModifier;
                 inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
@@ -325,11 +325,11 @@ namespace The_Flagship
             {
                 Assembler.FabricateFlagship();
             }
-            while (!PLServer.Instance.GameHasStarted) 
+            while (!PLServer.Instance.GameHasStarted)
             {
                 await Task.Yield();
             }
-            if (!Command.shipAssembled) 
+            if (!Command.shipAssembled)
             {
                 ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, originalSize[0]);
                 ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, originalSize[1]);
@@ -349,7 +349,7 @@ namespace The_Flagship
             {
                 SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", sender.sender, new object[] { Command.shipAssembled || Mod.ShouldAssemble });
             }
-            else if(sender.sender.IsMasterClient && arguments.Count() > 0 && (bool)arguments[0])
+            else if (sender.sender.IsMasterClient && arguments.Count() > 0 && (bool)arguments[0])
             {
                 Console.WriteLine("Building Flagship");
                 Assembler.FabricateFlagship();
@@ -357,7 +357,7 @@ namespace The_Flagship
         }
     }
     [HarmonyPatch(typeof(PLServer), "SpawnPlayerShipFromSaveData")]
-    class AssembleTranspiler 
+    class AssembleTranspiler
     {
         [HarmonyPrefix]
         public static bool SpawnPlayerShipFromSaveData(ref PLServer __instance, ref SaveGameData inData)
@@ -966,21 +966,21 @@ namespace The_Flagship
             }
         }
     }
-    
+
     [HarmonyPatch(typeof(PLGameStatic), "Update")]
     class PetPatrolDrone
     {
-        static void Postfix() 
+        static void Postfix()
         {
-            if (PLNetworkManager.Instance.MyLocalPawn != null && Command.shipAssembled) 
+            if (PLNetworkManager.Instance.MyLocalPawn != null && Command.shipAssembled)
             {
                 PLBoardingBot nearestDrone = null;
                 float nearest = float.MaxValue;
-                foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets) 
+                foreach (PLCombatTarget combatTarget in PLGameStatic.Instance.AllCombatTargets)
                 {
-                    if (combatTarget is PLBoardingBot && combatTarget != null && combatTarget.name.Contains("(frienddrone)") && (PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < 4f) 
+                    if (combatTarget is PLBoardingBot && combatTarget != null && combatTarget.name.Contains("(frienddrone)") && (PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < 4f)
                     {
-                        if ((PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < nearest) 
+                        if ((PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude < nearest)
                         {
                             nearest = (PLNetworkManager.Instance.MyLocalPawn.transform.position - combatTarget.transform.position).sqrMagnitude;
                             nearestDrone = combatTarget as PLBoardingBot;
@@ -989,10 +989,10 @@ namespace The_Flagship
                 }
                 if (nearestDrone != null)
                 {
-                    PLGlobal.Instance.SetBottomInfo("", "Pet the drone","", "talk_to_npc");
+                    PLGlobal.Instance.SetBottomInfo("", "Pet the drone", "", "talk_to_npc");
                     if (PLInput.Instance.GetButtonUp(PLInputBase.EInputActionName.talk_to_npc))
                     {
-                        List<string> sounds = new List<string> 
+                        List<string> sounds = new List<string>
                         {
                             "play_sx_ship_enemy_ancientsentry_shoot",
                             "play_sx_ui_ship_generic_slider_click",
@@ -1006,13 +1006,10 @@ namespace The_Flagship
                             "play_sx_ship_warpguardian_finalexplosion",
                             "play_sx_planet_cypher_ring_move",
                             "play_sx_player_item_biscuit_eat",
-                            "play_sx_env_planet_oldWarsEra_errorBeep_loop",
                             "play_sx_ui_countdown_final_01",
                             "play_sx_ui_countdown_01",
                             "play_sx_ship_enemy_ancientsentry_emote",
-                            "play_ship_generic_internal_fire_burning",
                             "play_sx_enemy_stalker_death",
-                            "play_sx_env_ship_powerdownslow_rattles"
                         };
                         ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.DroneReciever", PhotonTargets.All, new object[]
                         {
@@ -1029,7 +1026,7 @@ namespace The_Flagship
             }
         }
     }
-    
+
     [HarmonyPatch(typeof(PLBoardingBot), "CombatRoutine")]
     class PatrolBotsCombat
     {
@@ -1102,22 +1099,25 @@ namespace The_Flagship
     }
     class DroneReciever : ModMessage
     {
+        static Color purple = new Color(0.192f, 0f, 0.902f, 0.8f);
         public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
         {
             foreach (PLBoardingBot bot in UnityEngine.Object.FindObjectsOfType<PLBoardingBot>(true))
             {
                 if (bot.photonView.instantiationId == (int)arguments[0])
                 {
+                    bool sound = false;
                     if (!bot.name.Contains("(frienddrone)")) bot.name += " (frienddrone)";
                     foreach (Light light in bot.MyLights)
                     {
                         if (light != null)
                         {
+                            if (light.color != purple) sound = true;
                             light.color = new Color((float)arguments[1], (float)arguments[2], (float)arguments[3], (float)arguments[4]);
-                            if(sender.photonView.owner.IsMasterClient)light.enabled = (bool)arguments[5];
+                            if (sender.photonView.owner.IsMasterClient) light.enabled = (bool)arguments[5];
                         }
                     }
-                    PLMusic.PostEvent((string)arguments[6], bot.gameObject);
+                    if (sound) PLMusic.PostEvent((string)arguments[6], bot.gameObject);
                     break;
                 }
             }
@@ -1404,7 +1404,7 @@ namespace The_Flagship
                             {
                                 if (light != null)
                                 {
-                                    light.color = Color.magenta;
+                                    light.color = Color.red;
                                 }
                             }
                             __instance.pathRequestInProgress = true;
@@ -1441,7 +1441,7 @@ namespace The_Flagship
                             targetSystem = system.MyInstance.transform;
                         }
                     }
-                    if (targetSystem != null && (__instance.MyLights[0].color == Color.green || (__instance.MyLights[0].color == Color.white && __instance.currentPath != null && ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - targetSystem.position).magnitude > 16)))
+                    if (targetSystem != null && (__instance.MyLights[0].color == Color.green || __instance.MyLights[0].color == Color.cyan ||(__instance.MyLights[0].color == Color.white && __instance.currentPath != null && ((__instance.currentPath.vectorPath[__instance.currentPath.vectorPath.Count - 1] + Vector3.up * 1.5f) - targetSystem.position).magnitude > 16)))
                     {
                         NNConstraint nnconstraint = new NNConstraint();
                         nnconstraint.area = (int)__instance.AreaIndex;
@@ -1461,11 +1461,43 @@ namespace The_Flagship
                         __instance.pathRequestInProgress = true;
                     }
                 }
+                if (__instance.MyLights[0].color == Color.green && __instance.CurrentShip.AllFires.Values.Count > 0)
+                {
+                    float distanceToFire = int.MaxValue;
+                    PLFire targetFire = null;
+                    foreach (PLFire fire in __instance.CurrentShip.AllFires.Values)
+                    {
+                        if ((fire.transform.position - __instance.transform.position).magnitude < distanceToFire)
+                        {
+                            distanceToFire = (fire.transform.position - __instance.transform.position).magnitude;
+                            targetFire = fire;
+                        }
+                    }
+                    if(targetFire != null) 
+                    {
+                        NNConstraint nnconstraint = new NNConstraint();
+                        nnconstraint.area = (int)__instance.AreaIndex;
+                        nnconstraint.constrainArea = true;
+                        nnconstraint.constrainWalkability = true;
+                        Vector3 targetPos = (Vector3)pgeforTLIAndTransform.Graph.GetNearest(targetFire.transform.position, nnconstraint).node.position;
+                        //PulsarModLoader.Utilities.Messaging.Notification("Target pos: " + targetPos);
+                        __instance.seeker.StartPath(__instance.transform.position, targetPos, new OnPathDelegate(__instance.OnPathComplete));
+                        __instance.lastInvestigateActionCompletedTime = Time.time;
+                        foreach (Light light in __instance.MyLights)
+                        {
+                            if (light != null)
+                            {
+                                light.color = Color.cyan;
+                            }
+                        }
+                        __instance.pathRequestInProgress = true;
+                    }
+                }
                 foreach (PLMainSystem system in damagedStuff)
                 {
                     if ((system.MyInstance.transform.position - __instance.transform.position).magnitude < 8)
                     {
-                        system.Health += (30 + 5 * Mod.PatrolBotsLevel) * Time.deltaTime;
+                        system.Health += 5 * (Mod.PatrolBotsLevel+1) * Time.deltaTime;
                         system.Health = Mathf.Clamp(system.Health, 0, system.MaxHealth);
                         system.MyInstance.LastRepairActiveTime = Time.time;
                         break;

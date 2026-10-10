@@ -20,6 +20,12 @@ namespace The_Flagship
 {
     /*
     TODO
+    add more doors
+    fix camera rotations and move some cameras to more usefull locations
+    add hull repair to engineering power usage
+    use the URV eletric hull instead of the shield
+    change so bots will hunt down fire
+    add custom thrusters
      */
     public class Mod : PulsarMod
     {
@@ -31,7 +37,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.5";
+        public override string Version => "1.9.6";
 
         public override string Author => "pokegustavo";
 

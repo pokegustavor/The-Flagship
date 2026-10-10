@@ -868,27 +868,49 @@ namespace The_Flagship
                         ejectswitch.transform.rotation = new Quaternion(-0.0003f, -0.5454f, 0.0002f, 0.8382f);
                         ejectswitch.transform.localScale = Vector3.one * 2.5f;
                     }
-                    //Add main interior doors
+                    //Add main interior physical doors
                     if (teldoor != null)
                     {
+                        //EngineToReactor
                         GameObject newTelDoor = Object.Instantiate(teldoor, new Vector3(375.1424f, -385.9102f, 1387.404f), new Quaternion(0, 0.3806f, 0, -0.9248f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //ReactorToEngine
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(369.0363f, -443.5204f, 1404.2f), new Quaternion(0, 0.5421f, 0, -0.8403f));
+                        newTelDoor.transform.SetParent(newinterior.transform);
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        //WeaponsToBridge
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(374.9182f, -383.6057f, 1574.436f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //ScrapToEngine
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(468.4048f, -400.4253f, 1486.02f), new Quaternion(0, 1, 0, 0));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //EngineToScrap
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(379.7382f, -385.9098f, 1380.838f), new Quaternion(0, -0.2217f, 0, 0.9751f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //AtriumToBridge
                         newTelDoor = Object.Instantiate(teldoor, new Vector3(394.0073f, -400.8728f, 1704.814f), new Quaternion(0, 0.7071f, 0, 0.7071f));
                         Object.DontDestroyOnLoad(newTelDoor);
                         ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //ScienceToSweeper
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(323.6995f, -400.8728f, 1704.814f), new Quaternion(0, 0.7071f, 0, 0.7071f));
+                        Object.DontDestroyOnLoad(newTelDoor);
+                        ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
+                        //SweeperToScience
+                        newTelDoor = Object.Instantiate(teldoor, new Vector3(467.7166f, - 431.5779f, 1541.634f), new Quaternion(0, 0,0,1));
+                        Object.DontDestroyOnLoad(newTelDoor);
+                        ship.InteriorRenderers.Add(newTelDoor.GetComponent<MeshRenderer>());
+                        newTelDoor.transform.SetParent(newinterior.transform);
                     }
                     //Move ammo refill station
                     ship.MyAmmoRefills[0].transform.SetParent(newinterior.transform, true);
@@ -1200,6 +1222,11 @@ namespace The_Flagship
                 Object.Destroy(screensfordeletion[i]);
             }
             if (prevShip != ship && prevShip != null) PhotonNetwork.Destroy(prevShip.photonView);
+            //Render 1 frame for the cameras
+            foreach (Camera camera in Mod.cameras)
+            {
+                camera.Render();
+            }
             PulsarModLoader.Utilities.Messaging.Notification("Assembly Complete!");
         }
 
@@ -1381,7 +1408,7 @@ namespace The_Flagship
             //Bridge teleporters
             int cameraResolution = 344;
             GameObject cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjBridge";
             cameraObj.transform.SetParent(newbridge.transform);
             cameraObj.transform.position = new Vector3(-8.6182f, -255.2728f, -437);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(40.1343f, 38.2f, 18.2477f));
@@ -1412,15 +1439,15 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newbridge.transform);
+            head.transform.SetParent(cameraView.transform);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             head.transform.localRotation = Quaternion.Euler(new Vector3(57.4041f, 58.818f, 29.4676f));
             //Captain teleporter
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjCaptain";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(422.1003f, -424.9404f, 1743.08f);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.1234f, 159.8055f, 12.9391f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(9.0022f, 152.8615f, 12.9391f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1447,11 +1474,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //Bridge kitchen
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjKitchen";
             cameraObj.transform.SetParent(newbridge.transform);
             cameraObj.transform.position = new Vector3(12f, -258.7097f, -349.2461f);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(344.4979f, 144.1035f, 10.4296f));
@@ -1477,12 +1504,12 @@ namespace The_Flagship
                 camMesh.material.SetTexture("_MainTex", texture);
             }
             //Camera visual already setted up
-            //Prision
+            //InsideBar
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjInsideBar";
             cameraObj.transform.SetParent(newinterior.transform,true);
-            cameraObj.transform.position = new Vector3(332, -440.9998f, 1745);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.5706f, 150.6783f, 7.1573f));
+            cameraObj.transform.position = new Vector3(322.8037f, - 438f, 1795.689f);
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(9.4895f, 119.2046f, 7.1574f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1509,11 +1536,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //Engineering Room
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjEngine";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(370, -368, 1396);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.6799f, 202.9273f, 347.157f));
@@ -1544,11 +1571,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //Reactor room
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjReactor";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(384, -414.9999f, 1397);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.68f, 217.4727f, 342.0661f));
@@ -1579,14 +1606,14 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //atrium
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjAtrium";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(397, -389, 1705);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(44.8616f, 328.018f, 348.6111f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(23.2606f, 333.7888f, 348.6111f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1613,14 +1640,14 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //science lab
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjScience";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(316.9096f, -388.9924f, 1704.998f);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(42.3168f, 43.3274f, 22.4293f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(28.156f, 37.0294f, 3.4456f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1647,14 +1674,14 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //Weapons main bay
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjWeapons";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(380, -379.9999f, 1585);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(16.8621f, 237.2904f, 333.5201f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(16.8621f, 237.2904f, 6.9611f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1682,11 +1709,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //left weapons wing
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjLefWeapon";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(397.0001f, -379, 1566);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 196.2365f, 350.611f));
@@ -1716,11 +1743,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //right weapons wing
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjRightWeapon";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(317.9306f, -378.9911f, 1565.998f);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 168.2366f, 0.7929f));
@@ -1750,11 +1777,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //left crew wing
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjLeftCrew";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(472.9999f, -418, 1734);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 201.6911f, 350.6112f));
@@ -1784,11 +1811,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //right crew wing
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjRightCrew";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(242.5644f, -417.9845f, 1733.999f);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.0442f, 173.6911f, 1.8838f));
@@ -1818,14 +1845,14 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //Cargo room
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjCargo";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(280.0001f, -422, 1471);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(48.1356f, 61.3493f, 31.3384f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(37.4959f, 38.8387f, 14.3491f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1852,11 +1879,11 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             //bar teleporter
             cameraObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraObj.name = "cameraObj";
+            cameraObj.name = "cameraObjBar";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(366, -424.9998f, 1685);
             cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(9.9539f, 203.8947f, 350.2475f));
@@ -1890,8 +1917,9 @@ namespace The_Flagship
             head.GetComponentInChildren<SkinnedMeshRenderer>().enabled = true;
             head.transform.GetChild(0).gameObject.layer = newbridge.layer;
             Object.DontDestroyOnLoad(head);
-            head.transform.SetParent(newinterior.transform,true);
+            head.transform.SetParent(cameraView.transform,true);
             head.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+
         }
         static void AssembleInteriorDoors(PLShipInfo ship, GameObject newinterior, GameObject newbridge) 
         {
@@ -1904,12 +1932,14 @@ namespace The_Flagship
                 CapitanToBridge.transform.rotation = new Quaternion(0, 0.7124f, 0, -0.7018f);
                 CapitanToBridge.MyInterior = newbridge.GetComponent<PLInterior>();
                 CapitanToBridge.MyInterior.InteriorID = -69;
+                CapitanToBridge.transform.SetParent(newinterior.transform);
                 PLGameStatic.Instance.m_Interiors.Add(CapitanToBridge.MyInterior);
                 CapitanToBridge.IsEntrance = true;
                 BridgeToCaptain.TargetDoor = CapitanToBridge;
                 BridgeToCaptain.OptionalTLI.SubHubID = -69;
                 BridgeToCaptain.OptionalTLI = ship.MyTLI;
                 BridgeToCaptain.IsEntrance = false;
+                BridgeToCaptain.transform.SetParent(newbridge.transform);
                 GameObject BridgeToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-0.6f, -261, -443.1f), new Quaternion(0, 0, 0, 1));
                 BridgeToEngineOjb.transform.SetParent(newbridge.transform);
                 Object.DontDestroyOnLoad(BridgeToEngineOjb);
@@ -1934,6 +1964,7 @@ namespace The_Flagship
                 PLInteriorDoor BridgeToScience = BridgeToScienceOjb.GetComponent<PLInteriorDoor>();
                 GameObject ScienceToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(393.8795f, -399.9159f, 1705.848f), Quaternion.Euler(0, 0, 0));
                 Object.DontDestroyOnLoad(ScienceToBridgeOjb);
+                ScienceToBridgeOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor ScienceToBridge = ScienceToBridgeOjb.GetComponent<PLInteriorDoor>();
                 if (BridgeToScience != null && ScienceToBridge != null)
                 {
@@ -1947,9 +1978,11 @@ namespace The_Flagship
                 }
                 GameObject EngineToReactorOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(374.3f, -384.9f, 1387.7f), new Quaternion(0, -0.9406f, 0, 0.3364f));
                 Object.DontDestroyOnLoad(EngineToReactorOjb);
+                EngineToReactorOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor EngineToReactor = EngineToReactorOjb.GetComponent<PLInteriorDoor>();
                 GameObject ReactorToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(367.4f, -442.5f, 1403.1f), new Quaternion(0, -0.9722f, 0, 0.2343f));
                 Object.DontDestroyOnLoad(ReactorToEngineOjb);
+                ReactorToEngineOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor ReactorToEngine = ReactorToEngineOjb.GetComponent<PLInteriorDoor>();
                 if (EngineToReactor != null && ReactorToEngine != null)
                 {
@@ -1961,8 +1994,10 @@ namespace The_Flagship
                 GameObject EngineToScrapOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(378.5f, -384.9f, 1380.2f), new Quaternion(0, -0.8484f, 0, 0.5294f));
                 Object.DontDestroyOnLoad(EngineToScrapOjb);
                 PLInteriorDoor EngineToScrap = EngineToScrapOjb.GetComponent<PLInteriorDoor>();
+                EngineToScrapOjb.transform.SetParent(newinterior.transform);
                 GameObject ScrapToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(469.2f, -399.4f, 1485.9f), new Quaternion(0, 0.7061f, 0, 0.7081f));
                 Object.DontDestroyOnLoad(ScrapToEngineOjb);
+                EngineToScrapOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor ScrapToEngine = ScrapToEngineOjb.GetComponent<PLInteriorDoor>();
                 if (EngineToScrap != null && ScrapToEngine != null)
                 {
@@ -1972,11 +2007,12 @@ namespace The_Flagship
                     ScrapToEngine.VisibleName = "Engineering";
                 }
                 GameObject WeaponsToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-13.4f, -261f, -364.3f), new Quaternion(0, 0, 0, 1));
-                WeaponsToBridgeOjb.transform.SetParent(newbridge.transform);
+                WeaponsToBridgeOjb.transform.SetParent(newinterior.transform);
                 Object.DontDestroyOnLoad(WeaponsToBridgeOjb);
                 PLInteriorDoor WeaponsToBridge = WeaponsToBridgeOjb.GetComponent<PLInteriorDoor>();
                 GameObject BridgeToWeaponsOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(375.4f, -382.7f, 1575.7f), new Quaternion(0, 0, 0, 1));
                 Object.DontDestroyOnLoad(BridgeToWeaponsOjb);
+                BridgeToEngineOjb.transform.SetParent(newbridge.transform);
                 PLInteriorDoor BridgeToWeapons = BridgeToWeaponsOjb.GetComponent<PLInteriorDoor>();
                 if (WeaponsToBridge != null && BridgeToWeapons != null)
                 {
@@ -1987,6 +2023,24 @@ namespace The_Flagship
                     BridgeToWeapons.MyInterior = CapitanToBridge.MyInterior;
                     BridgeToWeapons.IsEntrance = true;
                     //BridgeToWeapons.MyInterior = BridgeToCaptain.MyInterior;
+                }
+                GameObject ScienceToSweepOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(323.8686f, - 399.9153f, 1705.839f), new Quaternion(0, 0, 0, 1));
+                ScienceToSweepOjb.transform.SetParent(newinterior.transform);
+                Object.DontDestroyOnLoad(ScienceToSweepOjb);
+                PLInteriorDoor ScienceToSweeper = ScienceToSweepOjb.GetComponent<PLInteriorDoor>();
+                GameObject SweepToScienceOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(466.7552f, - 430.5315f, 1541.789f), new Quaternion(0, 0.7071f, 0, -0.7071f));
+                Object.DontDestroyOnLoad(SweepToScienceOjb);
+                BridgeToEngineOjb.transform.SetParent(newbridge.transform);
+                PLInteriorDoor SweepToScience = SweepToScienceOjb.GetComponent<PLInteriorDoor>();
+                if (ScienceToSweeper != null && SweepToScience != null)
+                {
+                    ScienceToSweeper.TargetDoor = SweepToScience;
+                    ScienceToSweeper.VisibleName = "Cyber";
+                    SweepToScience.TargetDoor = ScienceToSweeper;
+                    SweepToScience.VisibleName = "Science";
+                    SweepToScience.MyInterior = CapitanToBridge.MyInterior;
+                    SweepToScience.IsEntrance = true;
+                    //SweepToScience.MyInterior = BridgeToCaptain.MyInterior;
                 }
             }
         }
@@ -2412,18 +2466,8 @@ namespace The_Flagship
         {
             //setup cargo pads
             int index = 0;
-            /*
-            for (int i = 0; i < prevShip.MyStats.GetSlot(ESlotType.E_COMP_CARGO).MaxItems; i++)
-            {
-                if (ship.CargoBases.Length >= i) break;
-                ship.CargoBases[i].transform.position = new Vector3(281.2728f + (i / 24 * 4), -443.3417f, 1472.178f + (i * 2));
-                ship.CargoBases[i].transform.rotation = new Quaternion(0, 0.7082f, 0, 0.706f);
-                ship.CargoBases[i].transform.SetParent(newInterior.transform);
-                index++;
-            }
-            */
             List<GameObject> cargo = new List<GameObject>();
-            //cargo.AddRange(ship.CargoBases);
+            ship.CargoObjectDisplays.Clear();
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 24; j++)
@@ -2444,7 +2488,6 @@ namespace The_Flagship
                     cargoDisplay.DisplayObj = null;
                     cargoDisplay.Index = index;
                     cargoDisplay.Hidden = false;
-                    ship.CargoObjectDisplays.Clear();
                     ship.CargoObjectDisplays.Add(cargoDisplay);
                     index++;
                 }
@@ -2491,9 +2534,15 @@ namespace The_Flagship
             }
             if (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count == 2 && PhotonNetwork.isMasterClient)
             {
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 9, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 11, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 13, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                while (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count > 0) 
+                {
+                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET)[0]);
+                }
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
                 ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
             }
             if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0] != null && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].SubType != PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"))

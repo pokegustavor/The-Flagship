@@ -1148,7 +1148,7 @@ namespace The_Flagship
                 CurrentMultiplier = Mathf.Clamp(CurrentMultiplier + Time.deltaTime * (Online ? 1 : -1), 0.1f, 70);
                 float valueMultier = Mathf.Log(15 * CurrentMultiplier, 2);
                 powerusage = 4000 * valueMultier;
-                float repairvalue = 2.5f * valueMultier;
+                float repairvalue = 2.5f * valueMultier * (PLEncounterManager.Instance.PlayerShip.InWarp ? 10 : 1);
                 PowerUsageLabel.text = $"Current Power Usage: {Mathf.FloorToInt(powerusage)}MW\r\n\r\nCurrent Repair Power: {repairvalue.ToString("0")}/s";
                 if (Online && myShip.MyHull != null && !myShip.IsReactorOverheated() && myShip.StartupStepIndex >= 1 && myShip.StartupSwitchBoard != null && myShip.StartupSwitchBoard.GetLateStatus(0))
                 {
