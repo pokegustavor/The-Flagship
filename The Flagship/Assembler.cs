@@ -2006,22 +2006,22 @@ namespace The_Flagship
                     ScrapToEngine.TargetDoor = EngineToScrap;
                     ScrapToEngine.VisibleName = "Engineering";
                 }
-                GameObject WeaponsToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-13.4f, -261f, -364.3f), new Quaternion(0, 0, 0, 1));
-                WeaponsToBridgeOjb.transform.SetParent(newinterior.transform);
-                Object.DontDestroyOnLoad(WeaponsToBridgeOjb);
-                PLInteriorDoor WeaponsToBridge = WeaponsToBridgeOjb.GetComponent<PLInteriorDoor>();
-                GameObject BridgeToWeaponsOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(375.4f, -382.7f, 1575.7f), new Quaternion(0, 0, 0, 1));
+                GameObject BridgeToWeaponsOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(-13.5152f, -260.9835f, -364.7871f), new Quaternion(0, 0, 0, 1));
+                BridgeToWeaponsOjb.transform.SetParent(newbridge.transform);
                 Object.DontDestroyOnLoad(BridgeToWeaponsOjb);
-                BridgeToEngineOjb.transform.SetParent(newbridge.transform);
                 PLInteriorDoor BridgeToWeapons = BridgeToWeaponsOjb.GetComponent<PLInteriorDoor>();
-                if (WeaponsToBridge != null && BridgeToWeapons != null)
+                GameObject WeaponsToBridgeOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(375.4f, -382.7f, 1575.7f), new Quaternion(0, 0, 0, 1));
+                Object.DontDestroyOnLoad(WeaponsToBridgeOjb);
+                WeaponsToBridgeOjb.transform.SetParent(newinterior.transform);
+                PLInteriorDoor WeaponsToBridge = WeaponsToBridgeOjb.GetComponent<PLInteriorDoor>();
+                if (BridgeToWeapons != null && WeaponsToBridge != null)
                 {
-                    WeaponsToBridge.TargetDoor = BridgeToWeapons;
-                    WeaponsToBridge.VisibleName = "Weapons";
                     BridgeToWeapons.TargetDoor = WeaponsToBridge;
-                    BridgeToWeapons.VisibleName = "Bridge";
-                    BridgeToWeapons.MyInterior = CapitanToBridge.MyInterior;
-                    BridgeToWeapons.IsEntrance = true;
+                    BridgeToWeapons.VisibleName = "Weapons";
+                    WeaponsToBridge.TargetDoor = BridgeToWeapons;
+                    WeaponsToBridge.VisibleName = "Bridge";
+                    WeaponsToBridge.MyInterior = CapitanToBridge.MyInterior;
+                    WeaponsToBridge.IsEntrance = true;
                     //BridgeToWeapons.MyInterior = BridgeToCaptain.MyInterior;
                 }
                 GameObject ScienceToSweepOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(323.8686f, - 399.9153f, 1705.839f), new Quaternion(0, 0, 0, 1));
