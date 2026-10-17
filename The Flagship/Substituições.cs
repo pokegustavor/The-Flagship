@@ -59,7 +59,7 @@ namespace The_Flagship
     {
         static void Postfix(PLOldWarsShip_Human __instance, ref string __result)
         {
-            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+150% Reactor Output\n10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>100x EM Signature</color>";
+            if (__instance.GetIsPlayerShip() && Command.shipAssembled) __result = "Nnockback Resistance\n+120% Reactor Output\n10x Oxygen Reffil\n<color=red>Cannot use repair stations or warp gates</color>\n<color=red>100x EM Signature</color>";
         }
     }
     [HarmonyPatch(typeof(PLShipInfo), "ShipFinalCalculateStats")]
@@ -70,11 +70,51 @@ namespace The_Flagship
         {
             if (__instance.GetIsPlayerShip() && Command.shipAssembled && __instance.ShipTypeID == EShipType.OLDWARS_HUMAN)
             {
-                inStats.ReactorOutputFactor *= 2.5f;
+                inStats.ReactorOutputFactor *= 2.2f;
                 inStats.OxygenRefillRate *= 10;
                 inStats.HullArmor *= armorModifier;
                 inStats.ReactorTotalOutput += PLAutoRepairScreen.powerusage;
                 inStats.EMSignature *= 100;
+
+            }
+        }
+    }
+    [HarmonyPatch(typeof(PLPoweredShipComponent), "CalculatedMaxPowerUsage_Watts", MethodType.Getter)]
+    public class PowerDistributorEffect 
+    {
+        static void Postfix(PLPoweredShipComponent __instance, ref float __result) 
+        {
+            if (__instance.ShipStats != null && __instance.ShipStats.Ship == PLEncounterManager.Instance.PlayerShip) 
+            {
+                switch(PLPowerDistributorScreen.currentTarget) 
+                {
+                    case 0:
+                        if (__instance.ActualSlotType == ESlotType.E_COMP_THRUSTER || __instance.ActualSlotType == ESlotType.E_COMP_INERTIA_THRUSTER || __instance.ActualSlotType == ESlotType.E_COMP_MANEUVER_THRUSTER
+                            || __instance.ActualSlotType == ESlotType.E_COMP_WARP) 
+                        {
+                            __result *= 0.85f;
+                        }
+                        break;
+                    case 1:
+                        if (__instance.ActualSlotType == ESlotType.E_COMP_CPU || __instance.ActualSlotType == ESlotType.E_COMP_SENS || __instance.ActualSlotType == ESlotType.E_COMP_SENSORDISH
+                            || __instance.ActualSlotType == ESlotType.E_COMP_CLOAKING_SYS || __instance.ActualSlotType == ESlotType.E_COMP_POLYTECH_MODULE)
+                        {
+                            __result *= 0.85f;
+                        }
+                        break;
+                    case 2:
+                        if (__instance.ActualSlotType == ESlotType.E_COMP_SHLD || __instance.ActualSlotType == ESlotType.E_POWERED_ARMOR) 
+                        {
+                            __result *= 0.85f;
+                        }
+                        break;
+                    case 3:
+                        if (__instance.ActualSlotType == ESlotType.E_COMP_AUTO_TURRET || __instance.ActualSlotType == ESlotType.E_COMP_MAINTURRET || __instance.ActualSlotType == ESlotType.E_COMP_TURRET)
+                        {
+                            __result *= 0.85f;
+                        }
+                        break;
+                }
             }
         }
     }
@@ -317,6 +357,8 @@ namespace The_Flagship
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            ship.MyStats.SetSlotLimit(ESlotType.E_POWERED_ARMOR,1);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TRACKERMISSILE, 3);
             while (PLEncounterManager.Instance == null || !PLLoader.Instance.IsLoaded)
             {
                 await Task.Yield();
@@ -2286,7 +2328,11 @@ namespace The_Flagship
                 {
                     if (ship != null && ship.name.Contains("(fighterBot)") && ship.MyStats != null)
                     {
-                        PLServer.Instance.CurrentUpgradeMats += Mathf.CeilToInt(20 * (ship.MyStats.HullCurrent / ship.MyStats.HullMax));
+                        if (ship.MyStats.HullCurrent / ship.MyStats.HullMax >= 0.75) 
+                        {
+                            Mod.FighterCount += 1;
+                        }
+                        else PLServer.Instance.CurrentUpgradeMats += Mathf.CeilToInt(20 * (ship.MyStats.HullCurrent / ship.MyStats.HullMax));
                         ship.PersistantShipInfo.IsShipDestroyed = true;
                     }
                 }

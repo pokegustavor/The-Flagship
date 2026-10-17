@@ -67,6 +67,88 @@ namespace The_Flagship
             }
         }
     }
+    public class PLPowerDistributorScreen : PLModdedScreenBase 
+    {
+        UISprite[] systemButtons;
+        static public int currentTarget = 0;
+        float lastUpdate = 0;
+        protected override void Start()
+        {
+            base.Start();
+            ScreenID = 13;
+        }
+        protected override void SetupUI()
+        {
+            base.SetupUI();
+
+            CreatePanel("POWER OPTIMIZER CONTROL", Vector3.zero, new Vector2(512f, 512f), UI_DarkGrey);
+            CreateLabel("Select 1 subsystem to have its power decreased by 15%", new Vector3(20f, 35f), 10, UI_White);
+            systemButtons = new UISprite[4];
+            systemButtons[0] = CreateButton("Eng", "Engineering", new Vector3(106, 100), new Vector2(300,75), Color.cyan);
+            systemButtons[1] = CreateButton("Sci", "Science Lab", new Vector3(106, 180), new Vector2(300, 75), Color.cyan);
+            systemButtons[2] = CreateButton("Shl", "Powered Armor", new Vector3(106, 260), new Vector2(300, 75), Color.cyan);
+            systemButtons[3] = CreateButton("Wep", "Weapons", new Vector3(106, 340), new Vector2(300, 75), Color.cyan);
+            for(int i = 1; i < systemButtons.Length; i++) 
+            {
+                systemButtons[i].color = Color.red;
+            }
+            
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (MyScreenHubBase != null && MyScreenHubBase.OptionalShipInfo != null)
+            {
+                for (int i = 0; i < systemButtons.Length; i++) 
+                {
+                    if (currentTarget == i)
+                    {
+                        systemButtons[i].color = Color.cyan;
+                    }
+                    else 
+                    {
+                        systemButtons[i].color = Color.red;
+                    }
+                }
+            }
+            if (PhotonNetwork.isMasterClient && Time.time - lastUpdate > 10) 
+            {
+                lastUpdate = Time.time;
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PowerDistributorReciever", PhotonTargets.Others, new object[]
+                {
+                currentTarget
+                });
+            }
+        }
+        public override void OnButtonClick(UIWidget inButton)
+        {
+            base.OnButtonClick(inButton);
+            int oldTarget = currentTarget;
+            if(inButton == systemButtons[0]) 
+            {
+                currentTarget = 0;
+            }
+            else if(inButton == systemButtons[1]) 
+            {
+                currentTarget = 1;
+            }
+            else if (inButton == systemButtons[2])
+            {
+                currentTarget = 2;
+            }
+            else if (inButton == systemButtons[3])
+            {
+                currentTarget = 3;
+            }
+            if (currentTarget != oldTarget)
+            {
+                ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.PowerDistributorReciever", PhotonTargets.All, new object[]
+                {
+                currentTarget
+                });
+            }
+        }
+    }
     public class PLTemperatureScreen : PLModdedScreenBase
     {
         UIWidget panel;
@@ -1533,7 +1615,7 @@ namespace The_Flagship
                 {
                     droneType = EShipType.E_WDDRONE3;
                 }
-                PLPersistantShipInfo shipdata = new PLPersistantShipInfo(droneType, -1, PLServer.GetCurrentSector());
+                PLPersistantShipInfo shipdata = new PLPersistantShipInfo(droneType, 2, PLServer.GetCurrentSector());
                 figtherData[type] = shipdata;
             }
             PLPersistantShipInfo Persistantshipdata = figtherData[type];
@@ -2079,7 +2161,7 @@ namespace The_Flagship
                     foreach (PLShipInfoBase ship in PLEncounterManager.Instance.AllShips.Values)
                     {
                         if (targetsList.Count >= 5) break;
-                        if (ship != null && !ship.GetIsPlayerShip() && ship is PLShipInfo && ship.MySensorObjectShip.IsDetectedBy(PLEncounterManager.Instance.PlayerShip))
+                        if (ship != null && !ship.GetIsPlayerShip() && ship is PLShipInfo && ship.MySensorObjectShip != null && ship.MySensorObjectShip.IsDetectedBy(PLEncounterManager.Instance.PlayerShip))
                         {
                             targetsList.Add(ship as PLShipInfo);
                         }
@@ -2417,6 +2499,13 @@ namespace The_Flagship
             {
                 ship.MyTLI.AtmoSettings.Temperature = (float)arguments[1];
             }
+        }
+    }
+    class PowerDistributorReciever : ModMessage 
+    {
+        public override void HandleRPC(object[] arguments, PhotonMessageInfo sender)
+        {
+            PLPowerDistributorScreen.currentTarget = (int)arguments[0];
         }
     }
     class UpgradePatrolReciever : ModMessage

@@ -21,11 +21,7 @@ namespace The_Flagship
     /*
     TODO
     add more doors
-    fix camera rotations and move some cameras to more usefull locations
     add hull repair to engineering power usage
-    use the URV eletric hull instead of the shield
-    change so bots will hunt down fire
-    add custom thrusters
      */
     public class Mod : PulsarMod
     {
@@ -37,7 +33,7 @@ namespace The_Flagship
         public static int PatrolBotsLevel = 0;
         public static int FighterCount = 10;
         public static uint BridgePathID = 0;
-        public override string Version => "1.9.7";
+        public override string Version => "1.9.8";
 
         public override string Author => "pokegustavo";
 
@@ -138,15 +134,19 @@ namespace The_Flagship
             {
                 if (arguments == Arguments()[0][0])
                 {
-                    if (!PhotonNetwork.isMasterClient) PulsarModLoader.Utilities.Messaging.Notification("Only the host can use assemble command!");
-                    else if (!shipAssembled)
+                    if(shipAssembled)
                     {
-                        FabricateFlagship();
-                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
+                        PulsarModLoader.Utilities.Messaging.Notification("Ship already assembled!");
+                    }
+                    else if (!PhotonNetwork.isMasterClient) 
+                    {
+                        PulsarModLoader.Utilities.Messaging.Notification("Assembly permission requested to host");
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.sendRPC", PhotonNetwork.masterClient, new object[0]);
                     }
                     else
                     {
-                        PulsarModLoader.Utilities.Messaging.Notification("Ship already assembled!");
+                        FabricateFlagship();
+                        ModMessage.SendRPC("pokegustavo.theflagship", "The_Flagship.RPCReciever", PhotonTargets.Others, new object[0]);
                     }
                 }
                 if (arguments == Arguments()[0][1])

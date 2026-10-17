@@ -14,16 +14,17 @@ using PulsarModLoader.SaveData;
 using System.IO;
 using static The_Flagship.Command;
 using System.Reflection.Emit;
+using UnityEngine.AI;
 
 namespace The_Flagship
 {
     internal class Assembler
     {
-        public static void MoveObjAndChild(Transform transform, int layer)
+        public static void MoveObjAndChildForDeletion(Transform transform, int layer)
         {
             foreach (Transform child in transform)
             {
-                MoveObjAndChild(child, layer);
+                MoveObjAndChildForDeletion(child, layer);
             }
             transform.gameObject.layer = layer;
             if (transform.gameObject.name.ToLower().Contains("ff_infected_mesh") || transform.gameObject.name.ToLower().Contains("if_stem") || transform.gameObject.name.ToLower().Contains("infected_bark") || transform.gameObject.tag == "lava" || transform.gameObject.name.ToLower().Contains("ff_infected_small")
@@ -33,7 +34,7 @@ namespace The_Flagship
                 || transform.gameObject.name.ToLower().Contains("spawns") || transform.gameObject.name.ToLower().Contains("snowps") || transform.gameObject.name.ToLower().Contains("particle system") || transform.gameObject.name.Split(' ')[0] == "Plane" || transform.gameObject.name.ToLower().Contains("rot_")
                 || transform.gameObject.name.ToLower().Contains("humanoid_drone") || transform.gameObject.name.ToLower().Contains("generic_civ") || transform.gameObject.name.ToLower().Contains("deadbody") || transform.gameObject.name.ToLower().Contains("veins_") || transform.gameObject.name.ToLower().Contains("estate_4")
                 || transform.gameObject.name.ToLower().Contains("exosuitasset") || transform.gameObject.name.ToLower().Contains("computer_good") || transform.gameObject.name.ToLower().Contains("forsakenflagship_shakingvolume") || transform.gameObject.name.ToLower().Contains("market_deco_02") || transform.gameObject.name.ToLower().Contains("aog_crate_01")
-                || transform.gameObject.name.ToLower().Contains("cargocrate_02-2") || transform.gameObject.name.ToLower().Contains("cargo_048") || transform.gameObject.name.ToLower().Contains("cargo_base_01 (2)"))
+                || transform.gameObject.name.ToLower().Contains("cargocrate_02-2") || transform.gameObject.name.ToLower().Contains("cargo_048") || transform.gameObject.name.ToLower().Contains("cargo_base_01 (2)") || transform.gameObject.name.ToLower().Contains("point light (172)")|| transform.gameObject.name.ToLower().Contains("probestation_01_old (1)"))
             {
                 transform.gameObject.tag = "Projectile";
             }
@@ -175,6 +176,7 @@ namespace The_Flagship
                 GameObject walkway = null;
                 GameObject fighterCargo = null;
                 GameObject fighterCargoBase = null;
+                GameObject teleporter = null;
                 //Get all assets needed
                 PulsarModLoader.Utilities.Logger.Info("Phase 2");
                 foreach (GameObject gameObject in Object.FindObjectsOfType<GameObject>(true))
@@ -345,6 +347,10 @@ namespace The_Flagship
                     {
                         foxplush = gameObject;
                     }
+                    else if (gameObject.name == "ProbeStation_01_Old (1)" && gameObject.scene.buildIndex == 105) 
+                    {
+                        teleporter = gameObject;
+                    }
                     else if (gameObject.name == "Walkway")
                     {
                         walkway = gameObject;
@@ -361,7 +367,8 @@ namespace The_Flagship
                         && smallturret1 != null && smallturret2 != null && mainturret != null && weaponssys != null && nukeswitch1 != null && nukeswitch2 != null && nukecore != null && lifesys != null
                         && sciencesys != null && fuelboard != null && fueldecal != null && allLights.Count > 0 && enginesys != null && switchboard != null && powerswitches[0] != null
                         && powerswitches[1] != null && powerswitches[2] != null && hullheal != null && chair != null && ejectswitch != null && ejectlabel != null && safetyswitch != null && safetybox != null
-                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox != null && foxplush != null && walkway != null && fighterCargo != null && fighterCargoBase != null && startup_screen != null) break;
+                        && safetylabel != null && teldoor != null && barber != null && neural != null && landdrone != null && blackbox != null && foxplush != null && walkway != null && fighterCargo != null && fighterCargoBase != null && startup_screen != null
+                        && teleporter != null) break;
                 }
                 //Assemble interior
                 PulsarModLoader.Utilities.Logger.Info("Phase 3");
@@ -489,14 +496,15 @@ namespace The_Flagship
                             transform.gameObject.name = transform.gameObject.name.Replace("Particle System", "Reactor Particle");
                         }
                     }
-                    MoveObjAndChild(newinterior.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newbridge.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newrighwing.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newrightwingdeco.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newvault.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newvaultdeco.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newengineering.transform, ship.InteriorStatic.layer);
-                    MoveObjAndChild(newreactor.transform, ship.InteriorStatic.layer);
+                    //Delete all unwanted assets from the interior
+                    MoveObjAndChildForDeletion(newinterior.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newbridge.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newrighwing.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newrightwingdeco.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newvault.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newvaultdeco.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newengineering.transform, ship.InteriorStatic.layer);
+                    MoveObjAndChildForDeletion(newreactor.transform, ship.InteriorStatic.layer);
                     ship.InteriorStatic.transform.localPosition = ship.InteriorStatic.transform.localPosition + new Vector3(0, 0, 1500);
                     newrightwingdeco.transform.SetParent(newrighwing.transform);
                     newrighwing.transform.SetParent(newinterior.transform);
@@ -788,14 +796,20 @@ namespace The_Flagship
                         ship.WarpFuelBoostLever.LightModelRenderer.transform.rotation = new Quaternion(0, 0.541f, 0, -0.841f);
                         ship.WarpFuelBoostLever.CapsuleMeshRenderer.transform.position = new Vector3(369.1632f, -384.4381f, 1391.212f);
                         ship.WarpFuelBoostLever.CapsuleMeshRenderer.transform.rotation = new Quaternion(0, 0.541f, 0, -0.841f);
+                        ship.WarpFuelBoostLever.LightModelRenderer.transform.SetParent(newinterior.transform, true);
+                        ship.WarpFuelBoostLever.CapsuleMeshRenderer.transform.SetParent(newinterior.transform, true);
+                        Object.DontDestroyOnLoad(ship.WarpFuelBoostLever.LightModelRenderer.gameObject);
+                        Object.DontDestroyOnLoad(ship.WarpFuelBoostLever.CapsuleMeshRenderer.gameObject);
                         fuelboard.transform.SetParent(newinterior.transform, true);
                         fuelboard.transform.position = new Vector3(369.5135f, -384.2985f, 1391.068f);
                         fuelboard.transform.rotation = new Quaternion(0, 0.2346f, 0, 0.9721f);
+                        Object.DontDestroyOnLoad(fuelboard.gameObject);
                         if (fueldecal != null)
                         {
                             fueldecal.transform.SetParent(newinterior.transform, true);
                             fueldecal.transform.position = new Vector3(369.9951f, -383.163f, 1391.209f);
                             fueldecal.transform.rotation = new Quaternion(0, 0.2233f, 0, 0.9748f);
+                            Object.DontDestroyOnLoad(fueldecal.gameObject);
                         }
                     }
                     //Ship power switches
@@ -979,17 +993,27 @@ namespace The_Flagship
                     ship.DialogueTextBG.transform.position = new Vector3(-2.7849f, -259 + verticalOffset, -321.5387f);
                     ship.DialogueTextBG.transform.rotation = new Quaternion(0.0861f, 0.2357f, 0.0244f, -0.9672f);
                     //Add new teleporter locations
-                    ship.MyTLI.AllTTIs[0].transform.SetParent(newinterior.transform, true);
-                    ship.MyTLI.AllTTIs[0].transform.position = new Vector3(425.1f, -430, 1729.7f);
+                    teleporter.transform.SetParent(newbridge.transform);
+                    teleporter.transform.localPosition = new Vector3(-0.0796f, -0.4744f, -0.8232f);
+                    teleporter.transform.rotation = Quaternion.Euler(0,125,0);
+                    teleporter.layer = newinterior.layer;
+                    Object.DontDestroyOnLoad(teleporter);
+                    ship.MyTLI.AllTTIs[0].transform.SetParent(newbridge.transform, true);
+                    ship.MyTLI.AllTTIs[0].transform.localPosition = new Vector3(-0.0011f, -0.1483f, -0.5128f);
+                    ship.MyTLI.AllTTIs[0].MyInterior = newbridge.GetComponent<PLInterior>();
                     GameObject newtp = Object.Instantiate(ship.MyTLI.AllTTIs[0].gameObject, new Vector3(355.8f, -441.5f, 1479.2f), ship.MyTLI.AllTTIs[0].transform.rotation);
                     GameObject newtp2 = Object.Instantiate(ship.MyTLI.AllTTIs[0].gameObject, new Vector3(347.5f, -442f, 1662.4f), ship.MyTLI.AllTTIs[0].transform.rotation);
                     Object.DontDestroyOnLoad(newtp);
                     Object.DontDestroyOnLoad(newtp2);
+                    newtp.transform.SetParent(newinterior.transform,true);
+                    newtp2.transform.SetParent(newinterior.transform, true);
+                    teleporter.transform.SetParent(newbridge.transform);
+                    
                     PLTeleportationTargetInstance[] newtargets = new PLTeleportationTargetInstance[3];
                     newtargets[0] = ship.MyTLI.AllTTIs[0];
                     newtargets[1] = newtp.GetComponent<PLTeleportationTargetInstance>();
                     newtargets[2] = newtp2.GetComponent<PLTeleportationTargetInstance>();
-                    newtargets[0].TeleporterTargetName = "Capitan Room";
+                    newtargets[0].TeleporterTargetName = "Bridge";
                     newtargets[1].TeleporterTargetName = "Reactor";
                     newtargets[2].TeleporterTargetName = "Bar";
                     ship.MyTLI.AllTTIs = newtargets;
@@ -1543,7 +1567,7 @@ namespace The_Flagship
             cameraObj.name = "cameraObjEngine";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(370, -368, 1396);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(2.6799f, 202.9273f, 347.157f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(36.4804f, 202.9273f, 357.963f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1784,7 +1808,7 @@ namespace The_Flagship
             cameraObj.name = "cameraObjLeftCrew";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(472.9999f, -418, 1734);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(349.226f, 201.6911f, 350.6112f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(25.226f, 201.6911f, 350.6112f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1818,7 +1842,7 @@ namespace The_Flagship
             cameraObj.name = "cameraObjRightCrew";
             cameraObj.transform.SetParent(newinterior.transform,true);
             cameraObj.transform.position = new Vector3(242.5644f, -417.9845f, 1733.999f);
-            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(347.0442f, 173.6911f, 1.8838f));
+            cameraObj.transform.localRotation = Quaternion.Euler(new Vector3(25.0442f, 173.6911f, 1.8838f));
             cameraObj.layer = newbridge.layer;
             camerasRenders.Add(cameraObj.GetComponent<MeshRenderer>());
             cameraObj.GetComponent<BoxCollider>().enabled = false;
@@ -1997,7 +2021,7 @@ namespace The_Flagship
                 EngineToScrapOjb.transform.SetParent(newinterior.transform);
                 GameObject ScrapToEngineOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(469.2f, -399.4f, 1485.9f), new Quaternion(0, 0.7061f, 0, 0.7081f));
                 Object.DontDestroyOnLoad(ScrapToEngineOjb);
-                EngineToScrapOjb.transform.SetParent(newinterior.transform);
+                ScrapToEngineOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor ScrapToEngine = ScrapToEngineOjb.GetComponent<PLInteriorDoor>();
                 if (EngineToScrap != null && ScrapToEngine != null)
                 {
@@ -2030,7 +2054,7 @@ namespace The_Flagship
                 PLInteriorDoor ScienceToSweeper = ScienceToSweepOjb.GetComponent<PLInteriorDoor>();
                 GameObject SweepToScienceOjb = Object.Instantiate(BridgeToCaptain.gameObject, new Vector3(466.7552f, - 430.5315f, 1541.789f), new Quaternion(0, 0.7071f, 0, -0.7071f));
                 Object.DontDestroyOnLoad(SweepToScienceOjb);
-                BridgeToEngineOjb.transform.SetParent(newbridge.transform);
+                SweepToScienceOjb.transform.SetParent(newinterior.transform);
                 PLInteriorDoor SweepToScience = SweepToScienceOjb.GetComponent<PLInteriorDoor>();
                 if (ScienceToSweeper != null && SweepToScience != null)
                 {
@@ -2038,8 +2062,6 @@ namespace The_Flagship
                     ScienceToSweeper.VisibleName = "Cyber";
                     SweepToScience.TargetDoor = ScienceToSweeper;
                     SweepToScience.VisibleName = "Science";
-                    SweepToScience.MyInterior = CapitanToBridge.MyInterior;
-                    SweepToScience.IsEntrance = true;
                     //SweepToScience.MyInterior = BridgeToCaptain.MyInterior;
                 }
             }
@@ -2131,8 +2153,8 @@ namespace The_Flagship
             }
             if (tpscreen != null)
             {
-                tpscreen.gameObject.transform.position = new Vector3(427.7254f, -429.5034f, 1729.931f);
-                tpscreen.gameObject.transform.rotation = new Quaternion(0, 0.7071f, 0, -0.7071f);
+                tpscreen.transform.position = new Vector3(-0.5127f, - 260.0911f + verticalOffset, -409.2727f);
+                tpscreen.transform.rotation = Quaternion.Euler(0,180,0);
                 if (clonedScreen != null)
                 {
                     GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(357.3508f, -441.1491f, 1481.12f), new Quaternion(0, 0.9239f, 0, -0.3827f));
@@ -2225,6 +2247,14 @@ namespace The_Flagship
                 reactorscreen.transform.position = new Vector3(-0.3147f, -260.276f + verticalOffset, -327.1871f);
                 reactorscreen.transform.rotation = new Quaternion(0, 0.0776f, 0, -0.997f);
                 reactorscreen.gameObject.name = "cloned reactor";
+                foreach (UILabel label in reactorscreen.AllLabels) 
+                {
+                    if (label.text == "Shields") 
+                    {
+                        label.text = "Powered Armor";
+                        break;
+                    }
+                }
                 if (clonedScreen != null)
                 {
                     GameObject teleport1 = Object.Instantiate(clonedScreen.gameObject, new Vector3(361.3329f, -383.2109f, 1373.86f), new Quaternion(0, 0.3868f, 0, 0.9222f));
@@ -2262,27 +2292,27 @@ namespace The_Flagship
 
                 coolantscreen.transform.position = new Vector3(0.6817f, -260.276f + verticalOffset, -326.9217f);
                 coolantscreen.transform.rotation = new Quaternion(0, 0.2374f, 0, -0.9714f);
-                GameObject temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(379.5182f, -399.564f, 1731.114f), new Quaternion(0, 0.7071f, 0, 0.7071f));
-                Object.DontDestroyOnLoad(temperature);
-                foreach (Transform transform in temperature.transform)
+                GameObject powerOptimizer = Object.Instantiate(coolantscreen.gameObject, new Vector3(353.2778f, -383.1746f, 1368.981f), Quaternion.Euler(0,255,0));
+                Object.DontDestroyOnLoad(powerOptimizer);
+                foreach (Transform transform in powerOptimizer.transform)
                 {
                     Object.DestroyImmediate(transform.gameObject);
                 }
-                Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
-                PLTemperatureScreen temperatureScreen = temperature.AddComponent<PLTemperatureScreen>();
-                temperatureScreen.Engage();
-                Mod.moddedScreens.Add(temperature);
+                Object.Destroy(powerOptimizer.GetComponent<PLEngineerCoolantScreen>());
+                PLPowerDistributorScreen powerScreen = powerOptimizer.AddComponent<PLPowerDistributorScreen>();
+                powerScreen.Engage();
+                Mod.moddedScreens.Add(powerOptimizer);
 
-                temperature = Object.Instantiate(coolantscreen.gameObject, new Vector3(353.223f, -383.2109f, 1371.455f), new Quaternion(0, 0.5991f, 0, -0.8007f));
-                Object.DontDestroyOnLoad(temperature);
-                foreach (Transform transform in temperature.transform)
+                powerOptimizer = Object.Instantiate(coolantscreen.gameObject, new Vector3(353.223f, -383.2109f, 1371.455f), new Quaternion(0, 0.5991f, 0, -0.8007f));
+                Object.DontDestroyOnLoad(powerOptimizer);
+                foreach (Transform transform in powerOptimizer.transform)
                 {
                     Object.DestroyImmediate(transform.gameObject);
                 }
-                Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
-                PLArmorBonusScreen armorScreen = temperature.AddComponent<PLArmorBonusScreen>();
+                Object.Destroy(powerOptimizer.GetComponent<PLEngineerCoolantScreen>());
+                PLArmorBonusScreen armorScreen = powerOptimizer.AddComponent<PLArmorBonusScreen>();
                 armorScreen.Engage();
-                Mod.moddedScreens.Add(temperature);
+                Mod.moddedScreens.Add(powerOptimizer);
                 //Object.Destroy(temperature.GetComponent<PLEngineerCoolantScreen>());
                 /*
                 GameObject test = Object.Instantiate(coolantscreen.gameObject, new Vector3(-9, -261, -323), new Quaternion(0, 0.3755f, 0, -0.9268f));
@@ -2424,6 +2454,7 @@ namespace The_Flagship
             newinterior.transform.GetChild(0).localPosition = new Vector3(-117, 22.6f, 7);
             newinterior.GetComponentInChildren<PLPlanetAStarConnection>().TLI = ship.MyTLI;
             newinterior.GetComponentInChildren<PLPlanetAStarConnection>().DataPath = "Assets/Resources/Navgraphs/AOG_HUB_NAVGRAPH.bytes";
+            
             //Matrix4x4 oldMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().SavedLoc, Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one);
             Matrix4x4 oldMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position + new Vector3(400, -400, 1500), Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
             Matrix4x4 newMat = Matrix4x4.TRS(newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.position + new Vector3(400, -400, 1500) + new Vector3(400, -400, 1500), Quaternion.identity, Vector3.one) * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.localScale) * Matrix4x4.TRS(Vector3.zero, newinterior.GetComponentInChildren<PLPlanetAStarConnection>().transform.rotation, Vector3.one);
@@ -2495,12 +2526,7 @@ namespace The_Flagship
             ship.CargoBases = cargo.ToArray();
             ship.MyStats.Mass = 4620;
             ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CARGO, ship.CargoBases.Length);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 9);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 8);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 6);
-            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            SetComponents(ship);
             ship.FactionID = 2;
             ship.SensorDishCollectingScrapRange = 1800;
             ship.InteriorShipLights.RemoveAll((Light light) => light == null);
@@ -2520,52 +2546,7 @@ namespace The_Flagship
             powerPercent.AddRangeToArray(ship.m_SysIntConduit_LocalChangeValue);
             powerPercent[16] = 0;
             ship.m_SysIntConduit_LocalChangeValue = powerPercent;
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count == 2 && PhotonNetwork.isMasterClient)
-            {
-                for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
-            }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count == 1 && PhotonNetwork.isMasterClient)
-            {
-                for (int i = 0; i < 7; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(25, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_INERTIA_THRUSTER);
-            }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Count == 1 && PhotonNetwork.isMasterClient)
-            {
-                for (int i = 0; i < 5; i++) ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(26, 0, 2, 0, 12), null), -1, ESlotType.E_COMP_MANEUVER_THRUSTER);
-            }
-            if (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count == 2 && PhotonNetwork.isMasterClient)
-            {
-                while (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count > 0) 
-                {
-                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET)[0]);
-                }
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
-            }
-            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0] != null && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].SubType != PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"))
-            {
-                ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0]);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
-            }
-            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count == 0) 
-            {
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
-            }
-            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0].SubType != PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"))
-            {
-                ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0]);
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
-            }
-            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count == 0)
-            {
-                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
-            }
-            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_MAINTURRET, true);
-            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, true);
-            if (PLServer.Instance.CrewFactionID == -1)
+            if (PLServer.Instance.CrewFactionID != 2)
             {
                 PLServer.Instance.RepLevels[2] = 5;
                 PLServer.Instance.CrewFactionID = 2;
@@ -2703,6 +2684,81 @@ namespace The_Flagship
             }
             await Task.Delay(100 * drones.Count);
             
+        }
+        static void SetComponents(PLShipInfo ship) 
+        {
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_MAINTURRET, true);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_HULL, true);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_CPU, 12);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TURRET, 6);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_SENS, 4);
+            ship.MyStats.SetSlotLimit(ESlotType.E_POWERED_ARMOR, 1);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_TRACKERMISSILE, 3);
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count > 1 && PhotonNetwork.isMasterClient)
+            {
+                while (ship.MyStats.GetSlot(ESlotType.E_COMP_THRUSTER).Count > 0)
+                {
+                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_THRUSTER)[0]);
+                }
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(9, PulsarModLoader.Content.Components.Thruster.ThrusterModManager.Instance.GetThrusterIDFromName("The Flagship's Thrusters"), 0, 0, 12), null), -1, ESlotType.E_COMP_THRUSTER);
+            }
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count > 0 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_INERTIA_THRUSTER)[0].SubType != PulsarModLoader.Content.Components.InertiaThruster.InertiaThrusterModManager.Instance.GetInertiaThrusterIDFromName("The Flagship's Inertia Thrusters") && PhotonNetwork.isMasterClient)
+            {
+                while (ship.MyStats.GetSlot(ESlotType.E_COMP_INERTIA_THRUSTER).Count > 0)
+                {
+                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_INERTIA_THRUSTER)[0]);
+                }
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(25, PulsarModLoader.Content.Components.InertiaThruster.InertiaThrusterModManager.Instance.GetInertiaThrusterIDFromName("The Flagship's Inertia Thrusters"), 0, 0, 12), null), -1, ESlotType.E_COMP_INERTIA_THRUSTER);
+            }
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Count > 0 && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MANEUVER_THRUSTER)[0].SubType != PulsarModLoader.Content.Components.ManeuverThruster.ManeuverThrusterModManager.Instance.GetManeuverThrusterIDFromName("The Flagship's Maneuver Thrusters") && PhotonNetwork.isMasterClient)
+            {
+                while (ship.MyStats.GetSlot(ESlotType.E_COMP_MANEUVER_THRUSTER).Count > 0)
+                {
+                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MANEUVER_THRUSTER)[0]);
+                }
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(26, PulsarModLoader.Content.Components.ManeuverThruster.ManeuverThrusterModManager.Instance.GetManeuverThrusterIDFromName("The Flagship's Maneuver Thrusters"), 0, 0, 12), null), -1, ESlotType.E_COMP_MANEUVER_THRUSTER);
+            }
+            if (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count == 2 && PhotonNetwork.isMasterClient)
+            {
+                while (ship.MyStats.GetSlot(ESlotType.E_COMP_TURRET).Count > 0)
+                {
+                    ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_TURRET)[0]);
+                }
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 2, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(10, 6, 1, 0, 12), null), -1, ESlotType.E_COMP_TURRET);
+            }
+            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0] != null && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0].SubType != PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"))
+            {
+                ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false)[0]);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
+            }
+            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_MAINTURRET, false).Count == 0)
+            {
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(11, PulsarModLoader.Content.Components.MegaTurret.MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret"), 0, 0, 12), null), -1, ESlotType.E_COMP_MAINTURRET);
+            }
+            if (ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count > 0 && PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0].SubType != PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"))
+            {
+                ship.MyStats.RemoveShipComponent(ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false)[0]);
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
+            }
+            else if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_COMP_HULL, false).Count == 0)
+            {
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(6, PulsarModLoader.Content.Components.Hull.HullModManager.Instance.GetHullIDFromName("W.D Flagship Hull"), 0, 0, 12), null), -1, ESlotType.E_COMP_HULL);
+            }
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_THRUSTER, true);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_THRUSTER, 1);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_MANEUVER_THRUSTER, true);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_MANEUVER_THRUSTER, 1);
+            ship.MyStats.SetSlot_IsLocked(ESlotType.E_COMP_INERTIA_THRUSTER, true);
+            ship.MyStats.SetSlotLimit(ESlotType.E_COMP_INERTIA_THRUSTER, 1);
+            if (PhotonNetwork.isMasterClient && ship.MyStats.GetComponentsOfType(ESlotType.E_POWERED_ARMOR, false).Count == 0) 
+            {
+                ship.MyStats.AddShipComponent(PLShipComponent.CreateShipComponentFromHash((int)PLShipComponent.createHashFromInfo(35, 0, 0, 0, 12), null), -1, ESlotType.E_POWERED_ARMOR);
+            }
         }
     }
 }

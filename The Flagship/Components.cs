@@ -1,5 +1,8 @@
 ﻿using PulsarModLoader.Content.Components.MegaTurret;
 using PulsarModLoader.Content.Components.Hull;
+using PulsarModLoader.Content.Components.Thruster;
+using PulsarModLoader.Content.Components.InertiaThruster;
+using PulsarModLoader.Content.Components.ManeuverThruster;
 using UnityEngine;
 
 namespace The_Flagship
@@ -26,65 +29,102 @@ namespace The_Flagship
 
             public override float Armor => 2.2f;
         }
-    }
-    class FlagShipMainTurret : PLMegaTurret
-    {
-        public FlagShipMainTurret(int inLevel = 0) : base(inLevel)
+        class FlagShipMainTurret : PLMegaTurret
         {
-            Level = inLevel;
-            SubType = MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret");
-            Name = "The Hullrender";
-            Desc = "This monster of a turret will melt the hull of most ships that becomes it's target, but at the price of extemely slow charge and high power usage";
-            BeamColor = Color.green;
-            m_Damage = 1700f;
-            TurretRange = 50000f;
-            m_MaxPowerUsage_Watts = 25000f;
-            FireDelay = 25f;
-            m_MarketPrice = 29000;
-            HeatGeneratedOnFire = 0.5f;
-            CoolingRateModifier *= 0.5f;
-            HasPulseLaser = false;
-            HasTrackingMissileCapability = false;
-            CanBeDroppedOnShipDeath = false;
-        }
-        protected override string GetTurretPrefabPath()
-        {
-            return "NetworkPrefabs/Component_Prefabs/CorruptedLaserTurret";
-        }
-        public override void Tick()
-        {
-            base.Tick();
-            m_MaxPowerUsage_Watts = 25000f * LevelMultiplier(0.2f, 1f);
-            if (TurretInstance != null && TurretInstance.OptionalGameObjects[1] != null)
+            public FlagShipMainTurret(int inLevel = 0) : base(inLevel)
             {
-                bool flag = ChargeAmount > 0.7f;
-                GameObject gameObject = TurretInstance.OptionalGameObjects[1];
-                if (!IsFiring && flag)
+                Level = inLevel;
+                SubType = MegaTurretModManager.Instance.GetMegaTurretIDFromName("TheFlagship_FlagShipMainTurret");
+                Name = "The Hullrender";
+                Desc = "This monster of a turret will melt the hull of most ships that becomes it's target, but at the price of extemely slow charge and high power usage";
+                BeamColor = Color.green;
+                m_Damage = 1700f;
+                TurretRange = 50000f;
+                m_MaxPowerUsage_Watts = 25000f;
+                FireDelay = 25f;
+                m_MarketPrice = 29000;
+                HeatGeneratedOnFire = 0.5f;
+                CoolingRateModifier *= 0.5f;
+                HasPulseLaser = false;
+                HasTrackingMissileCapability = false;
+                CanBeDroppedOnShipDeath = false;
+            }
+            protected override string GetTurretPrefabPath()
+            {
+                return "NetworkPrefabs/Component_Prefabs/CorruptedLaserTurret";
+            }
+            public override void Tick()
+            {
+                base.Tick();
+                m_MaxPowerUsage_Watts = 25000f * LevelMultiplier(0.2f, 1f);
+                if (TurretInstance != null && TurretInstance.OptionalGameObjects[1] != null)
                 {
-                    Ray ray = new Ray(TurretInstance.FiringLoc.position, TurretInstance.FiringLoc.forward);
-                    RaycastHit raycastHit = default(RaycastHit);
-                    int layerMask = 524289;
-                    if (Physics.SphereCast(ray, 1f, out raycastHit, 20000f, layerMask))
+                    bool flag = ChargeAmount > 0.7f;
+                    GameObject gameObject = TurretInstance.OptionalGameObjects[1];
+                    if (!IsFiring && flag)
                     {
-                        LaserDist = (raycastHit.point - TurretInstance.FiringLoc.position).magnitude * (1f / TurretInstance.transform.parent.lossyScale.x);
+                        Ray ray = new Ray(TurretInstance.FiringLoc.position, TurretInstance.FiringLoc.forward);
+                        RaycastHit raycastHit = default(RaycastHit);
+                        int layerMask = 524289;
+                        if (Physics.SphereCast(ray, 1f, out raycastHit, 20000f, layerMask))
+                        {
+                            LaserDist = (raycastHit.point - TurretInstance.FiringLoc.position).magnitude * (1f / TurretInstance.transform.parent.lossyScale.x);
+                        }
+                        else
+                        {
+                            LaserDist = 20000f;
+                        }
                     }
-                    else
+                    if (gameObject != null)
                     {
-                        LaserDist = 20000f;
-                    }
-                }
-                if (gameObject != null)
-                {
-                    float num = Mathf.Min(50000f, LaserDist);
-                    gameObject.transform.localPosition = new Vector3(0f, 0f, num * 0.5f);
-                    Mathf.Abs(0.2f);
-                    gameObject.transform.localScale = new Vector3(1f, num * 0.5f, 1f);
-                    if (gameObject.activeSelf != flag)
-                    {
-                        gameObject.SetActive(flag);
+                        float num = Mathf.Min(50000f, LaserDist);
+                        gameObject.transform.localPosition = new Vector3(0f, 0f, num * 0.5f);
+                        Mathf.Abs(0.2f);
+                        gameObject.transform.localScale = new Vector3(1f, num * 0.5f, 1f);
+                        if (gameObject.activeSelf != flag)
+                        {
+                            gameObject.SetActive(flag);
+                        }
                     }
                 }
             }
         }
+        class FlagShipThrusters : ThrusterMod
+        {
+            public override string Name => "The Flagship's Thrusters";
+
+            public override string Description => "This combined set of 13 thrusters is said the glow so brightly it can be seen from the planet's surface.";
+
+            public override int MarketPrice => 18000;
+
+            public override float MaxOutput => 3.5f;
+
+            public override float MaxPowerUsage_Watts => 15000;
+        }
+        class FlagShipManeuver : ManeuverThrusterMod 
+        {
+            public override string Name => "The Flagship's Maneuver Thrusters";
+
+            public override string Description => "Rumors say that this thrusters where used to move space stations before been inplanted into the flagship.";
+
+            public override int MarketPrice => 11000;
+
+            public override float MaxOutput => 0.8f;
+
+            public override float MaxPowerUsage_Watts => 18000;
+        }
+        class FlagShipInertia : InertiaThrusterMod 
+        {
+            public override string Name => "The Flagship's Inertia Thrusters";
+
+            public override string Description => "Saddly this thrusters are too big for normal ships, otherwise they would be able to spin at the speed of light!";
+
+            public override int MarketPrice => 21000;
+
+            public override float MaxOutput => 7f;
+
+            public override float MaxPowerUsage_Watts => 30000;
+        }
     }
+    
 }
